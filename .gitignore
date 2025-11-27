@@ -1,66 +1,61 @@
-# Compiled class file
-*.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
-# --- SISTEMA OPERATIVO Y EDITORES ---
+# ===========================
+#        GLOBAL
+# ===========================
+# Archivos de sistema y claves secretas
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-
-# --- ARCHIVOS SECRETOS (MUY IMPORTANTE) ---
-# Nunca subas tus claves API o contraseñas
 .env
-.env.local
-*.env
+.env*.local
+*.pem
 
-# --- FRONTEND (React Native / Expo) ---
+# Dependencias (Ignora node_modules en frontend y backend)
 node_modules/
+
+# ===========================
+#   FRONTEND (React Native)
+# ===========================
+# Expo
 .expo/
 dist/
 web-build/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-# Carpetas generadas por Expo/Metro
-.metro-health-check*
+expo-env.d.ts
 
-# --- BACKEND (Python) ---
-# Archivos compilados y caché
+# Native (Carpetas generadas automáticamente)
+# Quitamos la barra del inicio '/' para que las detecte dentro de 'frontend/'
+ios/
+android/
+
+# Archivos nativos y claves
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro & Debug
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# TypeScript
+*.tsbuildinfo
+
+# ===========================
+#     BACKEND (Python)
+# ===========================
+# Archivos compilados y caché (CRUCIAL para Python)
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Entornos virtuales (nombre común de la carpeta)
+# Entornos virtuales
 venv/
 env/
 .venv/
-myenv/
 
-# Bases de datos locales (opcional, si usas SQLite)
+# Bases de datos locales (si usas SQLite)
 *.sqlite3
 *.db
-
-# --- CUALQUIER OTRA CARPETA node_modules ---
-# Esto asegura que si se te cuela una en el backend, git la ignore
-**/node_modules/
