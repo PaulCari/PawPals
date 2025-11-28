@@ -25,7 +25,6 @@ from sqlalchemy.orm import Session, joinedload
 from models import Cliente, Especie, RegistroMascota, PedidoEspecializado, AlergiaMascota, AlergiaEspecie, CondicionSalud, RecetaMedica
 import os
 from datetime import datetime
-import pdb # <--- LÍNEA AÑADIDA PARA EL DEBUGGER
 
 router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 
@@ -77,7 +76,8 @@ def listar_mascotas_cliente(
 # POST /cliente/mascotas/{cliente_id}
 # ---------------------------------------------------------------------------
 # Registra una nueva mascota para el cliente.
-# Campos: nombre, especie_id, raza, edad. La foto se asigna automáticamente.
+# Campos: nombre, especie_id, raza, edad, sexo, cambio_edad
+# La foto se asigna automáticamente según la especie.
 @router.post("/{cliente_id}")
 def registrar_mascota(
     cliente_id: str,
@@ -85,22 +85,33 @@ def registrar_mascota(
     especie_id: str = Form(...),
     raza: str = Form(...),
     edad: int = Form(...),
+    sexo: str = Form(..., description="Sexo de la mascota: M (macho) o H (hembra)"),
     db: Session = Depends(get_db),
 ):
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
     especie = db.query(Especie).filter(Especie.id == especie_id).first()
     if not especie:
         raise HTTPException(status_code=404, detail="Especie no encontrada.")
+    
+    # Validar sexo
+    if sexo not in ['M', 'H']:
+        raise HTTPException(status_code=400, detail="El sexo debe ser 'M' (macho) o 'H' (hembra).")
+    
     mascota_id = keygen.generate_uint64_key()
     especie_nombre = especie.nombre.lower()
+    
+    # Asignar foto según especie
     if "perro" in especie_nombre:
         foto_path = os.path.join(globals.MASCOTA, "perro.png")
     elif "gato" in especie_nombre:
         foto_path = os.path.join(globals.MASCOTA, "gato.png")
     else:
         foto_path = os.path.join(globals.MASCOTA, "default.png")
+    
+    # Crear mascota con todos los campos requeridos
     mascota = RegistroMascota(
         id=mascota_id,
         cliente_id=cliente_id,
@@ -108,16 +119,22 @@ def registrar_mascota(
         especie_id=especie_id,
         raza=raza,
         edad=edad,
+        sexo=sexo,
+        cambio_edad=datetime.now().date(),  # Fecha actual
         foto=foto_path,
         estado_registro="A",
     )
 
-    pdb.set_trace()
-
-    print(f"Intentando acceder a un atributo inexistente: {mascota.nombre_cientifico}")
+    # ✅ LÍNEA CORREGIDA: Eliminamos el acceso al atributo inexistente
+    # La línea problemática era:
+    # print(f"Intentando acceder a un atributo inexistente: {mascota.nombre_cientifico}")
+    
+    # En su lugar, imprimimos información válida:
+    print(f"Registrando mascota: {mascota.nombre}, especie: {especie.nombre}, ID: {mascota_id}")
 
     db.add(mascota)
     db.commit()
+    
     return {
         "mensaje": "Mascota registrada exitosamente.",
         "mascota": {
@@ -126,6 +143,7 @@ def registrar_mascota(
             "especie": especie.nombre,
             "raza": mascota.raza,
             "edad": mascota.edad,
+            "sexo": mascota.sexo,
             "foto": mascota.foto,
         },
     }
