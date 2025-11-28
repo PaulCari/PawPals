@@ -1,48 +1,80 @@
 // Archivo: screens/RegisterScreen.js
 
 import React, { useState, useEffect } from 'react';
-// Importamos 'Alert' para mostrar mensajes al usuario
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Picker } from 'react-native';
 import AuthContainer from '../components/AuthContainer.js';
 import { styles } from '../styles/registerScreenStyles';
-// Importamos nuestra función 'register' del servicio
 import { register } from '../services/authService';
+import { createPet, getSpecies } from '../services/petService';
 
 const RegisterScreen = ({ navigation }) => {
   const [step, setStep] = useState(1);
 
   // Estados para el formulario de USUARIO
-  const [correo, setcorreo] = useState('');
+  const [correo, setCorreo] = useState('');
   const [nombre, setNombre] = useState('');
-  const [contrasena, setcontrasena] = useState('');
-  const [confirmcontrasena, setConfirmcontrasena] = useState('');
-  const [contrasenaError, setcontrasenaError] = useState('');
-  const [correoError, setcorreoError] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [confirmContrasena, setConfirmContrasena] = useState('');
+  const [contrasenaError, setContrasenaError] = useState('');
+  const [correoError, setCorreoError] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Estado para feedback de carga
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Estados para el formulario de MASCOTA
+  //  Estados para el formulario de MASCOTA
   const [petName, setPetName] = useState('');
-  const [petType, setPetType] = useState('');
+  const [petType, setPetType] = useState(''); // ID de la especie
   const [breed, setBreed] = useState('');
   const [age, setAge] = useState('');
+  const [petSex, setPetSex] = useState('M'); // M = macho, H = hembra
+  const [especies, setEspecies] = useState([]); // Lista de especies del backend
+  const [clienteId, setClienteId] = useState(null); // ID del usuario registrado
+
+  //  Cargar especies disponibles al montar el componente
+  useEffect(() => {
+    const loadSpecies = async () => {
+      try {
+        const speciesData = await getSpecies();
+        setEspecies(speciesData);
+        // Seleccionar la primera especie por defecto si existe
+        if (speciesData.length > 0) {
+          setPetType(speciesData[0].id);
+        }
+      } catch (error) {
+        console.error('Error cargando especies:', error);
+      }
+    };
+    loadSpecies();
+  }, []);
 
   useEffect(() => {
-    if (confirmcontrasena.length > 0) {
-      setcontrasenaError(contrasena !== confirmcontrasena ? 'Las contraseñas no coinciden.' : '¡Las contraseñas coinciden!');
+    if (confirmContrasena.length > 0) {
+      setContrasenaError(
+        contrasena !== confirmContrasena 
+          ? 'Las contraseñas no coinciden.' 
+          : '¡Las contraseñas coinciden!'
+      );
     } else {
-      setcontrasenaError('');
+      setContrasenaError('');
     }
-  }, [contrasena, confirmcontrasena]);
+  }, [contrasena, confirmContrasena]);
 
   useEffect(() => {
-    const isValid = nombre.length > 0 && correo.length > 0 && contrasena.length > 6 && correoError === '' && contrasena === confirmcontrasena;
+    const isValid = 
+      nombre.length > 0 && 
+      correo.length > 0 && 
+      contrasena.length > 6 && 
+      correoError === '' && 
+      contrasena === confirmContrasena;
     setIsFormValid(isValid);
-  }, [nombre, correo, contrasena, confirmcontrasena, correoError]);
+  }, [nombre, correo, contrasena, confirmContrasena, correoError]);
 
-  const validatecorreo = () => {
+  const validateCorreo = () => {
     const correoRegex = /\S+@\S+\.\S+/;
-    setcorreoError(correo.length > 0 && !correoRegex.test(correo) ? 'Por favor, introduce un e-mail válido.' : '');
+    setCorreoError(
+      correo.length > 0 && !correoRegex.test(correo) 
+        ? 'Por favor, introduce un e-mail válido.' 
+        : ''
+    );
   };
 
   const handleNextStep = () => {
@@ -51,11 +83,12 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
+  //  FUNCIÓN CORREGIDA: Ahora registra usuario Y mascota
   const handleFinishRegistration = async () => {
-    // Prevenir doble clic
     if (isLoading) return;
     setIsLoading(true);
 
+    // Datos del usuario
     const userData = {
       nombre,
       correo,
@@ -63,38 +96,113 @@ const RegisterScreen = ({ navigation }) => {
     };
 
     try {
-      // Llamamos a nuestro servicio de registro
-      const response = await register(userData);
+      // 1️⃣ REGISTRAR USUARIO
+      console.log('📝 Registrando usuario...');
+      const userResponse = await register(userData);
+      console.log('✅ Usuario registrado:', userResponse);
+
+      // Extraer el ID del cliente de la respuesta
+      const nuevoClienteId = userResponse.usuario?.id;
       
-      console.log('Respuesta del registro:', response);
-      Alert.alert('¡Éxito!', 'Tu cuenta ha sido creada correctamente.');
-      
-      // Navegamos a la pantalla de éxito
+      if (!nuevoClienteId) {
+        throw new Error('No se pudo obtener el ID del cliente registrado.');
+      }
+
+      setClienteId(nuevoClienteId);
+
+      // 2️⃣ REGISTRAR MASCOTA (si completó el formulario)
+      if (petName && petType && breed && age) {
+        console.log('🐾 Registrando mascota...');
+        
+        const petData = {
+          nombre: petName,
+          especie_id: petType,
+          raza: breed,
+          edad: parseInt(age, 10),
+          sexo: petSex,
+        };
+
+        const petResponse = await createPet(nuevoClienteId, petData);
+        console.log(' Mascota registrada:', petResponse);
+        
+        Alert.alert(
+          '¡Éxito!', 
+          `Tu cuenta y la mascota "${petName}" han sido registradas correctamente.`
+        );
+      } else {
+        Alert.alert(
+          '¡Éxito!', 
+          'Tu cuenta ha sido creada correctamente. Puedes agregar mascotas más tarde.'
+        );
+      }
+
+      // 3️⃣ NAVEGAR A LA PANTALLA DE ÉXITO
       navigation.navigate('Success');
 
     } catch (error) {
-      // Si el backend envía un mensaje de error específico, lo mostramos.
-      // Si no, mostramos un mensaje genérico.
-      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrarse. Inténtalo de nuevo.';
+      console.error('❌ Error en el registro:', error);
+      const errorMessage = 
+        error.response?.data?.detail || 
+        error.message || 
+        'Ocurrió un error al registrarse. Inténtalo de nuevo.';
       Alert.alert('Error de Registro', errorMessage);
     } finally {
-      // Reactivamos el botón
       setIsLoading(false);
     }
-    // Nota: La lógica para registrar la mascota se podría añadir aquí en el futuro.
   };
 
+  //  PASO 1: FORMULARIO DE USUARIO
   const renderStepContent = () => {
     if (step === 1) {
       return (
         <>
           <Text style={styles.title}>Registro:</Text>
-          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-          <TextInput style={[styles.input, correo.length > 0 && (correoError ? styles.inputError : styles.inputSuccess)]} placeholder="E-mail" value={correo} onChangeText={setcorreo} keyboardType="email-address" autoCapitalize="none" onBlur={validatecorreo} />
+          <TextInput 
+            style={styles.input} 
+            placeholder="Nombre" 
+            value={nombre} 
+            onChangeText={setNombre} 
+          />
+          <TextInput 
+            style={[
+              styles.input, 
+              correo.length > 0 && (correoError ? styles.inputError : styles.inputSuccess)
+            ]} 
+            placeholder="E-mail" 
+            value={correo} 
+            onChangeText={setCorreo} 
+            keyboardType="email-address" 
+            autoCapitalize="none" 
+            onBlur={validateCorreo} 
+          />
           {correoError ? <Text style={styles.errorMessage}>{correoError}</Text> : null}
-          <TextInput style={styles.input} placeholder="Contraseña (mín. 6 caracteres)" value={contrasena} onChangeText={setcontrasena} secureTextEntry />
-          <TextInput style={[styles.input, confirmcontrasena.length > 0 && (contrasena !== confirmcontrasena ? styles.inputError : styles.inputSuccess)]} placeholder="Repetir Contraseña" value={confirmcontrasena} onChangeText={setConfirmcontrasena} secureTextEntry />
-          {contrasenaError ? <Text style={contrasena === confirmcontrasena ? styles.successMessage : styles.errorMessage}>{contrasenaError}</Text> : null}
+          
+          <TextInput 
+            style={styles.input} 
+            placeholder="Contraseña (mín. 6 caracteres)" 
+            value={contrasena} 
+            onChangeText={setContrasena} 
+            secureTextEntry 
+          />
+          <TextInput 
+            style={[
+              styles.input, 
+              confirmContrasena.length > 0 && 
+              (contrasena !== confirmContrasena ? styles.inputError : styles.inputSuccess)
+            ]} 
+            placeholder="Repetir Contraseña" 
+            value={confirmContrasena} 
+            onChangeText={setConfirmContrasena} 
+            secureTextEntry 
+          />
+          {contrasenaError ? (
+            <Text style={
+              contrasena === confirmContrasena ? styles.successMessage : styles.errorMessage
+            }>
+              {contrasenaError}
+            </Text>
+          ) : null}
+          
           <TouchableOpacity 
             style={[styles.buttonPrimary, !isFormValid && styles.buttonDisabled]} 
             onPress={handleNextStep}
@@ -104,22 +212,78 @@ const RegisterScreen = ({ navigation }) => {
           </TouchableOpacity>
         </>
       );
-    } else if (step === 2) {
+    } 
+    
+    //  PASO 2: FORMULARIO DE MASCOTA (MEJORADO)
+    else if (step === 2) {
       return (
         <>
           <Text style={styles.title}>Añade tu Mascota:</Text>
-          <TextInput style={styles.input} placeholder="Nombre de la mascota" value={petName} onChangeText={setPetName} />
-          <TextInput style={styles.input} placeholder="Tipo de mascota (ej. Perro, Gato)" value={petType} onChangeText={setPetType} />
-          <TextInput style={styles.input} placeholder="Raza" value={breed} onChangeText={setBreed} />
-          <TextInput style={styles.input} placeholder="Edad" value={age} onChangeText={setAge} keyboardType="numeric" />
+          
+          <TextInput 
+            style={styles.input} 
+            placeholder="Nombre de la mascota" 
+            value={petName} 
+            onChangeText={setPetName} 
+          />
+
+          {/* Selector de Especie */}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.label}>Tipo de mascota:</Text>
+            <Picker
+              selectedValue={petType}
+              onValueChange={(itemValue) => setPetType(itemValue)}
+              style={styles.picker}
+            >
+              {especies.map((especie) => (
+                <Picker.Item 
+                  key={especie.id} 
+                  label={especie.nombre} 
+                  value={especie.id} 
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <TextInput 
+            style={styles.input} 
+            placeholder="Raza" 
+            value={breed} 
+            onChangeText={setBreed} 
+          />
+          
+          <TextInput 
+            style={styles.input} 
+            placeholder="Edad (años)" 
+            value={age} 
+            onChangeText={setAge} 
+            keyboardType="numeric" 
+          />
+
+          {/* Selector de Sexo */}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.label}>Sexo:</Text>
+            <Picker
+              selectedValue={petSex}
+              onValueChange={(itemValue) => setPetSex(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Macho" value="M" />
+              <Picker.Item label="Hembra" value="H" />
+            </Picker>
+          </View>
+
           <View style={styles.buttonRow}>
             <TouchableOpacity 
               style={styles.buttonPrimaryFlex} 
               onPress={handleFinishRegistration}
               disabled={isLoading}
             >
-              <Text style={styles.buttonText}>{isLoading ? 'Guardando...' : 'Guardar'}</Text>
+              <Text style={styles.buttonText}>
+                {isLoading ? 'Guardando...' : 'Guardar'}
+              </Text>
             </TouchableOpacity>
+            
             <TouchableOpacity 
               style={styles.buttonSecondaryFlex} 
               onPress={() => navigation.navigate('Success')}
@@ -136,14 +300,19 @@ const RegisterScreen = ({ navigation }) => {
     <AuthContainer>
       <View style={styles.card}>
         <View style={styles.tabContainer}>
-            <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-                <Text style={styles.activeTabText}>Regístrate</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tab} onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.tabText}>Iniciar sesión</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={[styles.tab, styles.activeTab]}>
+            <Text style={styles.activeTabText}>Regístrate</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.tab} 
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.tabText}>Iniciar sesión</Text>
+          </TouchableOpacity>
         </View>
+        
         {renderStepContent()}
+        
         <View style={styles.progressContainer}>
           <View style={[styles.progressDot, step === 1 && styles.progressDotActive]} />
           <View style={[styles.progressDot, step === 2 && styles.progressDotActive]} />
