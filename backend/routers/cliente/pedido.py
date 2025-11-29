@@ -1,20 +1,5 @@
 """
 RUTAS DEL CLIENTE – PEDIDOS Y PEDIDOS ESPECIALIZADOS
------------------------------------------------------
-Este módulo gestiona todo el flujo de pedidos del cliente, incluyendo la
-creación de pedidos normales y especializados, consulta de historial y
-confirmación de entrega.
-Incluye:
-- Creación de pedidos normales (desde el carrito de compras).
-- Creación y seguimiento de pedidos especializados (con revisión del nutricionista).
-- Consulta de historial y detalles de pedidos.
-- Confirmación de recepción de pedido.
-- Generación y visualización del código QR asociado al pedido.
-Notas:
-- Todos los IDs se manejan como `str` (por uso de BIGINT en la base de datos).
-- Las claves se generan con `utils.keygen.generate_uint64_key()`.
-- Los QR se almacenan y sirven desde `utils.globals.QR`.
-- Las rutas requieren validación del cliente correspondiente.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Body, Form, File, Query
@@ -22,8 +7,13 @@ from datetime import datetime
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente, Direccion, Pedido, DetallePedido, ControlEntrega, PlatoCombinado as Plato, PedidoEspecializado, RegistroMascota, RecetaMedica, AlergiaMascota, DescripcionAlergias, CondicionSalud, PreferenciaAlimentaria
-import os, json
+from models import (
+    Cliente, Direccion, Pedido, DetallePedido, ControlEntrega, 
+    PlatoCombinado, PedidoEspecializado, RegistroMascota, RecetaMedica, 
+    AlergiaMascota, DescripcionAlergias, CondicionSalud, PreferenciaAlimentaria
+)
+import os
+import json
 from typing import Optional
 
 router = APIRouter(prefix="/cliente/pedido", tags=["Pedidos del Cliente"])
@@ -31,9 +21,6 @@ router = APIRouter(prefix="/cliente/pedido", tags=["Pedidos del Cliente"])
 # ---------------------------------------------------------------------------
 # POST /cliente/pedido/{cliente_id}
 # ---------------------------------------------------------------------------
-# Crea un nuevo pedido normal a partir del carrito del cliente.
-# Incluye dirección, lista de platos y total.
-# Retorna el ID del pedido generado.
 @router.post("/{cliente_id}")
 def crear_pedido(
     cliente_id: str,
@@ -76,13 +63,7 @@ def crear_pedido(
     db.add(pedido)
     
     for item in platos:
-        # CÓDIGO CORREGIDO: Eliminamos el debugger y la división por cero
-        # Las líneas problemáticas eran:
-        # pdb.set_trace()
-        # cantidad = item["cantidad"]
-        # subtotal_calculado = (cantidad * 10) / 0  # ¡Error! División por cero.
-        
-        # Código correcto:
+        # ✅ CÓDIGO CORREGIDO: Eliminamos el debugger y la división por cero
         plato_id = item.get("plato_id")
         cantidad = item.get("cantidad", 1)
         precio_unitario = item.get("precio_unitario", 0)
@@ -91,7 +72,7 @@ def crear_pedido(
         subtotal = cantidad * precio_unitario
         
         # Verificar que el plato existe
-        plato = db.query(Plato).filter(Plato.id == plato_id).first()
+        plato = db.query(PlatoCombinado).filter(PlatoCombinado.id == plato_id).first()
         if not plato:
             raise HTTPException(
                 status_code=404, 

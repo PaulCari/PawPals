@@ -1,3 +1,5 @@
+# backend/main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -28,49 +30,41 @@ from routers.admin import (
     subscripciones as admin_subscripciones,
 )
 
-# --- AÑADE ESTAS LÍNEAS PARA CREAR LAS TABLAS ---
-from models import Base  # Importa la Base desde tu models.py
+from models import Base
 
 print("--- Intentando crear tablas en la base de datos 'mascotas'... ---")
 Base.metadata.create_all(bind=engine)
 print("--- Proceso de creación de tablas finalizado. ---")
-# --- FIN DEL CÓDIGO AÑADIDO ---
-
 
 app = FastAPI(title="API Mascota")
 
-# 🟢 Habilitar CORS
+# ✅ CONFIGURACIÓN CRÍTICA DE CORS - DEBE IR ANTES DE CUALQUIER ROUTER
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # dominio del frontend
+    allow_origins=["*"],  # ← Acepta cualquier origen (desarrollo)
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # ← GET, POST, PUT, DELETE, OPTIONS
+    allow_headers=["*"],  # ← Todos los headers
+    expose_headers=["*"]  # ← Expone todos los headers
 )
 
 # Servir archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 🧩 Incluir routers
-# Routers generales
+# Incluir routers
 app.include_router(auth.router)
 app.include_router(nutricionista.router)
 app.include_router(repartidor.router)
-
-# Routers cliente
 app.include_router(platos_mascotas.router)
 app.include_router(cliente.router)
 app.include_router(mascota.router)
 app.include_router(pedido.router)
 app.include_router(perfil.router)
 app.include_router(cliente_subscripciones.router)
-
-# Routers admin
 app.include_router(admin_pedidos.router)
 app.include_router(admin_platos.router)
 app.include_router(admin_repartidores.router)
 app.include_router(admin_subscripciones.router)
-
 
 @app.get("/")
 def root():

@@ -1,21 +1,9 @@
+
 """
 RUTAS DEL CLIENTE – MASCOTAS
 -----------------------------
 Permite al cliente administrar el registro de sus mascotas y sus datos
 vinculados: especie, alergias, condiciones de salud, recetas médicas, etc.
-
-Incluye:
-- Registro, edición y eliminación de mascotas
-- Consulta de detalles individuales
-- Gestión de alergias y condiciones de salud
-- Subida de foto de mascota
-- Visualización de recetas médicas vinculadas
-
-Notas:
-- IDs en formato `str` (por BIGINT).
-- Fotos de mascotas se guardan en utils.globals.MASCOTA.
-- Si no se proporciona foto, usar MASCOTA/perro.png o MASCOTA/gato.png
-  según la especie; si no se sabe, usar default.png.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
@@ -31,8 +19,6 @@ router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 # ---------------------------------------------------------------------------
 # GET /cliente/mascotas/{cliente_id}
 # ---------------------------------------------------------------------------
-# Lista todas las mascotas registradas por el cliente.
-# Incluye especie, edad, peso y foto.
 @router.get("/{cliente_id}")
 def listar_mascotas_cliente(
     cliente_id: str,
@@ -41,14 +27,17 @@ def listar_mascotas_cliente(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
     mascotas = (
         db.query(RegistroMascota)
         .join(Especie)
         .filter(RegistroMascota.cliente_id == cliente_id, RegistroMascota.estado_registro == "A")
         .all()
     )
+    
     if not mascotas:
         return {"mensaje": "El cliente no tiene mascotas registradas."}
+    
     resultado = []
     for m in mascotas:
         especie_nombre = m.especie.nombre if m.especie else "Sin especie"
@@ -61,6 +50,7 @@ def listar_mascotas_cliente(
                 foto = os.path.join(globals.MASCOTA, "default.png")
         else:
             foto = m.foto
+        
         resultado.append({
             "id": str(m.id),
             "nombre": m.nombre,
@@ -70,14 +60,12 @@ def listar_mascotas_cliente(
             "peso": float(m.peso) if m.peso else None,
             "foto": foto,
         })
+    
     return {"total": len(resultado), "mascotas": resultado}
 
 # ---------------------------------------------------------------------------
 # POST /cliente/mascotas/{cliente_id}
 # ---------------------------------------------------------------------------
-# Registra una nueva mascota para el cliente.
-# Campos: nombre, especie_id, raza, edad, sexo, cambio_edad
-# La foto se asigna automáticamente según la especie.
 @router.post("/{cliente_id}")
 def registrar_mascota(
     cliente_id: str,
@@ -120,17 +108,13 @@ def registrar_mascota(
         raza=raza,
         edad=edad,
         sexo=sexo,
-        cambio_edad=datetime.now().date(),  # Fecha actual
+        cambio_edad=datetime.now().date(),
         foto=foto_path,
         estado_registro="A",
     )
-
-    # ✅ LÍNEA CORREGIDA: Eliminamos el acceso al atributo inexistente
-    # La línea problemática era:
-    # print(f"Intentando acceder a un atributo inexistente: {mascota.nombre_cientifico}")
     
-    # En su lugar, imprimimos información válida:
-    print(f"Registrando mascota: {mascota.nombre}, especie: {especie.nombre}, ID: {mascota_id}")
+    # ✅ LÍNEA CORREGIDA: Eliminamos el acceso al atributo inexistente
+    print(f"✅ Registrando mascota: {mascota.nombre}, especie: {especie.nombre}, ID: {mascota_id}")
 
     db.add(mascota)
     db.commit()
@@ -151,8 +135,6 @@ def registrar_mascota(
 # ---------------------------------------------------------------------------
 # GET /cliente/mascotas/detalle/{mascota_id}
 # ---------------------------------------------------------------------------
-# Obtiene los datos completos de una mascota registrada.
-# Incluye especie, edad, alergias, condiciones de salud, recetas y observaciones.
 @router.get("/detalle/{mascota_id}")
 def obtener_detalle_mascota(
     mascota_id: str,
@@ -169,9 +151,12 @@ def obtener_detalle_mascota(
         .filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A")
         .first()
     )
+    
     if not mascota:
         raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
+    
     especie_nombre = mascota.especie.nombre if mascota.especie else "Sin especie"
+    
     if not mascota.foto:
         if "perro" in especie_nombre.lower():
             foto = os.path.join(globals.MASCOTA, "perro.png")
@@ -181,6 +166,7 @@ def obtener_detalle_mascota(
             foto = os.path.join(globals.MASCOTA, "default.png")
     else:
         foto = mascota.foto
+    
     alergias = [
         {
             "id": str(a.id),
@@ -189,6 +175,7 @@ def obtener_detalle_mascota(
         }
         for a in mascota.alergia_mascota
     ]
+    
     condiciones = [
         {
             "id": str(c.id),
@@ -198,6 +185,7 @@ def obtener_detalle_mascota(
         }
         for c in mascota.condicion_salud
     ]
+    
     recetas = [
         {
             "id": str(r.id),
@@ -207,6 +195,7 @@ def obtener_detalle_mascota(
         }
         for r in mascota.receta_medica
     ]
+    
     return {
         "id": str(mascota.id),
         "nombre": mascota.nombre,
