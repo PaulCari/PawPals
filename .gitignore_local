@@ -1,0 +1,32 @@
+# Archivos compilados de Python (NUNCA subir)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Directorios de dependencias
+node_modules/
+*/node_modules/
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo
+.expo/
+dist/
