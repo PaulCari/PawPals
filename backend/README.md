@@ -14,7 +14,7 @@ Este proyecto es el backend de PawPals, construido con FastAPI.
    pip install fastapi uvicorn sqlalchemy
    ```
 ## Cómo correr el backend
-
+    
 1. Abre una terminal en la carpeta `backend`.
 2. Ejecuta el servidor con:
    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
