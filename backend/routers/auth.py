@@ -42,49 +42,98 @@ class LoginRequest(BaseModel):
 # Retorna un token JWT de sesión junto con la información básica del usuario.
 @router.post("/register")
 def register_user(data: RegisterRequest, db: Session = Depends(get_db)):
-    nombre = data.nombre
-    correo = data.correo
-    contrasena = data.contrasena
-    existe = db.query(CuentaUsuario).filter(CuentaUsuario.correo_electronico == correo).first()
-    if existe:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado.")
-    user_id = keygen.generate_uint64_key()
-    hashed_pass = security.get_password_hash(contrasena)
-    nueva_cuenta = CuentaUsuario(
-        id=user_id,
-        correo_electronico=correo,
-        nombre_usuario=nombre,
-        contrasena=hashed_pass,
-        estado_registro="A",
-    )
-    db.add(nueva_cuenta)
-    db.flush()
-    usuario_rol = UsuarioRol(
-        id=keygen.generate_uint64_key(),
-        cuenta_usuario_id=user_id,
-        rol_id=2,  # Rol CLIENTE
-        estado_registro="A",
-    )
-    db.add(usuario_rol)
-    nuevo_cliente = Cliente(
-        id=keygen.generate_uint64_key(),
-        cuenta_usuario_id=user_id,
-        nombre=nombre,
-        estado_registro="A",
-    )
-    db.add(nuevo_cliente)
-    db.commit()
-    token = token_manager.generar_token(user_id, 2)
-    return {
-        "mensaje": "Cuenta creada exitosamente.",
-        "token": token,
-        "usuario": {
-            "id": str(user_id),
-            "nombre": nombre,
-            "correo": correo,
-            "rol_id": 2,
+    try:
+        print("\n" + "="*70)
+        print("📝 INICIANDO REGISTRO DE USUARIO")
+        print("="*70)
+        
+        nombre = data.nombre
+        correo = data.correo
+        contrasena = data.contrasena
+        
+        print(f"👤 Datos recibidos: Nombre={nombre}, Email={correo}")
+        
+        # Verificar si el correo ya está registrado
+        print("🔍 Verificando si el correo ya existe...")
+        existe = db.query(CuentaUsuario).filter(CuentaUsuario.correo_electronico == correo).first()
+        if existe:
+            print(f"⚠️ El correo {correo} ya está registrado")
+            raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+        
+        print("✅ El correo es nuevo, procediendo con el registro...")
+        
+        # Hashear contraseña
+        hashed_pass = security.get_password_hash(contrasena)
+        print(f"🔐 Contraseña hasheada")
+        
+        # Crear nueva cuenta de usuario (SIN especificar ID, que lo genere automáticamente)
+        print("💾 Creando registro en tabla 'cuenta_usuario'...")
+        nueva_cuenta = CuentaUsuario(
+            correo_electronico=correo,
+            nombre_usuario=nombre,
+            contrasena=hashed_pass,
+            estado_registro="A",
+        )
+        db.add(nueva_cuenta)
+        db.flush()
+        user_id = nueva_cuenta.id  # Obtener el ID generado
+        print(f"✅ Cuenta de usuario creada en BD con ID: {user_id}")
+        
+        # Crear relación usuario-rol (CLIENTE = rol_id 2)
+        print("💾 Creando relación en tabla 'usuario_rol'...")
+        usuario_rol = UsuarioRol(
+            cuenta_usuario_id=user_id,
+            rol_id=2,  # Rol CLIENTE
+            estado_registro="A",
+        )
+        db.add(usuario_rol)
+        db.flush()
+        print("✅ Relación usuario-rol creada en BD")
+        
+        # Crear registro en tabla Cliente
+        print("💾 Creando registro en tabla 'cliente'...")
+        nuevo_cliente = Cliente(
+            cuenta_usuario_id=user_id,
+            nombre=nombre,
+            estado_registro="A",
+        )
+        db.add(nuevo_cliente)
+        print("💾 Antes de hacer commit...")
+        
+        # Confirmar todas las inserciones
+        db.commit()
+        print("✅ Cliente creado en BD")
+        
+        print(f"\n✓✓✓ USUARIO REGISTRADO EXITOSAMENTE ✓✓✓")
+        print(f"    ID: {user_id}")
+        print(f"    Email: {correo}")
+        print(f"    Nombre: {nombre}")
+        print("="*70 + "\n")
+        
+        # Generar token de sesión
+        token = token_manager.generar_token(user_id, 2)
+        
+        return {
+            "mensaje": "Cuenta creada exitosamente.",
+            "token": token,
+            "usuario": {
+                "id": str(user_id),
+                "nombre": nombre,
+                "correo": correo,
+                "rol_id": 2,
+            }
         }
-    }
+    
+    except HTTPException as e:
+        print(f"❌ HTTPException: {e.detail}")
+        raise
+    except Exception as e:
+        print(f"\n❌ ERROR EN REGISTRO: {str(e)}")
+        print(f"Tipo de error: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear la cuenta: {str(e)}")
 # ---------------------------------------------------------------------------
 # POST /auth/login
 # ---------------------------------------------------------------------------

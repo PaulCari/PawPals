@@ -23,7 +23,7 @@ class Categoria(Base):
 class CuentaUsuario(Base):
     __tablename__ = 'cuenta_usuario'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
     correo_electronico: Mapped[str] = mapped_column(String(80), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     nombre_usuario: Mapped[Optional[str]] = mapped_column(String(40))
@@ -121,7 +121,7 @@ class Cliente(Base):
         Index('membresia_subscripcion_id', 'membresia_subscripcion_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
     cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
@@ -211,7 +211,7 @@ class UsuarioRol(Base):
         Index('rol_id', 'rol_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
     cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     rol_id: Mapped[Optional[int]] = mapped_column(BIGINT)
