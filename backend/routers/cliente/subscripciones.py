@@ -61,9 +61,28 @@ def listar_planes_activos(db: Session = Depends(get_db)):
 # Obtiene los detalles de un plan específico.
 # Retorna precio, descripción y beneficios.
 @router.get("/{subscripcion_id}")
-def obtener_detalle_plan(subscripcion_id: str):
-    pass
+def obtener_detalle_plan(subscripcion_id: str, db: Session = Depends(get_db)):
 
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan de suscripción no encontrado o inactivo")
+
+    return {
+        "id": str(plan.id),
+        "nombre": plan.nombre,
+        "duracion": plan.duracion,
+        "precio": float(plan.precio),
+        "descripcion": plan.descripcion,
+        "beneficios": plan.beneficios,
+    }
 
 # ---------------------------------------------------------------------------
 # GET /cliente/subscripciones/{cliente_id}/actual
