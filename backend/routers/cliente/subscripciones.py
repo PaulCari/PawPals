@@ -90,9 +90,51 @@ def obtener_detalle_plan(subscripcion_id: str, db: Session = Depends(get_db)):
 # Devuelve la membresía actual del cliente (si tiene una activa).
 # Incluye nombre del plan, fecha de inicio y duración restante.
 @router.get("/{cliente_id}/actual")
-def obtener_subscripcion_actual(cliente_id: str):
-    pass
+def obtener_subscripcion_actual(cliente_id: str, db: Session = Depends(get_db)):
 
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Si el cliente NO tiene un plan vinculado
+    if not cliente.membresia_subscripcion_id:
+        return {
+            "tiene_membresia": False,
+            "mensaje": "El cliente no tiene una membresía activa."
+        }
+
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == cliente.membresia_subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        return {
+            "tiene_membresia": False,
+            "mensaje": "El cliente tenía una membresía, pero ya no está activa."
+        }
+
+    # No existe un campo fecha_inicio, lo dejamos en None
+    fecha_inicio = None
+
+    return {
+        "tiene_membresia": True,
+        "plan": {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,     # días o meses (como lo manejes)
+            "precio": float(plan.precio),
+            "beneficios": plan.beneficios,
+            "descripcion": plan.descripcion
+        },
+        "fecha_inicio": fecha_inicio,
+        "duracion_restante": None  # no puede calcularse sin fecha_inicio
+    }
 
 # ---------------------------------------------------------------------------
 # POST /cliente/subscripciones/{cliente_id}/suscribirse/{subscripcion_id}
