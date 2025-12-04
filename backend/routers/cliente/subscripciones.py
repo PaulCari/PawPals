@@ -19,7 +19,11 @@ Notas:
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from utils import keygen
+from utils.db import get_db
+from models import MembresiaSubscripcion, Cliente
 
 router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del Cliente"])
 
@@ -30,8 +34,25 @@ router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del C
 # Lista todos los planes de membresía activos disponibles.
 # Incluye nombre, duración, precio y beneficios.
 @router.get("/")
-def listar_planes_activos():
-    pass
+def listar_planes_activos(db: Session = Depends(get_db)):
+
+    planes = (
+        db.query(MembresiaSubscripcion)
+        .filter(MembresiaSubscripcion.estado_registro == "A")
+        .all()
+    )
+
+    return [
+        {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,                  # en lo que esté definido (días/meses)
+            "precio": float(plan.precio),
+            "descripcion": plan.descripcion,
+            "beneficios": plan.beneficios,
+        }
+        for plan in planes
+    ]
 
 
 # ---------------------------------------------------------------------------
