@@ -322,9 +322,32 @@ def crear_plato_personalizado(
 # ---------------------------------------------------------------------------
 # Lista los platos personalizados creados para una mascota específica.
 @router.get("/platos/personalizados/{mascota_id}")
-def listar_platos_personalizados(mascota_id: str):
-    pass
+def listar_platos_personalizados(mascota_id: str, db: Session = Depends(get_db)):
 
+    relaciones = (
+        db.query(PlatoPersonal)
+        .join(PlatoCombinado, PlatoCombinado.id == PlatoPersonal.plato_combinado_id)
+        .filter(
+            PlatoPersonal.registro_mascota_id == mascota_id,
+            PlatoCombinado.creado_nutricionista == 1,
+            PlatoCombinado.publicado == 0,
+            PlatoCombinado.estado_registro == "A"
+        )
+        .all()
+    )
+
+    return [
+        {
+            "plato_personal_id": rel.id,
+            "plato_id": rel.plato_combinado.id,
+            "nombre": rel.plato_combinado.nombre,
+            "descripcion": rel.plato_combinado.descripcion,
+            "precio": float(rel.plato_combinado.precio),
+            "imagen": rel.plato_combinado.imagen,
+            "especie_id": rel.plato_combinado.especie_id,
+        }
+        for rel in relaciones
+    ]
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/historial
