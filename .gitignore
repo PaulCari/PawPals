@@ -48,14 +48,48 @@ yarn-error.*
 # ===========================
 # Archivos compilados y caché (CRUCIAL para Python)
 __pycache__/
-*.py[cod]
-*$py.class
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Entornos virtuales
 venv/
 env/
 .venv/
+ENV/
+env.bak/
+venv.bak/
 
 # Bases de datos locales (si usas SQLite)
 *.sqlite3
 *.db
+*.sqlite
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
