@@ -183,5 +183,24 @@ def suscribirse_plan(cliente_id: str, subscripcion_id: str, db: Session = Depend
 # Cancela la suscripción actual del cliente.
 # Actualiza `cliente.membresia_subscripcion_id` a NULL.
 @router.delete("/{cliente_id}/cancelar")
-def cancelar_subscripcion(cliente_id: str):
-    pass
+def cancelar_subscripcion(cliente_id: str, db: Session = Depends(get_db)):
+
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Si el cliente no tiene suscripción activa
+    if not cliente.membresia_subscripcion_id:
+        return {
+            "mensaje": "El cliente no tiene una suscripción activa para cancelar."
+        }
+
+    # Cancelar: establecer en NULL
+    cliente.membresia_subscripcion_id = None
+    db.commit()
+
+    return {
+        "mensaje": "Suscripción cancelada correctamente.",
+        "cliente_id": cliente_id
+    }
