@@ -76,9 +76,48 @@ def listar_pedidos_pendientes(db: Session = Depends(get_db)):
 # Devuelve los detalles de un pedido especializado específico:
 # mascota, archivos adjuntos, receta médica, y observaciones previas.
 @router.get("/pedidos/{pedido_id}")
-def obtener_detalle_pedido_especializado(pedido_id: str):
-    pass
+def obtener_detalle_pedido_especializado(pedido_id: str, db: Session = Depends(get_db)):
 
+    pedido = (
+        db.query(PedidoEspecializado)
+        .filter(PedidoEspecializado.id == pedido_id)
+        .first()
+    )
+
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido especializado no encontrado")
+
+    mascota = pedido.registro_mascota
+    cliente = mascota.cliente
+    receta = pedido.receta_medica[0] if pedido.receta_medica else None
+
+    return {
+        "pedido_especializado_id": pedido.id,
+        "pedido_id": pedido.pedido_id,
+        "fecha_solicitud": pedido.pedido.fecha if pedido.pedido else None,
+        "objetivo_dieta": pedido.objetivo_dieta,
+        "indicaciones_adicionales": pedido.indicaciones_adicionales,
+        "archivo_adicional": pedido.archivo_adicional,
+
+        "mascota": {
+            "id": mascota.id,
+            "nombre": mascota.nombre,
+            "edad": mascota.edad,
+            "especie": mascota.especie.nombre if mascota.especie else None,
+            "foto": mascota.foto
+        },
+
+        "cliente": {
+            "id": cliente.id,
+            "nombre": cliente.nombre,
+            "foto": cliente.foto
+        },
+
+        "receta_medica": {
+            "archivo": receta.archivo,
+            "fecha": receta.fecha
+        } if receta else None
+    }
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/revisar
