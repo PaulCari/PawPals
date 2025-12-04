@@ -119,6 +119,12 @@ def obtener_detalle_pedido_especializado(pedido_id: str, db: Session = Depends(g
         } if receta else None
     }
 
+from pydantic import BaseModel
+class RevisionInput(BaseModel):
+    observaciones: str | None = None
+    recomendaciones: str | None = None
+    aprobado: bool
+
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/revisar
 # ---------------------------------------------------------------------------
@@ -126,8 +132,38 @@ def obtener_detalle_pedido_especializado(pedido_id: str, db: Session = Depends(g
 # Campos: observaciones, recomendaciones, aprobado (bool).
 # Si se aprueba, se actualiza el estado del pedido especializado.
 @router.post("/pedidos/{pedido_id}/revisar")
-def revisar_pedido_especializado(pedido_id: str):
-    pass
+def revisar_pedido_especializado(
+    pedido_id: str,
+    data: RevisionInput,
+    db: Session = Depends(get_db)
+):
+
+    pedido = (
+        db.query(PedidoEspecializado)
+        .filter(PedidoEspecializado.id == pedido_id)
+        .first()
+    )
+
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido especializado no encontrado")
+
+    # Guardamos observaciones y recomendaciones usando los campos existentes
+    if data.observaciones:
+        pedido.indicaciones_adicionales = data.observaciones
+
+    if data.recomendaciones:
+        pedido.objetivo_dieta = data.recomendaciones
+
+    # Cambiar estado según aprobación
+    pedido.estado_registro = "A" if data.aprobado else "I"
+
+    db.commit()
+
+    return {
+        "mensaje": "Revisión registrada correctamente",
+        "pedido_id": pedido_id,
+        "aprobado": data.aprobado
+    }
 
 
 # ---------------------------------------------------------------------------
