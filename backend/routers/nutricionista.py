@@ -235,6 +235,14 @@ def subir_receta_medica(
         "archivo": file_path
     }
 
+from fastapi import Form
+
+class PlatoPersonalizadoInput(BaseModel):
+    nombre: str
+    descripcion: str
+    precio: float
+    especie_id: int
+    registro_mascota_id: int
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/platos/personalizados
@@ -242,9 +250,71 @@ def subir_receta_medica(
 # Crea un nuevo plato personalizado asociado a una mascota específica.
 # Campos: nombre, descripcion, precio, especie_id, registro_mascota_id, imagen (opcional).
 # Estos platos no se publican globalmente.
+import os
+import shutil
+
+UPLOAD_DIR = "uploads/platos"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
 @router.post("/platos/personalizados")
-def crear_plato_personalizado(imagen: UploadFile = None):
-    pass
+def crear_plato_personalizado(
+    nombre: str = Form(...),
+    descripcion: str = Form(...),
+    precio: float = Form(...),
+    especie_id: int = Form(...),
+    registro_mascota_id: int = Form(...),
+    imagen: UploadFile | None = None,
+    db: Session = Depends(get_db)
+):
+
+    # 1. Generar ID del plato combinado
+    plato_id = keygen.generate_uint64_key()
+
+    # 2. Guardar imagen si existe
+    imagen_path = None
+    if imagen:
+        filename = f"{plato_id}_{imagen.filename}"
+        imagen_path = os.path.join(UPLOAD_DIR, filename)
+
+        with open(imagen_path, "wb") as buffer:
+            shutil.copyfileobj(imagen.file, buffer)
+
+    # 3. Crear el plato combinado (no publicado y creado por nutricionista)
+    nuevo_plato = PlatoCombinado(
+        id=plato_id,
+        nombre=nombre,
+        descripcion=descripcion,
+        precio=precio,
+        especie_id=especie_id,
+        creado_nutricionista=1,
+        publicado=0,
+        incluye_plato=0,
+        es_crudo=0,
+        estado_registro="A",
+        imagen=imagen_path
+    )
+
+    db.add(nuevo_plato)
+    db.commit()
+
+    # 4. Crear la relación con la mascota
+    relacion = PlatoPersonal(
+        id=keygen.generate_uint64_key(),
+        plato_combinado_id=plato_id,
+        registro_mascota_id=registro_mascota_id
+    )
+
+    db.add(relacion)
+    db.commit()
+
+    return {
+        "mensaje": "Plato personalizado creado correctamente",
+        "plato_id": plato_id,
+        "registro_mascota_id": registro_mascota_id,
+        "imagen": imagen_path
+    }
+
 
 
 # ---------------------------------------------------------------------------
