@@ -19,7 +19,11 @@ Notas:
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from utils import keygen
+from utils.db import get_db
+from models import MembresiaSubscripcion, Cliente
 
 router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del Cliente"])
 
@@ -30,8 +34,25 @@ router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del C
 # Lista todos los planes de membresía activos disponibles.
 # Incluye nombre, duración, precio y beneficios.
 @router.get("/")
-def listar_planes_activos():
-    pass
+def listar_planes_activos(db: Session = Depends(get_db)):
+
+    planes = (
+        db.query(MembresiaSubscripcion)
+        .filter(MembresiaSubscripcion.estado_registro == "A")
+        .all()
+    )
+
+    return [
+        {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,                  # en lo que esté definido (días/meses)
+            "precio": float(plan.precio),
+            "descripcion": plan.descripcion,
+            "beneficios": plan.beneficios,
+        }
+        for plan in planes
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -40,9 +61,28 @@ def listar_planes_activos():
 # Obtiene los detalles de un plan específico.
 # Retorna precio, descripción y beneficios.
 @router.get("/{subscripcion_id}")
-def obtener_detalle_plan(subscripcion_id: str):
-    pass
+def obtener_detalle_plan(subscripcion_id: str, db: Session = Depends(get_db)):
 
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan de suscripción no encontrado o inactivo")
+
+    return {
+        "id": str(plan.id),
+        "nombre": plan.nombre,
+        "duracion": plan.duracion,
+        "precio": float(plan.precio),
+        "descripcion": plan.descripcion,
+        "beneficios": plan.beneficios,
+    }
 
 # ---------------------------------------------------------------------------
 # GET /cliente/subscripciones/{cliente_id}/actual
@@ -50,9 +90,51 @@ def obtener_detalle_plan(subscripcion_id: str):
 # Devuelve la membresía actual del cliente (si tiene una activa).
 # Incluye nombre del plan, fecha de inicio y duración restante.
 @router.get("/{cliente_id}/actual")
-def obtener_subscripcion_actual(cliente_id: str):
-    pass
+def obtener_subscripcion_actual(cliente_id: str, db: Session = Depends(get_db)):
 
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Si el cliente NO tiene un plan vinculado
+    if not cliente.membresia_subscripcion_id:
+        return {
+            "tiene_membresia": False,
+            "mensaje": "El cliente no tiene una membresía activa."
+        }
+
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == cliente.membresia_subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        return {
+            "tiene_membresia": False,
+            "mensaje": "El cliente tenía una membresía, pero ya no está activa."
+        }
+
+    # No existe un campo fecha_inicio, lo dejamos en None
+    fecha_inicio = None
+
+    return {
+        "tiene_membresia": True,
+        "plan": {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,     # días o meses (como lo manejes)
+            "precio": float(plan.precio),
+            "beneficios": plan.beneficios,
+            "descripcion": plan.descripcion
+        },
+        "fecha_inicio": fecha_inicio,
+        "duracion_restante": None  # no puede calcularse sin fecha_inicio
+    }
 
 # ---------------------------------------------------------------------------
 # POST /cliente/subscripciones/{cliente_id}/suscribirse/{subscripcion_id}
@@ -60,9 +142,40 @@ def obtener_subscripcion_actual(cliente_id: str):
 # Permite al cliente suscribirse a un plan.
 # Si ya tiene una membresía activa, puede actualizarla o reemplazarla.
 @router.post("/{cliente_id}/suscribirse/{subscripcion_id}")
-def suscribirse_plan(cliente_id: str, subscripcion_id: str):
-    pass
+def suscribirse_plan(cliente_id: str, subscripcion_id: str, db: Session = Depends(get_db)):
 
+    # 1. Validar cliente
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # 2. Validar plan
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan de membresía no encontrado o inactivo")
+
+    # 3. Asignar o reemplazar la suscripción
+    cliente.membresia_subscripcion_id = subscripcion_id
+    db.commit()
+
+    return {
+        "mensaje": "Suscripción realizada con éxito",
+        "cliente_id": cliente_id,
+        "nuevo_plan": {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,
+            "precio": float(plan.precio)
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/subscripciones/{cliente_id}/cancelar
@@ -70,5 +183,24 @@ def suscribirse_plan(cliente_id: str, subscripcion_id: str):
 # Cancela la suscripción actual del cliente.
 # Actualiza `cliente.membresia_subscripcion_id` a NULL.
 @router.delete("/{cliente_id}/cancelar")
-def cancelar_subscripcion(cliente_id: str):
-    pass
+def cancelar_subscripcion(cliente_id: str, db: Session = Depends(get_db)):
+
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Si el cliente no tiene suscripción activa
+    if not cliente.membresia_subscripcion_id:
+        return {
+            "mensaje": "El cliente no tiene una suscripción activa para cancelar."
+        }
+
+    # Cancelar: establecer en NULL
+    cliente.membresia_subscripcion_id = None
+    db.commit()
+
+    return {
+        "mensaje": "Suscripción cancelada correctamente.",
+        "cliente_id": cliente_id
+    }
