@@ -22,7 +22,7 @@ Notas:
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from utils import keygen, globals
-from db.connection import get_db
+from utils.db import get_db
 # Importar todos los modelos desde el archivo único
 from models import (
     PedidoEspecializado,
@@ -32,7 +32,7 @@ from models import (
 )
 
 router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
-
+UPLOAD_DIR = "uploads/recetas"
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes
