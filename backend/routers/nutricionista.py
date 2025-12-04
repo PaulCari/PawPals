@@ -355,5 +355,35 @@ def listar_platos_personalizados(mascota_id: str, db: Session = Depends(get_db))
 # Devuelve el historial de pedidos revisados por el nutricionista.
 # Incluye fecha, mascota, cliente y resultado (aprobado/rechazado).
 @router.get("/historial")
-def listar_historial_revisiones():
-    pass
+def listar_historial_revisiones(db: Session = Depends(get_db)):
+
+    pedidos = (
+        db.query(PedidoEspecializado)
+        .join(RegistroMascota, RegistroMascota.id == PedidoEspecializado.registro_mascota_id)
+        .join(Cliente, Cliente.id == RegistroMascota.cliente_id)
+        .join(Pedido, Pedido.id == PedidoEspecializado.pedido_id)
+        .filter(PedidoEspecializado.estado_registro.in_(["A", "I"]))  # A = aprobado, I = rechazado
+        .order_by(Pedido.fecha.desc())
+        .all()
+    )
+
+    historial = []
+
+    for p in pedidos:
+        historial.append({
+            "pedido_especializado_id": p.id,
+            "fecha": p.pedido.fecha,
+            "resultado": "Aprobado" if p.estado_registro == "A" else "Rechazado",
+            
+            "mascota": {
+                "id": p.registro_mascota.id,
+                "nombre": p.registro_mascota.nombre
+            },
+            
+            "cliente": {
+                "id": p.registro_mascota.cliente.id,
+                "nombre": p.registro_mascota.cliente.nombre
+            }
+        })
+
+    return historial
