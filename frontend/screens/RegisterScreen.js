@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 // Importamos 'Alert' para mostrar mensajes al usuario
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthContainer from '../components/AuthContainer.js';
 import { styles } from '../styles/registerScreenStyles';
 // Importamos nuestra función 'register' del servicio
@@ -54,6 +55,10 @@ const RegisterScreen = ({ navigation }) => {
   const handleFinishRegistration = async () => {
     // Prevenir doble clic
     if (isLoading) return;
+    
+    console.log('=== INICIANDO PROCESO DE REGISTRO ===');
+    console.log('Datos del usuario:', { nombre, correo, contrasena: '***' });
+    
     setIsLoading(true);
 
     const userData = {
@@ -63,25 +68,40 @@ const RegisterScreen = ({ navigation }) => {
     };
 
     try {
+      console.log('📤 Llamando a función register...');
       // Llamamos a nuestro servicio de registro
       const response = await register(userData);
       
-      console.log('Respuesta del registro:', response);
+      console.log('✓ Respuesta del registro:', response);
+      
+      // Guardamos el token en AsyncStorage
+      if (response.token) {
+        await AsyncStorage.setItem('userToken', response.token);
+        console.log('Token guardado exitosamente');
+      }
+      
+      // Guardamos información del usuario
+      if (response.usuario) {
+        await AsyncStorage.setItem('userData', JSON.stringify(response.usuario));
+      }
+      
       Alert.alert('¡Éxito!', 'Tu cuenta ha sido creada correctamente.');
       
       // Navegamos a la pantalla de éxito
+      console.log('📍 Navegando a Success...');
       navigation.navigate('Success');
 
     } catch (error) {
       // Si el backend envía un mensaje de error específico, lo mostramos.
       // Si no, mostramos un mensaje genérico.
-      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrarse. Inténtalo de nuevo.';
+      const errorMessage = error.response?.data?.detail || error.message || 'Ocurrió un error al registrarse. Inténtalo de nuevo.';
+      console.error('❌ Error en registro:', error);
       Alert.alert('Error de Registro', errorMessage);
     } finally {
       // Reactivamos el botón
       setIsLoading(false);
+      console.log('=== FIN PROCESO DE REGISTRO ===');
     }
-    // Nota: La lógica para registrar la mascota se podría añadir aquí en el futuro.
   };
 
   const renderStepContent = () => {
@@ -122,9 +142,10 @@ const RegisterScreen = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.buttonSecondaryFlex} 
-              onPress={() => navigation.navigate('Success')}
+              onPress={handleFinishRegistration}
+              disabled={isLoading}
             >
-              <Text style={styles.buttonSecondaryText}>Omitir</Text>
+              <Text style={styles.buttonSecondaryText}>{isLoading ? 'Guardando...' : 'Omitir'}</Text>
             </TouchableOpacity>
           </View>
         </>
