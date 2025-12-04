@@ -142,9 +142,40 @@ def obtener_subscripcion_actual(cliente_id: str, db: Session = Depends(get_db)):
 # Permite al cliente suscribirse a un plan.
 # Si ya tiene una membresía activa, puede actualizarla o reemplazarla.
 @router.post("/{cliente_id}/suscribirse/{subscripcion_id}")
-def suscribirse_plan(cliente_id: str, subscripcion_id: str):
-    pass
+def suscribirse_plan(cliente_id: str, subscripcion_id: str, db: Session = Depends(get_db)):
 
+    # 1. Validar cliente
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # 2. Validar plan
+    plan = (
+        db.query(MembresiaSubscripcion)
+        .filter(
+            MembresiaSubscripcion.id == subscripcion_id,
+            MembresiaSubscripcion.estado_registro == "A"
+        )
+        .first()
+    )
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan de membresía no encontrado o inactivo")
+
+    # 3. Asignar o reemplazar la suscripción
+    cliente.membresia_subscripcion_id = subscripcion_id
+    db.commit()
+
+    return {
+        "mensaje": "Suscripción realizada con éxito",
+        "cliente_id": cliente_id,
+        "nuevo_plan": {
+            "id": str(plan.id),
+            "nombre": plan.nombre,
+            "duracion": plan.duracion,
+            "precio": float(plan.precio)
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/subscripciones/{cliente_id}/cancelar
