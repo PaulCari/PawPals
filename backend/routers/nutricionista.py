@@ -165,15 +165,75 @@ def revisar_pedido_especializado(
         "aprobado": data.aprobado
     }
 
-
+import os
+import shutil
+import datetime
+from fastapi import UploadFile
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/receta
 # ---------------------------------------------------------------------------
 # Adjunta o actualiza una receta médica relacionada a un pedido especializado.
 # Permite subir un archivo (PDF, imagen, etc.) que se guarda en el servidor.
 @router.post("/pedidos/{pedido_id}/receta")
-def subir_receta_medica(pedido_id: str, archivo: UploadFile):
-    pass
+def subir_receta_medica(
+    pedido_id: str,
+    archivo: UploadFile,
+    db: Session = Depends(get_db)
+):
+    pedido = (
+        db.query(PedidoEspecializado)
+        .filter(PedidoEspecializado.id == pedido_id)
+        .first()
+    )
+
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido especializado no encontrado")
+
+    # Guardar archivo en el servidor
+    filename = f"receta_{pedido_id}_{archivo.filename}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(archivo.file, buffer)
+
+    # Revisar si ya existe una receta asociada
+    receta_existente = (
+        db.query(RecetaMedica)
+        .filter(RecetaMedica.pedido_especializado_id == pedido_id)
+        .first()
+    )
+
+    if receta_existente:
+        # Actualizar archivo
+        receta_existente.archivo = file_path
+        receta_existente.fecha = datetime.datetime.now()
+        db.commit()
+
+        return {
+            "mensaje": "Receta médica actualizada correctamente",
+            "archivo": file_path
+        }
+
+    # Crear nueva receta médica
+    nueva_id = keygen.generate_uint64_key()
+
+    nueva_receta = RecetaMedica(
+        id=nueva_id,
+        registro_mascota_id=pedido.registro_mascota_id,
+        pedido_especializado_id=pedido.id,
+        archivo=file_path,
+        fecha=datetime.datetime.now(),
+        estado_registro="A"
+    )
+
+    db.add(nueva_receta)
+    db.commit()
+
+    return {
+        "mensaje": "Receta médica registrada correctamente",
+        "archivo": file_path
+    }
 
 
 # ---------------------------------------------------------------------------
