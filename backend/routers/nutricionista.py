@@ -20,7 +20,16 @@ Notas:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from sqlalchemy.orm import Session
 from utils import keygen, globals
+from db.connection import get_db
+# Importar todos los modelos desde el archivo único
+from models import (
+    PedidoEspecializado,
+    RegistroMascota,
+    Cliente,
+    Pedido
+)
 
 router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
 
@@ -31,8 +40,34 @@ router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
 # Lista los pedidos especializados pendientes de revisión.
 # Muestra información de la mascota, cliente, objetivo de dieta y fecha de solicitud.
 @router.get("/pedidos/pendientes")
-def listar_pedidos_pendientes():
-    pass
+def listar_pedidos_pendientes(db: Session = Depends(get_db)):
+
+    pedidos = (
+        db.query(PedidoEspecializado)
+        .join(RegistroMascota, RegistroMascota.id == PedidoEspecializado.registro_mascota_id)
+        .join(Cliente, Cliente.id == RegistroMascota.cliente_id)
+        .join(Pedido, Pedido.id == PedidoEspecializado.pedido_id)
+        .filter(PedidoEspecializado.estado_registro == "A")   # Activo / pendiente
+        .all()
+    )
+
+    return [
+        {
+            "pedido_especializado_id": p.id,
+            "fecha_solicitud": p.pedido.fecha,
+            "objetivo_dieta": p.objetivo_dieta,
+            "mascota": {
+                "id": p.registro_mascota.id,
+                "nombre": p.registro_mascota.nombre,
+                "especie": p.registro_mascota.especie.nombre if p.registro_mascota.especie else None
+            },
+            "cliente": {
+                "id": p.registro_mascota.cliente.id,
+                "nombre": p.registro_mascota.cliente.nombre
+            }
+        }
+        for p in pedidos
+    ]
 
 
 # ---------------------------------------------------------------------------
