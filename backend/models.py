@@ -27,7 +27,7 @@ class CuentaUsuario(Base):
     correo_electronico: Mapped[str] = mapped_column(String(80), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     nombre_usuario: Mapped[Optional[str]] = mapped_column(String(40))
-    contrasena: Mapped[Optional[str]] = mapped_column(String(80))
+    contrasena: Mapped[Optional[str]] = mapped_column(String(255))
     ultimo_acceso: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
 
     cliente: Mapped[list['Cliente']] = relationship('Cliente', back_populates='cuenta_usuario')
