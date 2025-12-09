@@ -102,7 +102,8 @@ def register_user(data: RegisterRequest, db: Session = Depends(get_db)):
             "mensaje": "Cuenta creada exitosamente.",
             "token": token,
             "usuario": {
-                "id": str(user_id),
+                "cuenta_id": str(user_id),
+                "cliente_id": str(nuevo_cliente.id),
                 "nombre": nombre,
                 "correo": correo,
                 "rol_id": 2,

@@ -124,3 +124,19 @@ export const deletePet = async (mascotaId) => {
     throw error;
   }
 };
+
+/**
+ * Obtiene una lista de razas para una especie específica.
+ * @param {string} especieId - El ID de la especie (e.g., '1' para Perro).
+ * @returns {Promise<Array<string>>} Una lista de nombres de razas.
+ */
+export const getBreedsBySpecies = async (especieId) => {
+  if (!especieId) return []; // No hacer la llamada si no hay especie seleccionada
+  try {
+    const response = await api.get(`/cliente/platos-mascotas/especies/${especieId}/razas`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al obtener razas:', error.response?.data || error.message);
+    return ["Mestizo"]; // Devolver un valor por defecto en caso de error
+  }
+};

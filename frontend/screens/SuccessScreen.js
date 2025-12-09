@@ -12,7 +12,7 @@ const SuccessScreen = ({ navigation }) => {
       <View style={styles.card}>
         {/* Ícono de Éxito */}
         <View style={styles.iconContainer}>
-          <Feather name="check" size={50} color="#6A0DAD" />
+          <Feather name="check" size={50} color="#732C71" />
         </View>
 
         <Text style={styles.title}>REGISTRO TERMINADO</Text>

@@ -13,7 +13,7 @@ class Base(DeclarativeBase):
 class Categoria(Base):
     __tablename__ = 'categoria'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -23,7 +23,7 @@ class Categoria(Base):
 class CuentaUsuario(Base):
     __tablename__ = 'cuenta_usuario'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     correo_electronico: Mapped[str] = mapped_column(String(80), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     nombre_usuario: Mapped[Optional[str]] = mapped_column(String(40))
@@ -39,7 +39,7 @@ class CuentaUsuario(Base):
 class Especie(Base):
     __tablename__ = 'especie'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -52,7 +52,7 @@ class Especie(Base):
 class Etiqueta(Base):
     __tablename__ = 'etiqueta'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
 
     etiqueta_plato: Mapped[list['EtiquetaPlato']] = relationship('EtiquetaPlato', back_populates='etiqueta')
@@ -61,7 +61,7 @@ class Etiqueta(Base):
 class MembresiaSubscripcion(Base):
     __tablename__ = 'membresia_subscripcion'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
     duracion: Mapped[int] = mapped_column(Integer, nullable=False)
     precio: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
@@ -75,7 +75,7 @@ class MembresiaSubscripcion(Base):
 class PasarelaPago(Base):
     __tablename__ = 'pasarela_pago'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(String(100))
@@ -87,7 +87,7 @@ class PasarelaPago(Base):
 class Rol(Base):
     __tablename__ = 'rol'
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(20), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(String(100))
@@ -102,8 +102,8 @@ class AlergiaEspecie(Base):
         Index('especie_id', 'especie_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    especie_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    especie_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -121,13 +121,13 @@ class Cliente(Base):
         Index('membresia_subscripcion_id', 'membresia_subscripcion_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     telefono: Mapped[Optional[str]] = mapped_column(String(11))
     foto: Mapped[Optional[str]] = mapped_column(Text)
-    membresia_subscripcion_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    membresia_subscripcion_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     cuenta_usuario: Mapped['CuentaUsuario'] = relationship('CuentaUsuario', back_populates='cliente')
     membresia_subscripcion: Mapped[Optional['MembresiaSubscripcion']] = relationship('MembresiaSubscripcion', back_populates='cliente')
@@ -143,8 +143,8 @@ class Nutricionista(Base):
         Index('cuenta_usuario_id', 'cuenta_usuario_id', unique=True)
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     telefono: Mapped[str] = mapped_column(String(15), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
@@ -164,7 +164,7 @@ class PlatoCombinado(Base):
         Index('especie_id', 'especie_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     precio: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     incluye_plato: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
@@ -172,8 +172,8 @@ class PlatoCombinado(Base):
     publicado: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
     creado_nutricionista: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    categoria_id: Mapped[Optional[int]] = mapped_column(BIGINT)
-    especie_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    categoria_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
+    especie_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
     imagen: Mapped[Optional[str]] = mapped_column(Text)
 
@@ -192,8 +192,8 @@ class Repartidor(Base):
         Index('cuenta_usuario_id', 'cuenta_usuario_id', unique=True)
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     telefono: Mapped[str] = mapped_column(String(15), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
@@ -211,10 +211,11 @@ class UsuarioRol(Base):
         Index('rol_id', 'rol_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cuenta_usuario_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False) 
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    rol_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    rol_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
+    
 
     cuenta_usuario: Mapped['CuentaUsuario'] = relationship('CuentaUsuario', back_populates='usuario_rol')
     rol: Mapped[Optional['Rol']] = relationship('Rol', back_populates='usuario_rol')
@@ -227,8 +228,8 @@ class Direccion(Base):
         Index('cliente_id', 'cliente_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cliente_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     latitud: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     longitud: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
@@ -249,9 +250,9 @@ class EtiquetaPlato(Base):
         Index('plato_combinado_id', 'plato_combinado_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    plato_combinado_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
-    etiqueta_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    plato_combinado_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    etiqueta_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
 
     etiqueta: Mapped['Etiqueta'] = relationship('Etiqueta', back_populates='etiqueta_plato')
     plato_combinado: Mapped['PlatoCombinado'] = relationship('PlatoCombinado', back_populates='etiqueta_plato')
@@ -266,14 +267,14 @@ class RegistroMascota(Base):
         Index('especie_id', 'especie_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cliente_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(40), nullable=False)
     sexo: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     cambio_edad: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     edad: Mapped[int] = mapped_column(Integer, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    especie_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    especie_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     raza: Mapped[Optional[str]] = mapped_column(String(40))
     peso: Mapped[Optional[decimal.Decimal]] = mapped_column(DECIMAL(10, 2))
     foto: Mapped[Optional[str]] = mapped_column(Text)
@@ -300,11 +301,11 @@ class AlergiaMascota(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     severidad: Mapped[str] = mapped_column(String(20), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    alergia_especie_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    alergia_especie_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     alergia_especie: Mapped[Optional['AlergiaEspecie']] = relationship('AlergiaEspecie', back_populates='alergia_mascota')
     registro_mascota: Mapped['RegistroMascota'] = relationship('RegistroMascota', back_populates='alergia_mascota')
@@ -317,8 +318,8 @@ class CondicionSalud(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
@@ -335,11 +336,11 @@ class Consulta(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    nutricionista_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    nutricionista_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     observaciones: Mapped[Optional[str]] = mapped_column(Text)
     recomendaciones: Mapped[Optional[str]] = mapped_column(Text)
 
@@ -355,8 +356,8 @@ class DescripcionAlergias(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
@@ -373,13 +374,13 @@ class Pedido(Base):
         Index('direccion_id', 'direccion_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    cliente_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     total: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     incluye_plato: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
     estado: Mapped[str] = mapped_column(String(20), nullable=False)
-    direccion_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    direccion_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     cliente: Mapped['Cliente'] = relationship('Cliente', back_populates='pedido')
     direccion: Mapped[Optional['Direccion']] = relationship('Direccion', back_populates='pedido')
@@ -398,9 +399,9 @@ class PlatoPersonal(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    plato_combinado_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    plato_combinado_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
 
     plato_combinado: Mapped['PlatoCombinado'] = relationship('PlatoCombinado', back_populates='plato_personal')
     registro_mascota: Mapped['RegistroMascota'] = relationship('RegistroMascota', back_populates='plato_personal')
@@ -413,8 +414,8 @@ class PreferenciaAlimentaria(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -431,11 +432,11 @@ class ControlEntrega(Base):
         Index('repartidor_id', 'repartidor_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    pedido_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     fecha_entrega: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     confirmacion_entrega: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
-    repartidor_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    repartidor_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     pedido: Mapped['Pedido'] = relationship('Pedido', back_populates='control_entrega')
     repartidor: Mapped[Optional['Repartidor']] = relationship('Repartidor', back_populates='control_entrega')
@@ -450,11 +451,11 @@ class DetallePedido(Base):
         Index('plato_combinado_id', 'plato_combinado_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    pedido_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     subtotal: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
-    plato_combinado_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    plato_combinado_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     pedido: Mapped['Pedido'] = relationship('Pedido', back_populates='detalle_pedido')
     plato_combinado: Mapped[Optional['PlatoCombinado']] = relationship('PlatoCombinado', back_populates='detalle_pedido')
@@ -467,8 +468,8 @@ class Dieta(Base):
         Index('consulta_id', 'consulta_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    consulta_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    consulta_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     fecha_inicio: Mapped[datetime.date] = mapped_column(Date, nullable=False)
@@ -488,12 +489,12 @@ class Pago(Base):
         Index('pedido_id', 'pedido_id', unique=True)
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    pedido_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     monto: Mapped[decimal.Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     estado: Mapped[str] = mapped_column(String(20), nullable=False)
-    pasarela_pago_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    pasarela_pago_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     referencia_pago: Mapped[Optional[str]] = mapped_column(String(60))
 
     pasarela_pago: Mapped[Optional['PasarelaPago']] = relationship('PasarelaPago', back_populates='pago')
@@ -509,12 +510,12 @@ class PedidoEspecializado(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    pedido_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     frecuencia_cantidad: Mapped[str] = mapped_column(Text, nullable=False)
     consulta_nutricionista: Mapped[int] = mapped_column(TINYINT(1), nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    registro_mascota_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    registro_mascota_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     indicaciones_adicionales: Mapped[Optional[str]] = mapped_column(Text)
     objetivo_dieta: Mapped[Optional[str]] = mapped_column(Text)
     archivo_adicional: Mapped[Optional[str]] = mapped_column(Text)
@@ -533,11 +534,11 @@ class DetalleDieta(Base):
         Index('plato_combinado_id', 'plato_combinado_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    dieta_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    dieta_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     instruccion: Mapped[str] = mapped_column(Text, nullable=False)
     frecuencia: Mapped[str] = mapped_column(String(40), nullable=False)
-    plato_combinado_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    plato_combinado_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
 
     dieta: Mapped['Dieta'] = relationship('Dieta', back_populates='detalle_dieta')
     plato_combinado: Mapped[Optional['PlatoCombinado']] = relationship('PlatoCombinado', back_populates='detalle_dieta')
@@ -552,11 +553,11 @@ class RecetaMedica(Base):
         Index('registro_mascota_id', 'registro_mascota_id')
     )
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    registro_mascota_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    registro_mascota_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
     fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     estado_registro: Mapped[str] = mapped_column(CHAR(1), nullable=False)
-    pedido_especializado_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    pedido_especializado_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     archivo: Mapped[Optional[str]] = mapped_column(Text)
 
     pedido_especializado: Mapped[Optional['PedidoEspecializado']] = relationship('PedidoEspecializado', back_populates='receta_medica')

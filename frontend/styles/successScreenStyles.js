@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
   buttonPrimary: {
     width: '100%',
     height: 50,
-    backgroundColor: '#6A0DAD',
+    backgroundColor: '#732C71',
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
