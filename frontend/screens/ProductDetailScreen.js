@@ -1,6 +1,5 @@
+// frontend/screens/ProductDetailScreen.js
 
-
-// src/screens/ProductDetailScreen.js
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -8,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
@@ -16,22 +14,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/productDetailScreenStyles';
 import { getProductById } from '../services/productService';
 
-/**
- * Pantalla de detalle de producto (plato).
- * Muestra la información completa obtenida del backend.
- */
 const ProductDetailScreen = ({ route, navigation }) => {
   const { productId } = route.params;
+
+  // Estados
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState('home');
 
+  // Cargar datos del producto
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const data = await getProductById(productId);
         setProduct(data);
-      } catch (err) {
-        console.error('❌ Error cargando el producto:', err);
+      } catch (error) {
+        console.error('❌ Error cargando producto:', error);
       } finally {
         setLoading(false);
       }
@@ -39,72 +38,98 @@ const ProductDetailScreen = ({ route, navigation }) => {
     fetchProduct();
   }, [productId]);
 
+  // Manejadores
+  const handleIncrement = () => setQuantity(prev => prev + 1);
+  const handleDecrement = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+
+  const handleAddToCart = () => {
+    console.log(`Agregando ${quantity} unidades del producto ${productId} al carrito`);
+    // Aquí agregarás la lógica del carrito más adelante
+  };
+
+  // Loading
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#FFB800" style={{ marginTop: 100 }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#875686" />
+          <Text style={{ marginTop: 10, color: '#666' }}>Cargando producto...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
+  // Error - producto no encontrado
   if (!product) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={{ marginTop: 100, alignItems: 'center' }}>
-          <Text style={{ color: '#999' }}>Producto no encontrado</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20 }}>
-            <Text style={{ color: '#FFB800' }}>← Volver</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={30} color="white" />
+          </TouchableOpacity>
+          <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+          <View style={{ width: 30 }} />
+        </View>
+        
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No se pudo cargar el producto</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.errorButtonText}>Volver</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // 🔹 Fallback de imagen
-  const imageSource = product.imagen
-    ? { uri: product.imagen }
+  // Imagen del producto
+  const imageSource = product.imagen 
+    ? { uri: product.imagen } 
     : require('../assets/placeholder.png');
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView style={styles.container} bounces={false}>
-        {/* === FONDO DECORATIVO === */}
-        <View style={styles.backgroundHeader}>
-          <Image source={require('../assets/ellipse.png')} style={styles.ellipseImage} />
-          <Image source={require('../assets/logo_amarillo.png')} style={styles.yellowShape} />
-          <Text style={styles.headerTitle}>DETALLE PLATO</Text>
+      {/* Header Morado */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
+        </TouchableOpacity>
+        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+        <TouchableOpacity>
+          <Ionicons name="cart-outline" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Contenedor Principal */}
+      <View style={styles.container}>
+        {/* Imagen Flotante - FUERA del ScrollView */}
+        <View style={styles.imageContainer}>
+          <Image source={imageSource} style={styles.productImage} />
         </View>
 
-        {/* === CONTENIDO PRINCIPAL === */}
-        <View style={styles.contentContainer}>
-          {/* Botón Volver */}
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color="white" />
-          </TouchableOpacity>
+        {/* Botón Favorito Flotante */}
+        <TouchableOpacity style={styles.favoriteButton}>
+          <Ionicons name="heart-outline" size={28} color="#875686" />
+        </TouchableOpacity>
 
-          {/* Favorito (decorativo) */}
-          <TouchableOpacity style={styles.favoriteButton}>
-            <Ionicons name="heart-outline" size={28} color={styles.favoriteButton.color} />
-          </TouchableOpacity>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
-          {/* Imagen */}
-          <Image source={imageSource} style={styles.productImage} resizeMode="cover" />
-
-          {/* Información del producto */}
-          <View style={styles.productInfo}>
+          {/* Contenido */}
+          <View style={styles.contentContainer}>
+            {/* Título */}
             <Text style={styles.productName}>{product.nombre}</Text>
-            <Text style={styles.productPrice}>S/ {product.precio?.toFixed(2) || '0.00'}</Text>
 
-            {product.descripcion ? (
-              <>
-                <Text style={styles.descriptionTitle}>Descripción:</Text>
-                <Text style={styles.descriptionText}>{product.descripcion}</Text>
-              </>
-            ) : null}
+            {/* Precio */}
+            <View style={styles.priceRow}>
+              <Text style={styles.productPrice}>
+                S/ {product.precio?.toFixed(2) || '0.00'}
+              </Text>
+            </View>
 
             {/* Etiquetas */}
-            {product.etiquetas?.length > 0 && (
+            {product.etiquetas && product.etiquetas.length > 0 && (
               <View style={styles.tagsContainer}>
                 {product.etiquetas.map((tag, index) => (
                   <View key={index} style={styles.tag}>
@@ -113,19 +138,143 @@ const ProductDetailScreen = ({ route, navigation }) => {
                 ))}
               </View>
             )}
-          </View>
-        </View>
 
-        {/* Botón al final */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.addToCartButton}>
-            <Text style={styles.addToCartButtonText}>Agregar al carrito</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            {/* Ingredientes Clave */}
+            {product.descripcion && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Ingredientes Clave</Text>
+                <Text style={styles.sectionText}>{product.descripcion}</Text>
+              </View>
+            )}
+
+            {/* Beneficios Clave */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Beneficios Clave</Text>
+              <Text style={styles.sectionText}>
+                • Alto contenido nutricional{'\n'}
+                • Ingredientes naturales{'\n'}
+                • Especialmente formulado para tu mascota
+              </Text>
+            </View>
+
+            {/* Contador de Cantidad */}
+            <View style={styles.quantityContainer}>
+              <TouchableOpacity 
+                style={styles.quantityButton} 
+                onPress={handleDecrement}
+              >
+                <Ionicons name="remove" size={24} color="white" />
+              </TouchableOpacity>
+              
+              <Text style={styles.quantityText}>{quantity}</Text>
+              
+              <TouchableOpacity 
+                style={styles.quantityButton} 
+                onPress={handleIncrement}
+              >
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Botón Agregar al Carrito */}
+            <TouchableOpacity 
+              style={styles.addToCartButton}
+              onPress={handleAddToCart}
+            >
+              <Ionicons name="cart" size={24} color="white" />
+              <Text style={styles.addToCartText}>Agregar al carrito</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Barra de Navegación Inferior */}
+      <View style={styles.bottomNavigation}>
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => {
+            setActiveTab('home');
+            navigation.navigate('Home');
+          }}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'home' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="home" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'home' && styles.activeNavText
+          ]}>Inicio</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('pet')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'pet' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="paw" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'pet' && styles.activeNavText
+          ]}>Perfil Mascota</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('cart')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'cart' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="cart" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'cart' && styles.activeNavText
+          ]}>Carrito</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('settings')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'settings' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="settings" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'settings' && styles.activeNavText
+          ]}>Ajustes</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
 
 export default ProductDetailScreen;
-

@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   logo: {
-    width: 120,
+    width: 160,
     height: 120,
     resizeMode: 'contain',
   },
