@@ -23,7 +23,6 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState('home');
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
@@ -258,90 +257,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
       </View>
 
       {/* Barra de Navegación Inferior */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => {
-            setActiveTab('home');
-            navigation.navigate('Home', { clienteId });
-          }}
-        >
-          <View style={[
-            styles.navIconContainer,
-            activeTab === 'home' && styles.activeNavButton
-          ]}>
-            <Ionicons 
-              name="home" 
-              size={26} 
-              color="white"
-            />
-          </View>
-          <Text style={[
-            styles.navText,
-            activeTab === 'home' && styles.activeNavText
-          ]}>Inicio</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => setActiveTab('pet')}
-        >
-          <View style={[
-            styles.navIconContainer,
-            activeTab === 'pet' && styles.activeNavButton
-          ]}>
-            <Ionicons 
-              name="paw" 
-              size={26} 
-              color="white"
-            />
-          </View>
-          <Text style={[
-            styles.navText,
-            activeTab === 'pet' && styles.activeNavText
-          ]}>Perfil Mascota</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => setActiveTab('cart')}
-        >
-          <View style={[
-            styles.navIconContainer,
-            activeTab === 'cart' && styles.activeNavButton
-          ]}>
-            <Ionicons 
-              name="cart" 
-              size={26} 
-              color="white"
-            />
-          </View>
-          <Text style={[
-            styles.navText,
-            activeTab === 'cart' && styles.activeNavText
-          ]}>Carrito</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => navigation.navigate('Favorites', { clienteId })}
-        >
-          <View style={[
-            styles.navIconContainer,
-            activeTab === 'settings' && styles.activeNavButton
-          ]}>
-            <Ionicons 
-              name="settings" 
-              size={26} 
-              color="white"
-            />
-          </View>
-          <Text style={[
-            styles.navText,
-            activeTab === 'settings' && styles.activeNavText
-          ]}>Ajustes</Text>
-        </TouchableOpacity>
-      </View>
+      
     </SafeAreaView>
   );
 };

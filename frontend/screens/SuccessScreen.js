@@ -14,7 +14,7 @@ const SuccessScreen = ({ navigation, route }) => {
   const handleNext = () => {
     if (clienteId) {
       //  PASAR clienteId a HomeScreen
-      navigation.replace('Home', { clienteId });
+      navigation.replace('Main', { clienteId });
     } else {
       console.error('❌ No se recibió clienteId en SuccessScreen');
       navigation.replace('Login');

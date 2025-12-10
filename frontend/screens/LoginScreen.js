@@ -24,7 +24,7 @@ const LoginScreen = ({ navigation }) => {
           Alert.alert('Error', 'No se pudo obtener la información del cliente.');
           return;
         }
-        navigation.replace('Home', { clienteId });
+        navigation.replace('Main', { clienteId });
       } else {
         const serverMessage = response.detail || 'Usuario o contraseña incorrectos.';
         Alert.alert('Error de inicio de sesión', serverMessage);

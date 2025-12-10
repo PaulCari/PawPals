@@ -183,51 +183,7 @@ const FavoritesScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      {/* Barra de Navegación Inferior */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() =>navigation.navigate('Home', { clienteId })}
-        >
-          <View style={styles.navIconContainer}>
-            <Ionicons name="home" size={26} color="white" />
-          </View>
-          <Text style={styles.navText}>Inicio</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => setActiveTab('pet')}
-        >
-          <View style={styles.navIconContainer}>
-            <Ionicons name="paw" size={26} color="white" />
-          </View>
-          <Text style={styles.navText}>Perfil Mascota</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => setActiveTab('cart')}
-        >
-          <View style={styles.navIconContainer}>
-            <Ionicons name="cart" size={26} color="white" />
-          </View>
-          <Text style={styles.navText}>Carrito</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navButton}
-          onPress={() => navigation.navigate('Favorites', { clienteId })}
-        >
-          <View style={[
-            styles.navIconContainer,
-            styles.activeNavButton
-          ]}>
-            <Ionicons name="heart" size={26} color="white" />
-          </View>
-          <Text style={[styles.navText, styles.activeNavText]}>Favoritos</Text>
-        </TouchableOpacity>
-      </View>
+      
     </SafeAreaView>
   );
 };
