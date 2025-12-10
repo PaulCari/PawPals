@@ -1,27 +1,23 @@
 // frontend/screens/HomeScreen.js
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Para los iconos del header
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity, Image, ActivityIndicator, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-// Importamos todos los servicios que necesitamos
 import { getProducts, getCategories } from '../services/productService';
-// Asumimos que tienes una forma de obtener los datos del usuario y sus mascotas
-// Por ahora, usaremos datos de ejemplo
-// import { getUserProfile, getMyPets } from '../services/userService'; // (esto sería lo ideal)
-
 import ProductCard from '../components/ProductCard';
-import { styles } from '../styles/homeScreenStyles'; // Crearemos/modificaremos este archivo
+import { styles } from '../styles/homeScreenStyles';
 
 const HomeScreen = ({ navigation }) => {
   // Estados para los datos
-  const [userName, setUserName] = useState("Paúl"); // Ejemplo
-  const [petName, setPetName] = useState("Caramelo"); // Ejemplo
+  const [userName, setUserName] = useState("Paúl");
+  const [petName, setPetName] = useState("Caramelo");
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   
   // Estado para la lógica de la UI
   const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [activeTab, setActiveTab] = useState('home'); // Para la barra inferior
   const [loading, setLoading] = useState(true);
 
   // useEffect para cargar categorías y los productos iniciales
@@ -33,7 +29,7 @@ const HomeScreen = ({ navigation }) => {
 
         if (categoriesData.length > 0) {
           const firstCategoryId = categoriesData[0].id;
-          setActiveCategoryId(firstCategoryId); // Activamos la primera categoría por defecto
+          setActiveCategoryId(firstCategoryId);
           const productsData = await getProducts({ categoria_id: firstCategoryId });
           setProducts(productsData);
         }
@@ -49,7 +45,7 @@ const HomeScreen = ({ navigation }) => {
   // Función para manejar el cambio de categoría
   const handleCategoryPress = async (categoryId) => {
     setActiveCategoryId(categoryId);
-    setLoading(true); // Muestra el spinner mientras cargan los nuevos productos
+    setLoading(true);
     try {
       const productsData = await getProducts({ categoria_id: categoryId });
       setProducts(productsData);
@@ -60,18 +56,16 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  // ... (dentro de HomeScreen.js, después de la lógica anterior)
-
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* 1. Header Morado */}
       <View style={styles.header}>
         <TouchableOpacity>
-          <Ionicons name="menu" size={32} color="white" />
+          <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <TouchableOpacity>
-          <Ionicons name="cart-outline" size={32} color="white" />
+          <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -79,21 +73,21 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>Bienvenido {userName} y {petName}!!</Text>
 
-        {/* 3. Filtro de Categorías */}
+        {/* 3. Filtro de Categorías con línea inferior */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScrollView}>
           {categories.map((category) => (
             <TouchableOpacity 
               key={category.id}
-              style={[
-                styles.categoryButton,
-                activeCategoryId === category.id && styles.activeCategoryButton
-              ]}
+              style={styles.categoryButton}
               onPress={() => handleCategoryPress(category.id)}
             >
               <Text style={[
                 styles.categoryText,
                 activeCategoryId === category.id && styles.activeCategoryText
               ]}>{category.nombre}</Text>
+              {activeCategoryId === category.id && (
+                <View style={styles.categoryUnderline} />
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -107,11 +101,101 @@ const HomeScreen = ({ navigation }) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ProductCard item={item} />}
+            renderItem={({ item, index }) => (
+              <ProductCard 
+                item={item} 
+                isCenter={index === Math.floor(products.length / 2)} 
+              />
+            )}
             contentContainerStyle={styles.productList}
             ListEmptyComponent={<Text style={styles.emptyText}>No hay productos en esta categoría.</Text>}
+            snapToInterval={300} // Para efecto de snap
+            decelerationRate="fast"
           />
         )}
+      </View>
+
+      {/* 5. Barra de Navegación Inferior */}
+      <View style={styles.bottomNavigation}>
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('home')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'home' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="home" 
+              size={26} 
+              color={activeTab === 'home' ? 'white' : 'white'} 
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'home' && styles.activeNavText
+          ]}>Inicio</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('pet')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'pet' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="paw" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'pet' && styles.activeNavText
+          ]}>Perfil Mascota</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('cart')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'cart' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="cart" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'cart' && styles.activeNavText
+          ]}>Carrito</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('settings')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'settings' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="settings" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'settings' && styles.activeNavText
+          ]}>Ajustes</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
