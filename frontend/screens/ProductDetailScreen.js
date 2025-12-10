@@ -129,6 +129,13 @@ const ProductDetailScreen = ({ route, navigation }) => {
             </View>
 
             {/* Etiquetas */}
+            <View style={styles.tagsContainer}>
+              {['Alto en Proteína', 'BARF', 'Sin Conservantes'].map((tag, index) => (
+                <View key={`test-${index}`} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
             {product.etiquetas && product.etiquetas.length > 0 && (
               <View style={styles.tagsContainer}>
                 {product.etiquetas.map((tag, index) => (

@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
   // === CONTENIDO ===
   contentContainer: {
     paddingHorizontal: 25, // Reducido de 30
-    paddingBottom: 90,
+    paddingBottom: 40,
     paddingTop: 20, // Aumentado para la barra de navegación
   },
 
