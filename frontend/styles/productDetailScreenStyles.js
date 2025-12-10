@@ -38,27 +38,27 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    paddingTop: 160, // 🔥 AUMENTADO de 140 a 160 para dar más espacio a la imagen
+    paddingTop: 180, // 🔥 AUMENTADO de 140 a 160 para dar más espacio a la imagen
     overflow: 'visible', // 🔥 CAMBIADO de 'hidden' a 'visible' para que la imagen no se corte
   },
 
   // === IMAGEN FLOTANTE ===
   imageContainer: {
     position: 'absolute',
-    top: -90, // 🔥 AJUSTADO de -70 a -90 para que sobresalga más
+    top: -18, // 🔥 AJUSTADO de -70 a -90 para que sobresalga más
     alignSelf: 'center',
     zIndex: 100, // 🔥 AUMENTADO de 10 a 100 para que esté sobre TODO
   },
   productImage: {
     width: 240,
-    height: 240,
+    height: 250,
     borderRadius: 120,
-    borderWidth: 6,
+    borderWidth: 0,
     borderColor: 'white',
     resizeMode: 'cover',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.50,
     shadowRadius: 10,
     elevation: 15,
   },
@@ -102,7 +102,8 @@ export const styles = StyleSheet.create({
   // === CONTENIDO ===
   contentContainer: {
     paddingHorizontal: 25, // Reducido de 30
-    paddingBottom: 120, // Aumentado para la barra de navegación
+    paddingBottom: 90,
+    paddingTop: 20, // Aumentado para la barra de navegación
   },
 
   // === TÍTULO Y PRECIO ===
@@ -153,7 +154,7 @@ export const styles = StyleSheet.create({
 
   // === SECCIÓN DE INGREDIENTES ===
   section: {
-    marginBottom: 20, // Reducido
+    marginBottom: 10, // Reducido
   },
   sectionTitle: {
     fontSize: 20, // Reducido de 22
@@ -175,8 +176,8 @@ export const styles = StyleSheet.create({
     marginVertical: 20, // Reducido
   },
   quantityButton: {
-    width: 50, // Igual que antes
-    height: 50,
+    width: 40, // Igual que antes
+    height: 40,
     borderRadius: 25,
     backgroundColor: MAIN_PURPLE,
     justifyContent: 'center',
