@@ -1,148 +1,150 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native';
+// src/styles/homeScreenStyles.js
+import { StyleSheet, Platform } from 'react-native';
 
-const { width } = Dimensions.get('window');
 const MAIN_PURPLE = '#875686';
 const LIGHT_BACKGROUND = '#F9F9F9';
+const ORANGE = '#FF8C42';
 
 export const styles = StyleSheet.create({
-  // === CONTENEDORES PRINCIPALES ===
+  // === CONTENEDOR PRINCIPAL ===
   safeArea: {
     flex: 1,
     backgroundColor: MAIN_PURPLE,
   },
-  container: {
-    flex: 1,
-    backgroundColor: MAIN_PURPLE,
-  },
 
-  // === FONDO DECORATIVO (Patitas y huesos) ===
-  ellipseImage: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    width: 300,
-    height: 300,
-    resizeMode: 'contain',
-    opacity: 0.2, // Un poco transparente
-  },
-  pawImage: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    width: 60,
-    height: 60,
-    opacity: 0.3,
-    resizeMode: 'contain',
-    transform: [{ rotate: '15deg' }],
-  },
-  boneImage: {
-    position: 'absolute',
-    top: 150,
-    left: 10,
-    width: 50,
-    height: 50,
-    opacity: 0.3,
-    resizeMode: 'contain',
-    transform: [{ rotate: '-20deg' }],
-  },
-
-  // === HEADER ===
+  // === HEADER MORADO ===
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Separa logo y carrito
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 40 : 10,
-    paddingBottom: 20,
-    zIndex: 10,
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingBottom: 15,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  cartButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 10,
-    borderRadius: 12,
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
   },
 
-  // === CUERPO BLANCO (La parte curva) ===
-  bodyContainer: {
+  // === CONTENEDOR BLANCO ===
+  container: {
     flex: 1,
     backgroundColor: LIGHT_BACKGROUND,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingTop: 20,
-    overflow: 'hidden', // Para que el contenido no se salga de las curvas
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
   },
 
-  welcomeText: {
-    fontSize: 22,
+  // === TÍTULO DE BIENVENIDA ===
+  welcomeTitle: {
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#333',
-    marginHorizontal: 20,
-    marginBottom: 5,
-  },
-  subTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginHorizontal: 20,
-    marginBottom: 20,
+    color: '#1c1c1c',
+    marginHorizontal: 25,
+    marginBottom: 25,
+    lineHeight: 34,
   },
 
-  // === CATEGORÍAS ===
-  categoryContainer: {
-    paddingLeft: 20,
-    marginBottom: 20,
-    height: 40,
+  // === CATEGORÍAS CON LÍNEA INFERIOR ===
+  categoryScrollView: {
+    marginBottom: 25,
+    paddingLeft: 25,
+    maxHeight: 50,
   },
   categoryButton: {
-    marginRight: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#EEE',
-    justifyContent: 'center',
-  },
-  activeCategoryButton: {
-    backgroundColor: MAIN_PURPLE,
-    borderColor: MAIN_PURPLE,
+    marginRight: 30,
+    paddingBottom: 10,
+    alignItems: 'center',
   },
   categoryText: {
-    fontSize: 14,
-    color: '#888',
+    fontSize: 16,
+    color: '#999',
     fontWeight: '600',
+    marginBottom: 8,
   },
   activeCategoryText: {
-    color: '#FFF',
+    color: MAIN_PURPLE,
     fontWeight: 'bold',
+    fontSize: 17,
+  },
+  categoryUnderline: {
+    height: 4,
+    width: '100%',
+    backgroundColor: MAIN_PURPLE,
+    borderRadius: 2,
+    shadowColor: MAIN_PURPLE,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   // === LISTA DE PRODUCTOS ===
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 100, // Espacio para que el último item se vea bien
+  productList: {
+    paddingLeft: 25,
+    paddingVertical: 10,
+    paddingBottom: 30,
   },
 
-  // === ESTADOS DE CARGA Y VACÍO ===
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: MAIN_PURPLE,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 50,
-  },
+  // === MENSAJE VACÍO ===
   emptyText: {
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
+    marginTop: 50,
+    marginHorizontal: 40,
+  },
+
+  // === BARRA DE NAVEGACIÓN INFERIOR ===
+  bottomNavigation: {
+    flexDirection: 'row',
+    backgroundColor: MAIN_PURPLE,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  navButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  navIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  activeNavButton: {
+    backgroundColor: ORANGE,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  navText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: '500',
+  },
+  activeNavText: {
+    fontWeight: 'bold',
+    color: 'white',
   },
 });

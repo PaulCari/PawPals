@@ -1,53 +1,64 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  card: {
+    backgroundColor: 'white',
+    width: '100%',
+    padding: 30,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  logo: {
-    width: 150,
-    height: 150,
-    resizeMode: 'contain',
-    marginBottom: 40,
+    paddingTop: 80, // Espacio para que el logo se vea arriba
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#333',
+    marginBottom: 30,
   },
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#f2f2f2',
-    borderRadius: 10,
-    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginBottom: 25,
     fontSize: 16,
-    marginBottom: 15,
+    paddingLeft: 5,
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#8A2BE2',
+    backgroundColor: '#732C71', // Morado de Figma
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },
-  linkText: {
-    marginTop: 15,
+  forgotPasswordText: {
+    marginTop: 20,
     color: '#555',
+    fontSize: 14,
+  },
+  registerContainer: {
+    marginTop: 15,
+  },
+  registerText: {
+    color: '#555',
+    fontSize: 14,
   },
   registerLink: {
-    color: '#8A2BE2',
+    color: '#732C71',
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });

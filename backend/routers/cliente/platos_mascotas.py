@@ -169,3 +169,26 @@ def listar_etiquetas(db: Session = Depends(get_db)):
         .all()
     )
     return [{"id": str(e.id), "nombre": e.nombre} for e in etiquetas]
+
+
+@router.get("/especies/{especie_id}/razas", summary="Listar razas por especie")
+def listar_razas_por_especie(especie_id: str):
+    """
+    Devuelve una lista predefinida de razas según el ID de la especie.
+    Esto es un ejemplo, en un futuro podría venir de la base de datos.
+    """
+    # Convertimos el ID a entero para comparar
+    try:
+        especie_id_int = int(especie_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="El ID de la especie debe ser un número.")
+
+    razas_perro = ["Mestizo", "Labrador Retriever", "Bulldog Francés", "Pastor Alemán", "Golden Retriever", "Chihuahua", "Beagle"]
+    razas_gato = ["Mestizo", "Siamés", "Persa", "Maine Coon", "Bengalí", "Ragdoll", "Esfinge"]
+
+    if especie_id_int == 1: # ID de Perro
+        return sorted(razas_perro)
+    elif especie_id_int == 2: # ID de Gato
+        return sorted(razas_gato)
+    else:
+        return ["No especificado"] # Para otras especies o si el ID es inválido

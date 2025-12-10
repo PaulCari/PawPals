@@ -1,7 +1,10 @@
+# backend/utils/security.py
+
 from passlib.context import CryptContext
 
-# Configurar el contexto de encriptación
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# ✅ CAMBIO: Ahora usamos 'argon2' como el método principal.
+# Es más moderno y no tiene los problemas de compilación de bcrypt en Windows.
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
@@ -11,6 +14,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """
-    Genera un hash de una contraseña en texto plano.
+    Genera un hash de una contraseña en texto plano usando Argon2.
     """
     return pwd_context.hash(password)
