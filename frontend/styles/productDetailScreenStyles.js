@@ -141,10 +141,10 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: MAIN_PURPLE,
     borderRadius: 20,
-    paddingVertical: 6, // Reducido
+    paddingVertical: 4, // Reducido
     paddingHorizontal: 14, // Reducido
     marginHorizontal: 4,
-    marginVertical: 4,
+    marginVertical: 0.5,
   },
   tagText: {
     color: MAIN_PURPLE,
@@ -154,13 +154,13 @@ export const styles = StyleSheet.create({
 
   // === SECCIÓN DE INGREDIENTES ===
   section: {
-    marginBottom: 10, // Reducido
+    marginBottom: 7, // Reducido
   },
   sectionTitle: {
     fontSize: 20, // Reducido de 22
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10, // Reducido
+    marginBottom: 8, // Reducido
   },
   sectionText: {
     fontSize: 15, // Reducido
@@ -173,11 +173,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 20, // Reducido
+    marginVertical: 15, // Reducido
   },
   quantityButton: {
-    width: 40, // Igual que antes
-    height: 40,
+    width: 35, // Igual que antes
+    height: 35,
     borderRadius: 25,
     backgroundColor: MAIN_PURPLE,
     justifyContent: 'center',
