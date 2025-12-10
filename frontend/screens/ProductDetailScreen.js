@@ -21,6 +21,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
   // Cargar datos del producto
@@ -41,6 +42,27 @@ const ProductDetailScreen = ({ route, navigation }) => {
   // Manejadores
   const handleIncrement = () => setQuantity(prev => prev + 1);
   const handleDecrement = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+  
+  const showFavoriteToast = (isFav) => {
+      // Usaremos la Alerta básica de React Native para una notificación simple,
+      // pero idealmente se usaría un componente Toast.
+      const message = isFav 
+        ? "Producto añadido a Favoritos ❤️" 
+        : "Producto eliminado de Favoritos 💔";
+      
+      // Aquí puedes usar una librería de Toast/Modal más avanzada
+      console.log(message); 
+      // Si usas React Native Alert:
+  };
+
+  const handleFavorite = () => { // <--- NUEVA FUNCIÓN
+    setIsFavorite(prev => {
+      const newState = !prev;
+      showFavoriteToast(newState);
+      // Aquí podrías llamar a un servicio: saveToFavorites(productId, newState);
+      return newState;
+    });
+  };
 
   const handleAddToCart = () => {
     console.log(`Agregando ${quantity} unidades del producto ${productId} al carrito`);
@@ -107,8 +129,15 @@ const ProductDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Botón Favorito Flotante */}
-        <TouchableOpacity style={styles.favoriteButton}>
-          <Ionicons name="heart-outline" size={28} color="#875686" />
+        <TouchableOpacity 
+          style={styles.favoriteButton}
+          onPress={handleFavorite} // <--- NUEVO MANEJADOR
+        >
+          <Ionicons 
+            name={isFavorite ? "heart" : "heart-outline"} // <--- CAMBIO DE ÍCONO
+            size={28} 
+            color="#875686" 
+          />
         </TouchableOpacity>
 
         <ScrollView 
