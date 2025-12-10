@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 # Datos de conexión a MySQL
 DATABASE_URL = "mysql+pymysql://root:Paulcari529@localhost:3306/mascotas"
+>>>>>>> Stashed changes
 # Crea el motor de conexión
 engine = create_engine(DATABASE_URL, echo=True)
 # Sesión para interactuar con la base de datos
