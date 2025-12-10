@@ -1,20 +1,5 @@
 """
 RUTAS DEL CLIENTE – PEDIDOS Y PEDIDOS ESPECIALIZADOS
------------------------------------------------------
-Este módulo gestiona todo el flujo de pedidos del cliente, incluyendo la
-creación de pedidos normales y especializados, consulta de historial y
-confirmación de entrega.
-Incluye:
-- Creación de pedidos normales (desde el carrito de compras).
-- Creación y seguimiento de pedidos especializados (con revisión del nutricionista).
-- Consulta de historial y detalles de pedidos.
-- Confirmación de recepción de pedido.
-- Generación y visualización del código QR asociado al pedido.
-Notas:
-- Todos los IDs se manejan como `str` (por uso de BIGINT en la base de datos).
-- Las claves se generan con `utils.keygen.generate_uint64_key()`.
-- Los QR se almacenan y sirven desde `utils.globals.QR`.
-- Las rutas requieren validación del cliente correspondiente.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Body, Form, File, Query
@@ -22,19 +7,20 @@ from datetime import datetime
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente, Direccion, Pedido, DetallePedido, ControlEntrega, PlatoCombinado as Plato, PedidoEspecializado, RegistroMascota, RecetaMedica, AlergiaMascota, DescripcionAlergias, CondicionSalud, PreferenciaAlimentaria
-import os, json
+from models import (
+    Cliente, Direccion, Pedido, DetallePedido, ControlEntrega, 
+    PlatoCombinado, PedidoEspecializado, RegistroMascota, RecetaMedica, 
+    AlergiaMascota, DescripcionAlergias, CondicionSalud, PreferenciaAlimentaria
+)
+import os
+import json
 from typing import Optional
-import pdb # <--- LÍNEA AÑADIDA PARA EL DEBUGGER
 
 router = APIRouter(prefix="/cliente/pedido", tags=["Pedidos del Cliente"])
 
 # ---------------------------------------------------------------------------
 # POST /cliente/pedido/{cliente_id}
 # ---------------------------------------------------------------------------
-# Crea un nuevo pedido normal a partir del carrito del cliente.
-# Incluye dirección, lista de platos y total.
-# Retorna el ID del pedido generado.
 @router.post("/{cliente_id}")
 def crear_pedido(
     cliente_id: str,
@@ -44,15 +30,18 @@ def crear_pedido(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
     direccion_id = data.get("direccion_id")
     platos = data.get("platos", [])
     total = data.get("total")
+    
     if not direccion_id:
         raise HTTPException(status_code=400, detail="Debe especificar una dirección de entrega.")
     if not platos or len(platos) == 0:
         raise HTTPException(status_code=400, detail="Debe incluir al menos un plato en el pedido.")
     if not total or total <= 0:
         raise HTTPException(status_code=400, detail="El total del pedido debe ser mayor que 0.")
+    
     direccion = (
         db.query(Direccion)
         .filter(Direccion.id == direccion_id, Direccion.cliente_id == cliente_id)
@@ -60,6 +49,7 @@ def crear_pedido(
     )
     if not direccion:
         raise HTTPException(status_code=400, detail="La dirección no pertenece al cliente o no existe.")
+    
     pedido_id = keygen.generate_uint64_key()
     pedido = Pedido(
         id=pedido_id,
@@ -71,26 +61,36 @@ def crear_pedido(
         incluye_plato=True,
     )
     db.add(pedido)
+    
     for item in platos:
-
-        # ---- INICIO DE LA MODIFICACIÓN PARA DEBUGGING (Error 2) ----
-        # 1. Iniciamos el depurador en medio del bucle.
-        pdb.set_trace()
-        # 2. Forzamos un ZeroDivisionError.
-        cantidad = item["cantidad"]
-        subtotal_calculado = (cantidad * 10) / 0  # ¡Error! División por cero.
-        # ---- FIN DE LA MODIFICACIÓN ----
-
+        # ✅ CÓDIGO CORREGIDO: Eliminamos el debugger y la división por cero
+        plato_id = item.get("plato_id")
+        cantidad = item.get("cantidad", 1)
+        precio_unitario = item.get("precio_unitario", 0)
+        
+        # Calcular el subtotal correctamente
+        subtotal = cantidad * precio_unitario
+        
+        # Verificar que el plato existe
+        plato = db.query(PlatoCombinado).filter(PlatoCombinado.id == plato_id).first()
+        if not plato:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"El plato con ID {plato_id} no existe."
+            )
+        
+        # Crear el detalle del pedido
         det = DetallePedido(
             id=keygen.generate_uint64_key(),
             pedido_id=pedido_id,
-            plato_id=item["plato_id"],
-            cantidad=item["cantidad"],
-            # La línea original fue reemplazada por nuestro valor erróneo:
-            subtotal=subtotal_calculado,
+            plato_combinado_id=plato_id,
+            cantidad=cantidad,
+            subtotal=subtotal,
         )
         db.add(det)
+    
     db.commit()
+    
     return {
         "mensaje": "Pedido creado exitosamente.",
         "pedido_id": str(pedido_id),
@@ -229,6 +229,7 @@ def obtener_qr_pedido(
     db: Session = Depends(get_db),
 ):
     return {"message": f"QR de pedido {pedido_id} en construcción"}
+
 
 # ---------------------------------------------------------------------------
 # POST /cliente/pedido-especializado/{cliente_id}

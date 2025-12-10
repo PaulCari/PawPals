@@ -1,53 +1,43 @@
-// src/components/ProductCard.js
+// frontend/components/ProductCard.js
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../styles/productCardStyles';
 
-/**
- * Componente que muestra la tarjeta de un producto (plato).
- * 
- * @param {Object} props
- * @param {Object} props.item - Objeto del producto recibido del backend.
- */
 const ProductCard = ({ item }) => {
   const navigation = useNavigation();
-
   if (!item) return null;
 
-  // 🔹 Asegurar que la imagen se cargue correctamente o mostrar un placeholder
-  const imageSource =
-    item.imagen
-      ? { uri: item.imagen }
-      : require('../assets/placeholder.png'); // Usa un placeholder local si no hay imagen
+  const imageSource = item.imagen ? { uri: item.imagen } : require('../assets/placeholder.png');
 
-  // 🔹 Función para navegar a la pantalla de detalle
   const handlePress = () => {
     navigation.navigate('ProductDetail', { productId: item.id });
   };
 
   return (
-    <TouchableOpacity onPress={handlePress}>
-      <View style={styles.cardContainer}>
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+    <TouchableOpacity style={styles.cardContainer} onPress={handlePress}>
+      <Image source={imageSource} style={styles.image} />
+      
+      {/* NUEVO: Agrupamos todo el contenido central en una View */}
+      {/* Parte Superior: Título y Descripción */}
+      <Text style={styles.title} numberOfLines={2}>{item.nombre}</Text>
+      <Text style={styles.subtitle} numberOfLines={3}>{item.descripcion}</Text>
 
-        <Text style={styles.title} numberOfLines={1}>
-          {item.nombre}
-        </Text>
+      {/* 👇 EL SEPARADOR MÁGICO 👇 */}
+      <View style={styles.spacer} />
 
-        {item.descripcion ? (
-          <Text style={styles.description} numberOfLines={2}>
-            {item.descripcion}
-          </Text>
-        ) : null}
+      {/* Parte Inferior: Precio y Footer siempre alineados al fondo */}
+      <Text style={styles.price}>S/ {item.precio?.toFixed(2) || '0.00'}</Text>
 
-        <Text style={styles.price}>S/ {item.precio?.toFixed(2) || '0.00'}</Text>
+      <View style={styles.footer}>
+  <TouchableOpacity style={styles.addToCartButton}>
+  <Text style={styles.addToCartText}>AGREGAR AL CARRITO</Text>
+</TouchableOpacity>
 
-        <View style={styles.actionsContainer}>
-          <Text style={styles.addToCartText}>AGREGAR AL CARRITO</Text>
-          <Text style={styles.seeMoreText}>Ver más →</Text>
-        </View>
-      </View>
+  <Text style={styles.seeMoreText}>Ver más →</Text>
+</View>
+
+      
     </TouchableOpacity>
   );
 };

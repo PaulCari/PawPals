@@ -1,80 +1,204 @@
-// src/screens/HomeScreen.js
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  FlatList,
-  ActivityIndicator,
-  Text,
-  SafeAreaView,
-  RefreshControl,
-} from 'react-native';
-import { getProducts } from '../services/productService';
+// frontend/screens/HomeScreen.js
+
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity, Image, ActivityIndicator, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { getProducts, getCategories } from '../services/productService';
 import ProductCard from '../components/ProductCard';
 import { styles } from '../styles/homeScreenStyles';
 
-/**
- * Pantalla principal del cliente.
- * Muestra los platos activos y publicados desde el backend.
- */
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
+  // Estados para los datos
+  const [userName, setUserName] = useState("Paúl");
+  const [petName, setPetName] = useState("Caramelo");
+  const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  
+  // Estado para la lógica de la UI
+  const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [activeTab, setActiveTab] = useState('home'); // Para la barra inferior
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // 🔹 Cargar productos desde el backend
-  const fetchProducts = async () => {
+  // useEffect para cargar categorías y los productos iniciales
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const categoriesData = await getCategories();
+        setCategories(categoriesData);
+
+        if (categoriesData.length > 0) {
+          const firstCategoryId = categoriesData[0].id;
+          setActiveCategoryId(firstCategoryId);
+          const productsData = await getProducts({ categoria_id: firstCategoryId });
+          setProducts(productsData);
+        }
+      } catch (error) {
+        console.error("❌ Error cargando datos iniciales:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // Función para manejar el cambio de categoría
+  const handleCategoryPress = async (categoryId) => {
+    setActiveCategoryId(categoryId);
+    setLoading(true);
     try {
-      const data = await getProducts(); // sin filtros → devuelve todos los platos
-      setProducts(data);
+      const productsData = await getProducts({ categoria_id: categoryId });
+      setProducts(productsData);
     } catch (error) {
-      console.error('❌ Error cargando productos:', error);
+      console.error(`❌ Error cargando productos para la categoría ${categoryId}:`, error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchProducts();
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#FFB800" style={{ marginTop: 100 }} />
-      </SafeAreaView>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No se encontraron platos disponibles.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ProductCard item={item} />}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      />
+      {/* 1. Header Morado */}
+      <View style={styles.header}>
+        <TouchableOpacity>
+          <Ionicons name="menu" size={30} color="white" />
+        </TouchableOpacity>
+        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+        <TouchableOpacity>
+          <Ionicons name="cart-outline" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* 2. Contenedor Blanco Principal */}
+      <View style={styles.container}>
+        <Text style={styles.welcomeTitle}>Bienvenido {userName} y {petName}!!</Text>
+
+        {/* 3. Filtro de Categorías con línea inferior */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScrollView}>
+          {categories.map((category) => (
+            <TouchableOpacity 
+              key={category.id}
+              style={styles.categoryButton}
+              onPress={() => handleCategoryPress(category.id)}
+            >
+              <Text style={[
+                styles.categoryText,
+                activeCategoryId === category.id && styles.activeCategoryText
+              ]}>{category.nombre}</Text>
+              {activeCategoryId === category.id && (
+                <View style={styles.categoryUnderline} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* 4. Lista de Productos */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#875686" style={{ marginTop: 50 }} />
+        ) : (
+          <FlatList
+            data={products}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <ProductCard 
+                item={item} 
+                isCenter={index === Math.floor(products.length / 2)} 
+              />
+            )}
+            contentContainerStyle={styles.productList}
+            ListEmptyComponent={<Text style={styles.emptyText}>No hay productos en esta categoría.</Text>}
+            snapToInterval={300} // Para efecto de snap
+            decelerationRate="fast"
+          />
+        )}
+      </View>
+
+      {/* 5. Barra de Navegación Inferior */}
+      <View style={styles.bottomNavigation}>
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('home')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'home' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="home" 
+              size={26} 
+              color={activeTab === 'home' ? 'white' : 'white'} 
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'home' && styles.activeNavText
+          ]}>Inicio</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('pet')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'pet' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="paw" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'pet' && styles.activeNavText
+          ]}>Perfil Mascota</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('cart')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'cart' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="cart" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'cart' && styles.activeNavText
+          ]}>Carrito</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setActiveTab('settings')}
+        >
+          <View style={[
+            styles.navIconContainer,
+            activeTab === 'settings' && styles.activeNavButton
+          ]}>
+            <Ionicons 
+              name="settings" 
+              size={26} 
+              color="white"
+            />
+          </View>
+          <Text style={[
+            styles.navText,
+            activeTab === 'settings' && styles.activeNavText
+          ]}>Ajustes</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
 
 export default HomeScreen;
-

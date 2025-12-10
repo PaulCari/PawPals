@@ -3,75 +3,37 @@ import { StyleSheet, Platform } from 'react-native';
 
 const MAIN_PURPLE = '#875686';
 const LIGHT_BACKGROUND = '#F9F9F9';
+const ORANGE = '#FF8C42';
 
 export const styles = StyleSheet.create({
-  // === CONTENEDORES PRINCIPALES ===
+  // === CONTENEDOR PRINCIPAL ===
   safeArea: {
     flex: 1,
     backgroundColor: MAIN_PURPLE,
   },
 
-  container: {
-    flex: 1,
-    backgroundColor: MAIN_PURPLE,
-    overflow: 'hidden',
-  },
-
-  // === FONDO DECORATIVO ===
-  ellipseImage: {
-    position: 'absolute',
-    top: -100,
-    left: -150,
-    width: 350,
-    height: 350,
-    resizeMode: 'contain',
-    opacity: 0.1,
-  },
-  pawImage: {
-    position: 'absolute',
-    top: 30,
-    left: 10,
-    width: 80,
-    height: 100,
-    opacity: 0.5,
-    resizeMode: 'contain',
-    transform: [{ rotate: '-25deg' }],
-  },
-  boneImage: {
-    position: 'absolute',
-    top: 49,
-    right: 80,
-    width: 60,
-    height: 60,
-    opacity: 0.5,
-    resizeMode: 'contain',
-    transform: [{ rotate: '20deg' }],
-  },
-
-  // === HEADER ===
+  // === HEADER MORADO ===
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 20 : 10,
-    paddingBottom: 10,
-    zIndex: 10,
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingBottom: 15,
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
   },
 
-  // === SECCIÓN DE CONTENIDO ===
-  bodyContainer: {
+  // === CONTENEDOR BLANCO ===
+  container: {
     flex: 1,
     backgroundColor: LIGHT_BACKGROUND,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingTop: 30,
-    zIndex: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.1,
@@ -79,61 +41,110 @@ export const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  welcomeText: {
-    fontSize: 28,
+  // === TÍTULO DE BIENVENIDA ===
+  welcomeTitle: {
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#1c1c1c',
     marginHorizontal: 25,
     marginBottom: 25,
+    lineHeight: 34,
   },
 
-  // === CATEGORÍAS ===
+  // === CATEGORÍAS CON LÍNEA INFERIOR ===
   categoryScrollView: {
     marginBottom: 25,
     paddingLeft: 25,
+    maxHeight: 50,
   },
   categoryButton: {
     marginRight: 30,
-    paddingBottom: 6,
-  },
-  activeCategoryButton: {
-    borderBottomWidth: 3,
-    borderBottomColor: MAIN_PURPLE,
+    paddingBottom: 10,
+    alignItems: 'center',
   },
   categoryText: {
     fontSize: 16,
     color: '#999',
     fontWeight: '600',
+    marginBottom: 8,
   },
   activeCategoryText: {
     color: MAIN_PURPLE,
     fontWeight: 'bold',
+    fontSize: 17,
+  },
+  categoryUnderline: {
+    height: 4,
+    width: '100%',
+    backgroundColor: MAIN_PURPLE,
+    borderRadius: 2,
+    shadowColor: MAIN_PURPLE,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   // === LISTA DE PRODUCTOS ===
-  listContainer: {
-    backgroundColor: LIGHT_BACKGROUND,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-
   productList: {
     paddingLeft: 25,
     paddingVertical: 10,
+    paddingBottom: 30,
   },
 
-  // === ESTADOS DE VACÍO Y CARGA ===
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: LIGHT_BACKGROUND,
-  },
+  // === MENSAJE VACÍO ===
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: '#999',
     textAlign: 'center',
+    marginTop: 50,
+    marginHorizontal: 40,
+  },
+
+  // === BARRA DE NAVEGACIÓN INFERIOR ===
+  bottomNavigation: {
+    flexDirection: 'row',
+    backgroundColor: MAIN_PURPLE,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  navButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  navIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  activeNavButton: {
+    backgroundColor: ORANGE,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  navText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: '500',
+  },
+  activeNavText: {
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
-
-
