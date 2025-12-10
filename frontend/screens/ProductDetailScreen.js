@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Alert, // 👈 AÑADIDO: Importamos Alert para la ventana emergente
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/productDetailScreenStyles';
@@ -21,8 +22,8 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [isFavorite, setIsFavorite] = useState(false); // 👈 AÑADIDO: Estado para el favorito
 
   // Cargar datos del producto
   useEffect(() => {
@@ -42,31 +43,29 @@ const ProductDetailScreen = ({ route, navigation }) => {
   // Manejadores
   const handleIncrement = () => setQuantity(prev => prev + 1);
   const handleDecrement = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
-  
-  const showFavoriteToast = (isFav) => {
-      // Usaremos la Alerta básica de React Native para una notificación simple,
-      // pero idealmente se usaría un componente Toast.
-      const message = isFav 
-        ? "Producto añadido a Favoritos ❤️" 
-        : "Producto eliminado de Favoritos 💔";
-      
-      // Aquí puedes usar una librería de Toast/Modal más avanzada
-      console.log(message); 
-      // Si usas React Native Alert:
-  };
 
-  const handleFavorite = () => { // <--- NUEVA FUNCIÓN
+  // Manejador de Favorito con notificación
+  const handleFavorite = () => {
     setIsFavorite(prev => {
       const newState = !prev;
-      showFavoriteToast(newState);
-      // Aquí podrías llamar a un servicio: saveToFavorites(productId, newState);
+      console.log(newState ? "Añadido a favoritos" : "Eliminado de favoritos");
       return newState;
     });
   };
 
   const handleAddToCart = () => {
     console.log(`Agregando ${quantity} unidades del producto ${productId} al carrito`);
-    // Aquí agregarás la lógica del carrito más adelante
+    
+    // 👈 AÑADIDO: Ventana emergente de confirmación
+    Alert.alert(
+      "¡Añadido al Carrito!",
+      `${product.nombre} (${quantity} unid.) se agregó correctamente.`,
+      [
+        { text: "Ver Carrito", onPress: () => setActiveTab('cart') },
+        { text: "Seguir Comprando", style: "cancel" }
+      ],
+      { cancelable: true }
+    );
   };
 
   // Loading
@@ -128,13 +127,13 @@ const ProductDetailScreen = ({ route, navigation }) => {
           <Image source={imageSource} style={styles.productImage} />
         </View>
 
-        {/* Botón Favorito Flotante */}
+        {/* Botón Favorito Flotante MODIFICADO */}
         <TouchableOpacity 
           style={styles.favoriteButton}
-          onPress={handleFavorite} // <--- NUEVO MANEJADOR
+          onPress={handleFavorite} // 👈 Acción de click
         >
           <Ionicons 
-            name={isFavorite ? "heart" : "heart-outline"} // <--- CAMBIO DE ÍCONO
+            name={isFavorite ? "heart" : "heart-outline"} // 👈 Cambia el ícono si es favorito
             size={28} 
             color="#875686" 
           />
@@ -165,15 +164,6 @@ const ProductDetailScreen = ({ route, navigation }) => {
                 </View>
               ))}
             </View>
-            {product.etiquetas && product.etiquetas.length > 0 && (
-              <View style={styles.tagsContainer}>
-                {product.etiquetas.map((tag, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
 
             {/* Ingredientes Clave */}
             {product.descripcion && (
@@ -215,7 +205,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
             {/* Botón Agregar al Carrito */}
             <TouchableOpacity 
               style={styles.addToCartButton}
-              onPress={handleAddToCart}
+              onPress={handleAddToCart} // 👈 Llamará al Alert
             >
               <Ionicons name="cart" size={24} color="white" />
               <Text style={styles.addToCartText}>Agregar al carrito</Text>
