@@ -1,12 +1,26 @@
+// frontend/screens/SuccessScreen.js
+
 import React from 'react';
-// StyleSheet ya no se importa aquí
 import { View, Text, TouchableOpacity } from 'react-native';
-import AuthContainer from '../components/AuthContainer';
 import { Feather } from '@expo/vector-icons';
-// Paso 1: Importar los estilos desde su nueva ubicación
+
+import AuthContainer from '../components/AuthContainer';
 import { styles } from '../styles/successScreenStyles';
 
-const SuccessScreen = ({ navigation }) => {
+const SuccessScreen = ({ navigation, route }) => {
+  //  RECIBIR clienteId desde RegisterScreen
+  const clienteId = route.params?.clienteId;
+
+  const handleNext = () => {
+    if (clienteId) {
+      //  PASAR clienteId a HomeScreen
+      navigation.replace('Home', { clienteId });
+    } else {
+      console.error('❌ No se recibió clienteId en SuccessScreen');
+      navigation.replace('Login');
+    }
+  };
+
   return (
     <AuthContainer>
       <View style={styles.card}>
@@ -16,13 +30,19 @@ const SuccessScreen = ({ navigation }) => {
         </View>
 
         <Text style={styles.title}>REGISTRO TERMINADO</Text>
-        <Text style={styles.subtitle}>El proceso se ha realizado correctamente</Text>
-        
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => navigation.navigate('Home')}>
+        <Text style={styles.subtitle}>
+          El proceso se ha realizado correctamente
+        </Text>
+
+        <TouchableOpacity
+          style={styles.buttonPrimary}
+          onPress={handleNext}
+        >
           <Text style={styles.buttonText}>Siguiente</Text>
         </TouchableOpacity>
       </View>
     </AuthContainer>
   );
 };
+
 export default SuccessScreen;

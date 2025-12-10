@@ -20,6 +20,7 @@ from routers.cliente import (
     perfil,
     platos_mascotas,
     subscripciones as cliente_subscripciones,
+    favoritos,
 )
 
 # Routers admin
@@ -61,6 +62,7 @@ app.include_router(mascota.router)
 app.include_router(pedido.router)
 app.include_router(perfil.router)
 app.include_router(cliente_subscripciones.router)
+app.include_router(favoritos.router)
 app.include_router(admin_pedidos.router)
 app.include_router(admin_platos.router)
 app.include_router(admin_repartidores.router)

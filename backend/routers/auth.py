@@ -151,6 +151,13 @@ def login_user(data: LoginRequest, db: Session = Depends(get_db)):
     rol_id = usuario_rol.rol_id
     token = token_manager.generar_token(usuario.id, rol_id)
 
+    # Obtener el cliente_id si el rol es cliente (rol_id == 2)
+    cliente_id = None
+    if rol_id == 2:  # Si es cliente
+        cliente = db.query(Cliente).filter(Cliente.cuenta_usuario_id == usuario.id).first()
+        if cliente:
+            cliente_id = str(cliente.id)
+
     usuario.ultimo_acceso = datetime.now()
     db.commit()
 
@@ -162,6 +169,7 @@ def login_user(data: LoginRequest, db: Session = Depends(get_db)):
             "nombre": usuario.nombre_usuario,
             "correo": usuario.correo_electronico,
             "rol_id": rol_id,
+            "cliente_id": cliente_id, 
         },
     }
 

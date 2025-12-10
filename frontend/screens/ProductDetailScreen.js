@@ -9,28 +9,44 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  Alert, // 👈 AÑADIDO: Importamos Alert para la ventana emergente
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/productDetailScreenStyles';
 import { getProductById } from '../services/productService';
+import { addFavorite, removeFavorite, checkFavorite } from '../services/favoriteService';
 
 const ProductDetailScreen = ({ route, navigation }) => {
-  const { productId } = route.params;
+  const { productId, clienteId } = route.params;
 
   // Estados
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('home');
-  const [isFavorite, setIsFavorite] = useState(false); // 👈 AÑADIDO: Estado para el favorito
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
+   useEffect(() => {
+    if (!clienteId) {
+      console.error('❌ No se recibió cliente_id en ProductDetailScreen');
+      Alert.alert('Error', 'No se pudo identificar al usuario.');
+      navigation.goBack();
+    }
+  }, [clienteId]);
+ 
   // Cargar datos del producto
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!clienteId) return;
+      
       try {
         const data = await getProductById(productId);
         setProduct(data);
+          
+        // ✅ USAR clienteId recibido por parámetro
+        const favStatus = await checkFavorite(clienteId, productId);
+        setIsFavorite(favStatus.es_favorito);
       } catch (error) {
         console.error('❌ Error cargando producto:', error);
       } finally {
@@ -38,19 +54,46 @@ const ProductDetailScreen = ({ route, navigation }) => {
       }
     };
     fetchProduct();
-  }, [productId]);
+  }, [productId, clienteId]);
+
 
   // Manejadores
   const handleIncrement = () => setQuantity(prev => prev + 1);
   const handleDecrement = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 
   // Manejador de Favorito con notificación
-  const handleFavorite = () => {
-    setIsFavorite(prev => {
-      const newState = !prev;
-      console.log(newState ? "Añadido a favoritos" : "Eliminado de favoritos");
-      return newState;
-    });
+  const handleFavorite = async () => {
+    if (favoriteLoading || !clienteId) return;
+    
+    setFavoriteLoading(true);
+    try {
+      if (isFavorite) {
+        // Eliminar de favoritos
+        await removeFavorite(clienteId, productId);
+        setIsFavorite(false);
+        Alert.alert(
+          "Eliminado de Favoritos",
+          `${product.nombre} fue eliminado de tus favoritos.`,
+          [{ text: "OK" }]
+        );
+
+
+      } else {
+        // Agregar a favoritos
+        await addFavorite(clienteId, productId);
+        setIsFavorite(true);
+        Alert.alert(
+          "¡Agregado a Favoritos!",
+          `${product.nombre} fue agregado a tus favoritos.`,
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al actualizar favoritos.';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setFavoriteLoading(false);
+    }
   };
 
   const handleAddToCart = () => {
@@ -220,7 +263,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
           style={styles.navButton}
           onPress={() => {
             setActiveTab('home');
-            navigation.navigate('Home');
+            navigation.navigate('Home', { clienteId });
           }}
         >
           <View style={[
@@ -281,7 +324,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
 
         <TouchableOpacity 
           style={styles.navButton}
-          onPress={() => setActiveTab('settings')}
+          onPress={() => navigation.navigate('Favorites', { clienteId })}
         >
           <View style={[
             styles.navIconContainer,

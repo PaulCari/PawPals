@@ -3,6 +3,7 @@
 import { StyleSheet, Platform } from 'react-native';
 
 const MAIN_PURPLE = '#875686';
+const SECOND_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
 const YELLOW = '#FFD100';
 
@@ -124,7 +125,7 @@ export const styles = StyleSheet.create({
   productPrice: {
     fontSize: 26, // Reducido de 28
     fontWeight: 'bold',
-    color: MAIN_PURPLE,
+    color: SECOND_PURPLE,
     marginHorizontal: 10,
   },
 

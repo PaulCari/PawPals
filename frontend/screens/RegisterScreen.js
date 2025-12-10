@@ -112,7 +112,7 @@ const RegisterScreen = ({ navigation }) => {
       const petData = { nombre: petName, especie_id: petType, raza: breed, edad: parseInt(age, 10), sexo: petSex };
       await createPet(clienteId, petData);
       console.log('✅ Mascota registrada exitosamente');
-      navigation.replace('Success');
+      navigation.replace('Success', { clienteId });
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrar la mascota.';
       Alert.alert('Error', errorMessage);
@@ -124,7 +124,13 @@ const RegisterScreen = ({ navigation }) => {
   // ✅ LÓGICA CORREGIDA: Ahora solo navega
   const handleSkipPet = () => {
     console.log('🚀 Omitiendo registro de mascota, navegando a Success...');
-    navigation.replace('Success');
+    const clienteId = userData?.cliente_id;
+
+    if (clienteId) {
+      navigation.replace('Success', { clienteId });
+    } else {
+      navigation.replace('Login');
+    }
   };
 
   // --- RENDERIZADO DE COMPONENTES ---

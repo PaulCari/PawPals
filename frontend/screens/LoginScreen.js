@@ -19,7 +19,12 @@ const LoginScreen = ({ navigation }) => {
     try {
       const response = await login(correo, contrasena);
       if (response && response.token) {
-        navigation.replace('Home');
+        const clienteId = response.usuario?.cliente_id;
+        if (!clienteId) {
+          Alert.alert('Error', 'No se pudo obtener la información del cliente.');
+          return;
+        }
+        navigation.replace('Home', { clienteId });
       } else {
         const serverMessage = response.detail || 'Usuario o contraseña incorrectos.';
         Alert.alert('Error de inicio de sesión', serverMessage);

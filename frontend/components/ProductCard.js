@@ -4,14 +4,18 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../styles/productCardStyles';
 
-const ProductCard = ({ item }) => {
+const ProductCard = ({ item, clienteId }) => {
   const navigation = useNavigation();
   if (!item) return null;
 
   const imageSource = item.imagen ? { uri: item.imagen } : require('../assets/placeholder.png');
 
   const handlePress = () => {
-    navigation.navigate('ProductDetail', { productId: item.id });
+    //navigation.navigate('ProductDetail', { productId: item.id });
+    navigation.navigate('ProductDetail', { 
+      productId: item.id,
+      clienteId 
+    });
   };
 
   return (

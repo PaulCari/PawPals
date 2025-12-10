@@ -8,8 +8,9 @@ import { getProducts, getCategories } from '../services/productService';
 import ProductCard from '../components/ProductCard';
 import { styles } from '../styles/homeScreenStyles';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   // Estados para los datos
+  const clienteId = route.params?.clienteId;
   const [userName, setUserName] = useState("Paúl");
   const [petName, setPetName] = useState("Caramelo");
   const [categories, setCategories] = useState([]);
@@ -20,6 +21,17 @@ const HomeScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('home'); // Para la barra inferior
   const [loading, setLoading] = useState(true);
 
+  // useEffect para verificar clienteId
+  useEffect(() => {
+    if (!clienteId) {
+      console.error('❌ No se recibió cliente_id');
+      // Opcional: redirigir al login
+      // navigation.replace('Login');
+    } else {
+      console.log('✅ Cliente ID:', clienteId);
+    }
+  }, [clienteId]);
+  
   // useEffect para cargar categorías y los productos iniciales
   useEffect(() => {
     const loadInitialData = async () => {
@@ -104,6 +116,7 @@ const HomeScreen = ({ navigation }) => {
             renderItem={({ item, index }) => (
               <ProductCard 
                 item={item} 
+                clienteId={clienteId}
                 isCenter={index === Math.floor(products.length / 2)} 
               />
             )}
@@ -179,22 +192,22 @@ const HomeScreen = ({ navigation }) => {
 
         <TouchableOpacity 
           style={styles.navButton}
-          onPress={() => setActiveTab('settings')}
+          onPress={() => setActiveTab('Favorites')}
         >
           <View style={[
             styles.navIconContainer,
-            activeTab === 'settings' && styles.activeNavButton
+            activeTab === 'favorites' && styles.activeNavButton
           ]}>
             <Ionicons 
-              name="settings" 
+              name="heart"
               size={26} 
               color="white"
             />
           </View>
           <Text style={[
             styles.navText,
-            activeTab === 'settings' && styles.activeNavText
-          ]}>Ajustes</Text>
+            activeTab === 'favorites' && styles.activeNavText
+          ]}>Favoritos</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

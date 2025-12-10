@@ -134,6 +134,7 @@ class Cliente(Base):
     direccion: Mapped[list['Direccion']] = relationship('Direccion', back_populates='cliente')
     registro_mascota: Mapped[list['RegistroMascota']] = relationship('RegistroMascota', back_populates='cliente')
     pedido: Mapped[list['Pedido']] = relationship('Pedido', back_populates='cliente')
+    plato_favorito: Mapped[list['PlatoFavorito']] = relationship('PlatoFavorito', back_populates='cliente')
 
 
 class Nutricionista(Base):
@@ -183,6 +184,7 @@ class PlatoCombinado(Base):
     plato_personal: Mapped[list['PlatoPersonal']] = relationship('PlatoPersonal', back_populates='plato_combinado')
     detalle_pedido: Mapped[list['DetallePedido']] = relationship('DetallePedido', back_populates='plato_combinado')
     detalle_dieta: Mapped[list['DetalleDieta']] = relationship('DetalleDieta', back_populates='plato_combinado')
+    plato_favorito: Mapped[list['PlatoFavorito']] = relationship('PlatoFavorito', back_populates='plato_combinado')
 
 
 class Repartidor(Base):
@@ -562,3 +564,21 @@ class RecetaMedica(Base):
 
     pedido_especializado: Mapped[Optional['PedidoEspecializado']] = relationship('PedidoEspecializado', back_populates='receta_medica')
     registro_mascota: Mapped['RegistroMascota'] = relationship('RegistroMascota', back_populates='receta_medica')
+
+class PlatoFavorito(Base):
+    __tablename__ = 'plato_favorito'
+    __table_args__ = (
+        ForeignKeyConstraint(['cliente_id'], ['cliente.id'], ondelete='CASCADE', name='plato_favorito_ibfk_1'),
+        ForeignKeyConstraint(['plato_combinado_id'], ['plato_combinado.id'], ondelete='CASCADE', name='plato_favorito_ibfk_2'),
+        Index('cliente_id', 'cliente_id'),
+        Index('plato_combinado_id', 'plato_combinado_id'),
+        Index('cliente_plato_unique', 'cliente_id', 'plato_combinado_id', unique=True)
+    )
+
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    plato_combinado_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    fecha_agregado: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+
+    cliente: Mapped['Cliente'] = relationship('Cliente', back_populates='plato_favorito')
+    plato_combinado: Mapped['PlatoCombinado'] = relationship('PlatoCombinado', back_populates='plato_favorito')

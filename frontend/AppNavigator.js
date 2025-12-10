@@ -12,6 +12,7 @@ import RegisterScreen from './screens/RegisterScreen';
 import SuccessScreen from './screens/SuccessScreen';
 import HomeScreen from './screens/HomeScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
+import FavoritesScreen from './screens/FavoritesScreen';
 
 const Stack = createStackNavigator();
 
@@ -32,7 +33,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Success" component={SuccessScreen} />
         {/* He corregido también el name de HomeScreen para mantener la consistencia */}
         <Stack.Screen name="Home" component={HomeScreen} />
-         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="Favorites" component={FavoritesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
