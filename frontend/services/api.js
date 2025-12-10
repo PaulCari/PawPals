@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // IMPORTANTE: Cambia esta IP a la IP local de tu máquina Windows
 // Para encontrar tu IP, abre PowerShell y ejecuta: ipconfig
 // Busca "IPv4 Address" en la salida
-const API_URL = 'http://192.168.0.103:8000/'; // Reemplaza con tu IP local
+export const API_URL = 'http://192.168.0.103:8000'; // Reemplaza con tu IP local
 
 const apiClient = axios.create({
   baseURL: API_URL,
