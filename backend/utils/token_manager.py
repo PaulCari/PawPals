@@ -1,9 +1,9 @@
 # backend/utils/token_manager.py
-
 import jwt
 from datetime import datetime, timedelta
 
-SECRET_KEY = "mi_clave_secreta_super_segura_2024"  # ← Cámbiala en producción
+# Clave secreta (CAMBIAR en producción)
+SECRET_KEY = "mi_clave_secreta_super_segura_2024"
 ALGORITHM = "HS256"
 
 def generar_token(user_id: int, rol_id: int, duracion_horas: int = 12) -> str:
@@ -11,12 +11,14 @@ def generar_token(user_id: int, rol_id: int, duracion_horas: int = 12) -> str:
     Genera un token JWT con ID de usuario y rol.
     """
     payload = {
-        "user_id": str(user_id),  # ← Convertir a string
-        "rol_id": rol_id,
+        "sub": str(user_id),
+        "rol": rol_id,
         "exp": datetime.utcnow() + timedelta(hours=duracion_horas)
     }
+
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
+
 
 def decodificar_token(token: str) -> dict:
     """

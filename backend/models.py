@@ -20,6 +20,7 @@ class Categoria(Base):
 
     plato_combinado: Mapped[list['PlatoCombinado']] = relationship('PlatoCombinado', back_populates='categoria')
 
+
 class CuentaUsuario(Base):
     __tablename__ = 'cuenta_usuario'
 
@@ -175,6 +176,7 @@ class PlatoCombinado(Base):
     categoria_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     especie_id: Mapped[Optional[int]] = mapped_column(BIGINT(unsigned=True))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
+    ingredientes: Mapped[Optional[str]] = mapped_column(String(255))
     imagen: Mapped[Optional[str]] = mapped_column(Text)
 
     categoria: Mapped[Optional['Categoria']] = relationship('Categoria', back_populates='plato_combinado')
