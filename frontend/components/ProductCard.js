@@ -17,14 +17,27 @@ const ProductCard = ({ item }) => {
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={handlePress}>
       <Image source={imageSource} style={styles.image} />
-      <Text style={styles.title}>{item.nombre}</Text>
-      <Text style={styles.subtitle}>{item.descripcion}</Text>
-      <Text style={styles.price}>S/ {item.precio?.toFixed(2) || '0.00'}</Text>
       
+      {/* NUEVO: Agrupamos todo el contenido central en una View */}
+      {/* Parte Superior: Título y Descripción */}
+      <Text style={styles.title} numberOfLines={2}>{item.nombre}</Text>
+      <Text style={styles.subtitle} numberOfLines={3}>{item.descripcion}</Text>
+
+      {/* 👇 EL SEPARADOR MÁGICO 👇 */}
+      <View style={styles.spacer} />
+
+      {/* Parte Inferior: Precio y Footer siempre alineados al fondo */}
+      <Text style={styles.price}>S/ {item.precio?.toFixed(2) || '0.00'}</Text>
+
       <View style={styles.footer}>
-        <Text style={styles.addToCartText}>AGREGAR AL CARRITO</Text>
-        <Text style={styles.seeMoreText}>Ver más →</Text>
-      </View>
+  <TouchableOpacity style={styles.addToCartButton}>
+  <Text style={styles.addToCartText}>AGREGAR AL CARRITO</Text>
+</TouchableOpacity>
+
+  <Text style={styles.seeMoreText}>Ver más →</Text>
+</View>
+
+      
     </TouchableOpacity>
   );
 };

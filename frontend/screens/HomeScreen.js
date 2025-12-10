@@ -63,7 +63,7 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity>
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
         <TouchableOpacity>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
