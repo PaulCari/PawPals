@@ -5,102 +5,114 @@ import { StyleSheet, Platform } from 'react-native';
 const MAIN_PURPLE = '#875686';
 const ORANGE = '#FF8C42';
 const LIGHT_BACKGROUND = '#F9F9F9';
+const SOFT_RED = '#FF6B6B'; // Para el botón de eliminar
 
 export const styles = StyleSheet.create({
+  // === 1. CONTENEDOR PRINCIPAL (similar a HomeScreen) ===
   safeArea: {
     flex: 1,
     backgroundColor: MAIN_PURPLE,
   },
 
-  // === HEADER ===
-  header: {
+  // === 2. HEADER MORADO (prácticamente idéntico a HomeScreen) ===
+    header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 25 : 10,
-    paddingBottom: 15,
-  },
+    paddingBottom: 15, // ✅ IGUAL QUE HOME
+    },
+    
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
   },
 
-  // === CONTENEDOR PRINCIPAL ===
-  container: {
+  logo: {
+  width: 160, // O el tamaño que prefieras
+  height: 120,
+  resizeMode: 'contain',
+},
+
+  // === 3. CONTENEDOR BLANCO ===
+    container: {
     flex: 1,
     backgroundColor: LIGHT_BACKGROUND,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    paddingTop: 20,
-  },
+    paddingTop: 30,
+    },
 
-  // === CONTADOR ===
+  // === 4. CONTADOR DE FAVORITOS ===
   countText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#666',
     marginHorizontal: 25,
-    marginBottom: 15,
+    marginBottom: 20,
   },
 
-  // === LISTA ===
+  // === 5. LISTA Y TARJETAS ===
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    // Dejamos espacio abajo para la barra de navegación flotante
+    paddingBottom: 120, 
   },
-
-  // === TARJETA DE FAVORITO ===
   card: {
     flexDirection: 'row',
     backgroundColor: 'white',
-    borderRadius: 15,
+    borderRadius: 20,
     marginBottom: 15,
-    overflow: 'hidden',
+    padding: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
+    alignItems: 'center', // Para centrar verticalmente
   },
   cardImage: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
+    borderRadius: 15, // Un poco menos redondeado que el círculo completo
     resizeMode: 'cover',
   },
   cardContent: {
     flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
+    marginLeft: 15,
+    justifyContent: 'space-between', // Espacia el contenido interno
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 4,
   },
   cardDescription: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#888',
+    lineHeight: 20,
+    marginBottom: 8,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
   },
   cardPrice: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: MAIN_PURPLE,
   },
   removeButton: {
-    padding: 8,
+    padding: 8, // Aumenta el área de toque del botón
+    backgroundColor: '#FFF0F0', // Un fondo rojo muy suave
+    borderRadius: 20,
   },
 
-  // === LOADING ===
+  // === 6. ESTADOS DE CARGA Y VACÍO ===
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -111,16 +123,15 @@ export const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-
-  // === ESTADO VACÍO ===
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    paddingBottom: 50, // Para que no quede tan pegado abajo
   },
   emptyTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
     marginTop: 20,
@@ -128,15 +139,16 @@ export const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#888',
     textAlign: 'center',
     marginBottom: 30,
+    lineHeight: 24,
   },
   exploreButton: {
     backgroundColor: ORANGE,
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 35,
+    borderRadius: 30,
     shadowColor: ORANGE,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -146,50 +158,6 @@ export const styles = StyleSheet.create({
   exploreButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  // === BARRA DE NAVEGACIÓN ===
-  bottomNavigation: {
-    flexDirection: 'row',
-    backgroundColor: MAIN_PURPLE,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  navButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  navIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  activeNavButton: {
-    backgroundColor: ORANGE,
-    shadowColor: ORANGE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  navText: {
-    fontSize: 12,
-    color: 'white',
-    fontWeight: '500',
-  },
-  activeNavText: {
     fontWeight: 'bold',
   },
 });

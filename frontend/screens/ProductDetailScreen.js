@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/productDetailScreenStyles';
@@ -151,8 +152,16 @@ const ProductDetailScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header Morado */}
-      <View style={styles.header}>
+
+    {/* 🔥 FONDO IGUAL AL HOME Y FAVORITES */}
+    <ImageBackground
+      source={require('../assets/FONDOA.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    />
+
+    {/* Header Morado */}
+    <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={30} color="white" />
         </TouchableOpacity>

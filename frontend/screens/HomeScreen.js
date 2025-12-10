@@ -1,7 +1,15 @@
-// frontend/screens/HomeScreen.js
-
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, SafeAreaView, ScrollView, FlatList, TouchableOpacity, Image, ActivityIndicator, Animated } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  ImageBackground,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { getProducts, getCategories } from '../services/productService';
@@ -9,29 +17,24 @@ import ProductCard from '../components/ProductCard';
 import { styles } from '../styles/homeScreenStyles';
 
 const HomeScreen = ({ navigation, route }) => {
-  // Estados para los datos
+  // ===== ESTADOS =====
   const clienteId = route.params?.clienteId;
-  const [userName, setUserName] = useState("Paúl");
-  const [petName, setPetName] = useState("Caramelo");
+  const [userName, setUserName] = useState('Paúl');
+  const [petName, setPetName] = useState('Caramelo');
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  
-  // Estado para la lógica de la UI
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // useEffect para verificar clienteId
+  // ===== EFECTOS =====
   useEffect(() => {
     if (!clienteId) {
       console.error('❌ No se recibió cliente_id');
-      // Opcional: redirigir al login
-      // navigation.replace('Login');
     } else {
       console.log('✅ Cliente ID:', clienteId);
     }
   }, [clienteId]);
-  
-  // useEffect para cargar categorías y los productos iniciales
+
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -45,16 +48,16 @@ const HomeScreen = ({ navigation, route }) => {
           setProducts(productsData);
         }
       } catch (error) {
-        console.error("❌ Error cargando datos iniciales:", error);
+        console.error('❌ Error cargando datos:', error);
       } finally {
         setLoading(false);
       }
     };
+
     loadInitialData();
   }, []);
-  
 
-  // Función para manejar el cambio de categoría
+  // ===== HANDLERS =====
   const handleCategoryPress = async (categoryId) => {
     setActiveCategoryId(categoryId);
     setLoading(true);
@@ -62,41 +65,66 @@ const HomeScreen = ({ navigation, route }) => {
       const productsData = await getProducts({ categoria_id: categoryId });
       setProducts(productsData);
     } catch (error) {
-      console.error(`❌ Error cargando productos para la categoría ${categoryId}:`, error);
+      console.error('❌ Error cargando productos:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  // ===== RENDER =====
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 1. Header Morado */}
+
+      {/* 🔥 FONDO CON IMAGEN (ABSOLUTO) */}
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      {/* 🔹 HEADER MORADO */}
       <View style={styles.header}>
         <TouchableOpacity>
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
-        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+
         <TouchableOpacity>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* 2. Contenedor Blanco Principal */}
+      {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
-        <Text style={styles.welcomeTitle}>Bienvenido {userName} y {petName}!!</Text>
+        <Text style={styles.welcomeTitle}>
+          Bienvenido {userName} y {petName}!!
+        </Text>
 
-        {/* 3. Filtro de Categorías con línea inferior */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScrollView}>
+        {/* CATEGORÍAS */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryScrollView}
+        >
           {categories.map((category) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={category.id}
               style={styles.categoryButton}
               onPress={() => handleCategoryPress(category.id)}
             >
-              <Text style={[
-                styles.categoryText,
-                activeCategoryId === category.id && styles.activeCategoryText
-              ]}>{category.nombre}</Text>
+              <Text
+                style={[
+                  styles.categoryText,
+                  activeCategoryId === category.id && styles.activeCategoryText,
+                ]}
+              >
+                {category.nombre}
+              </Text>
+
               {activeCategoryId === category.id && (
                 <View style={styles.categoryUnderline} />
               )}
@@ -104,32 +132,39 @@ const HomeScreen = ({ navigation, route }) => {
           ))}
         </ScrollView>
 
-        {/* 4. Lista de Productos */}
+        {/* PRODUCTOS */}
         {loading ? (
-          <ActivityIndicator size="large" color="#875686" style={{ marginTop: 50 }} />
+          <ActivityIndicator
+            size="large"
+            color="#875686"
+            style={{ marginTop: 50 }}
+          />
         ) : (
           <FlatList
             data={products}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             renderItem={({ item, index }) => (
-              <ProductCard 
-                item={item} 
+              <ProductCard
+                item={item}
                 clienteId={clienteId}
-                isCenter={index === Math.floor(products.length / 2)} 
+                isCenter={index === Math.floor(products.length / 2)}
               />
             )}
             contentContainerStyle={styles.productList}
-            ListEmptyComponent={<Text style={styles.emptyText}>No hay productos en esta categoría.</Text>}
-            snapToInterval={300} // Para efecto de snap
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>
+                No hay productos en esta categoría.
+              </Text>
+            }
+            snapToInterval={300}
             decelerationRate="fast"
           />
         )}
       </View>
 
-      {/* 5. Barra de Navegación Inferior */}
-      
+      {/* ✅ AQUÍ VA TU BOTTOM TAB */}
     </SafeAreaView>
   );
 };

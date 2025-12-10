@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert
+  Alert,
+  ImageBackground
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -89,60 +90,76 @@ const FavoritesScreen = ({ navigation, route }) => {
 
   // Navegar al detalle del producto
   const handleProductPress = (productId) => {
-    navigation.navigate('ProductDetail', { productId, clienteId });
-  };
+  navigation.navigate('HomeStack', { 
+    screen: 'ProductDetail', 
+    params: { productId, clienteId } 
+  });
+};
 
   // Renderizar cada tarjeta de favorito
   const renderFavoriteCard = ({ item }) => {
-    const plato = item.plato;
-    const imageSource = plato.imagen 
-      ? { uri: plato.imagen } 
-      : require('../assets/placeholder.png');
+  const plato = item.plato;
+  const imageSource = plato.imagen
+    ? { uri: plato.imagen }
+    : require('../assets/placeholder.png');
 
-    return (
-      <TouchableOpacity 
-        style={styles.card}
+  return (
+    // 1. El View exterior ya no es un botón
+    <View style={styles.card}>
+      
+      {/* 2. Hacemos que la imagen y el texto sean el botón para ir al detalle */}
+      <TouchableOpacity
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} // Estilos para que ocupe el espacio
         onPress={() => handleProductPress(plato.id)}
         activeOpacity={0.8}
       >
         <Image source={imageSource} style={styles.cardImage} />
-        
+
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {plato.nombre}
-          </Text>
-          
-          <Text style={styles.cardDescription} numberOfLines={2}>
-            {plato.descripcion || 'Sin descripción'}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardPrice}>
-              S/ {plato.precio?.toFixed(2) || '0.00'}
-            </Text>
-            
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => handleRemoveFavorite(plato.id, plato.nombre)}
-            >
-              <Ionicons name="heart" size={24} color="#FF6B6B" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.cardTitle} numberOfLines={2}>{plato.nombre}</Text>
+          <Text style={styles.cardDescription} numberOfLines={2}>{plato.descripcion || 'Sin descripción'}</Text>
+          <Text style={styles.cardPrice}>S/ {plato.precio?.toFixed(2) || '0.00'}</Text>
         </View>
       </TouchableOpacity>
-    );
-  };
+      
+      {/* 3. El botón del corazón es un elemento separado y no hay riesgo de solapamiento */}
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={() => handleRemoveFavorite(plato.id, plato.nombre)}
+      >
+        <Ionicons name="heart" size={24} color="#FF6B6B" />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header Morado */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={30} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mis Favoritos</Text>
-        <View style={{ width: 30 }} />
-      </View>
+
+    {/* 🔥 FONDO IGUAL AL HOME */}
+    <ImageBackground
+      source={require('../assets/FONDOA.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    />
+
+    {/* HEADER */}
+    <View style={styles.header}>
+  <TouchableOpacity onPress={() => navigation.goBack()}>
+    <Ionicons name="menu" size={30} color="white" />
+    </TouchableOpacity>
+
+  <Image 
+    source={require('../assets/logo_amarillo.png')} 
+    style={styles.logo}
+  />
+
+  <TouchableOpacity
+  onPress={() => navigation.navigate('Cart', { clienteId })}
+>
+  <Ionicons name="cart-outline" size={30} color="white" />
+</TouchableOpacity>
+</View>
 
       {/* Contenedor Principal */}
       <View style={styles.container}>
