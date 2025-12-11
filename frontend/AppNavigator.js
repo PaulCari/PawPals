@@ -18,6 +18,8 @@ import ProductDetailScreen from './screens/ProductDetailScreen';
 import FavoritesScreen from './screens/FavoritesScreen';
 import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
+import CheckoutScreen from './screens/CheckoutScreen';
+import OrderSuccessScreen from './screens/OrderSuccessScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -171,6 +173,19 @@ const AppNavigator = () => {
 
         {/* App principal con Tabs */}
         <Stack.Screen name="Main" component={MainTabs} />
+
+        {/* Checkout y confirmación de pedido */}
+        <Stack.Screen 
+          name="Checkout"
+          component={CheckoutScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen 
+          name="OrderSuccess"
+          component={OrderSuccessScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

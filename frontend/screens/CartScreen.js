@@ -164,55 +164,14 @@ const CartScreen = ({ navigation, route }) => {
   };
 
   // Finalizar compra
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cart.items.length === 0) {
       Alert.alert('Carrito vacío', 'Agrega productos antes de continuar.');
       return;
     }
 
-    // TODO: Aquí deberías mostrar una pantalla para seleccionar dirección
-    // Por ahora, simularemos con una dirección por defecto
-    Alert.alert(
-      "Finalizar Compra",
-      `Total: S/ ${cart.total.toFixed(2)}\n\n¿Deseas proceder con el pago?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: async () => {
-            setProcessingCheckout(true);
-            try {
-              // Aquí necesitarías obtener la dirección del cliente
-              // const direccionId = "...";
-              // const result = await checkout(clienteId, direccionId);
-              
-              // Por ahora simulamos éxito
-              Alert.alert(
-                "¡Pedido Realizado!",
-                "Tu pedido ha sido procesado exitosamente.",
-                [
-                  {
-                    text: "Ver Pedido",
-                    onPress: () => {
-                      // TODO: Navegar a pantalla de pedidos
-                      navigation.navigate('HomeStack');
-                    }
-                  }
-                ]
-              );
-              
-              // Vaciar carrito
-              const emptyCart = await clearCart(clienteId);
-              setCart(emptyCart);
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo procesar el pedido.');
-            } finally {
-              setProcessingCheckout(false);
-            }
-          }
-        }
-      ]
-    );
+    // Navegar a la pantalla de Checkout
+    navigation.navigate('Checkout', { clienteId });
   };
 
   // Renderizar cada item del carrito

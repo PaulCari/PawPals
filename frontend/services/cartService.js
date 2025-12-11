@@ -240,6 +240,10 @@ export const checkout = async (clienteId, direccionId) => {
       throw new Error('clienteId es requerido');
     }
 
+    if (!direccionId) {
+      throw new Error('direccionId es requerido');
+    }
+
     const cart = await getCart(clienteId);
     
     if (cart.items.length === 0) {
@@ -263,6 +267,8 @@ export const checkout = async (clienteId, direccionId) => {
     const api = require('./api').default;
     const response = await api.post(`/cliente/pedido/${clienteId}`, pedidoData);
     
+    console.log('✅ Respuesta del backend:', response.data);
+    
     // Si el pedido se creó exitosamente, vaciar el carrito
     if (response.data.pedido_id) {
       await clearCart(clienteId);
@@ -271,7 +277,7 @@ export const checkout = async (clienteId, direccionId) => {
     
     return response.data;
   } catch (error) {
-    console.error('❌ Error al finalizar compra:', error);
+    console.error('❌ Error al finalizar compra:', error.response?.data || error.message);
     throw error;
   }
 };
