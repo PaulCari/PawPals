@@ -5,6 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from utils.db import engine
 
+# --- IMPORTAMOS EL SEMBRADOR DE DATOS ---
+from seed_data import seed_database 
+
 # Routers generales
 from routers import (
     auth,
@@ -32,23 +35,32 @@ from routers.admin import (
 
 from models import Base
 
+# 1. CREAR TABLAS (Si no existen)
 print("--- Intentando crear tablas en la base de datos 'mascotas'... ---")
 Base.metadata.create_all(bind=engine)
 print("--- Proceso de creación de tablas finalizado. ---")
 
+# 2. POBLAR LA BASE DE DATOS (Roles, Categorías, Platos e Imágenes)
+print("🌱 --- Ejecutando Seed Data (Sembrando datos)... ---")
+try:
+    seed_database()
+    print("✅ --- Seed Data finalizado correctamente. ---")
+except Exception as e:
+    print(f"⚠️ Hubo un error al sembrar los datos: {e}")
+
 app = FastAPI(title="API Mascota")
 
-# ✅ CONFIGURACIÓN CRÍTICA DE CORS - DEBE IR ANTES DE CUALQUIER ROUTER
+# ✅ CONFIGURACIÓN CRÍTICA DE CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ← Acepta cualquier origen (desarrollo)
+    allow_origins=["*"],  # Desarrollo: acepta todo
     allow_credentials=True,
-    allow_methods=["*"],  # ← GET, POST, PUT, DELETE, OPTIONS
-    allow_headers=["*"],  # ← Todos los headers
-    expose_headers=["*"]  # ← Expone todos los headers
+    allow_methods=["*"],  
+    allow_headers=["*"], 
+    expose_headers=["*"]
 )
 
-# Servir archivos estáticos
+# Servir archivos estáticos (Imágenes)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Incluir routers
