@@ -72,7 +72,7 @@ export const styles = StyleSheet.create({
   // === LISTA ===
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 200,
   },
 
   // === ITEMS DEL CARRITO ===
@@ -165,18 +165,17 @@ export const styles = StyleSheet.create({
 
   // === RESUMEN DEL PEDIDO ===
   summaryContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 25,
-    paddingBottom: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-
+  backgroundColor: 'white',
+  borderTopLeftRadius: 30,
+  borderTopRightRadius: 30,
+  padding: 25,
+  paddingBottom: 120, //  Espacio para la barra de navegación (90px) + margen
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: -3 },
+  shadowOpacity: 0.1,
+  shadowRadius: 8,
+  elevation: 10,
+},
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
