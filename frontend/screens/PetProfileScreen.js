@@ -17,7 +17,8 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { getPetsByCliente } from '../services/petService';
 import { getClienteProfile } from '../services/authService';
-import { styles } from '../styles/userProfileScreenStyles'; // <-- CAMBIO DE ESTILOS
+import { styles } from '../styles/userProfileScreenStyles';
+import api from '../services/api'; // Importamos la configuración de la API
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
@@ -26,7 +27,14 @@ const PetProfileScreen = ({ navigation, route }) => {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Carga todos los datos (perfil y mascotas)
+  // --- FUNCIÓN CORREGIDA PARA CONSTRUIR URL DEL BACKEND ---
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    // Remueve 'static/' si viene del backend y construye la URL completa
+    const cleanPath = path.startsWith('static/') ? path.substring(7) : path;
+    return `${api.defaults.baseURL}/static/${cleanPath}`;
+  };
+  
   const loadData = async () => {
     if (!clienteId) {
       Alert.alert('Error', 'No se pudo identificar al usuario.');
@@ -36,7 +44,6 @@ const PetProfileScreen = ({ navigation, route }) => {
     
     try {
       setLoading(true);
-      // Carga en paralelo para más eficiencia
       const [profileData, petsResponse] = await Promise.all([
         getClienteProfile(clienteId),
         getPetsByCliente(clienteId)
@@ -59,11 +66,13 @@ const PetProfileScreen = ({ navigation, route }) => {
     }, [clienteId])
   );
 
+  // --- FUNCIÓN CORREGIDA PARA IMÁGENES LOCALES POR DEFECTO ---
   const getPetDefaultImage = (especie) => {
-    if (especie?.toLowerCase().includes('perro')) {
+    const especieLower = especie?.toLowerCase() || '';
+    if (especieLower.includes('perro')) {
       return require('../assets/perro.png');
     }
-    if (especie?.toLowerCase().includes('gato')) {
+    if (especieLower.includes('gato')) {
       return require('../assets/gato.png');
     }
     return require('../assets/placeholder.png');
@@ -89,7 +98,6 @@ const PetProfileScreen = ({ navigation, route }) => {
 
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          {/* --- Profile Header --- */}
           <View style={styles.profileHeader}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color="white" />
@@ -97,11 +105,11 @@ const PetProfileScreen = ({ navigation, route }) => {
             <Text style={styles.headerTitle}>Tu perfil</Text>
           </View>
 
-          {/* --- User Info --- */}
           {userProfile && (
             <View style={styles.userInfoSection}>
+              {/* --- LÓGICA DE IMAGEN CORREGIDA PARA USUARIO --- */}
               <Image 
-                source={userProfile.foto ? { uri: userProfile.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/user.png')}
+                source={userProfile.foto ? { uri: getImageUrl(userProfile.foto) } : require('../assets/user.png')}
                 style={styles.profileImage}
               />
               <Text style={styles.userName}>{userProfile.nombre}</Text>
@@ -113,14 +121,14 @@ const PetProfileScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* --- Mascotas Section --- */}
           <View style={styles.petsSection}>
             <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
             <View style={styles.petsList}>
               {pets.map(pet => (
-                <TouchableOpacity key={pet.id} style={styles.petCard} onPress={() => navigation.navigate(/* A la pantalla de detalle de UNA mascota */)}>
+                <TouchableOpacity key={pet.id} style={styles.petCard}>
+                  {/* --- LÓGICA DE IMAGEN CORREGIDA PARA MASCOTAS --- */}
                   <Image
-                    source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : getPetDefaultImage(pet.especie)}
+                    source={pet.foto ? { uri: getImageUrl(pet.foto) } : getPetDefaultImage(pet.especie)}
                     style={styles.petCardImage}
                   />
                   <Text style={styles.petCardName}>{pet.nombre}</Text>
@@ -128,12 +136,12 @@ const PetProfileScreen = ({ navigation, route }) => {
                   <Text style={styles.petCardInfo}>{pet.edad} años</Text>
                   <View style={styles.petCardDetails}>
                     <Text style={styles.petCardDetailText}>Peso: {pet.peso ? `${pet.peso} Kg.` : 'N/A'}</Text>
+                    {/* Este dato de alergias es estático por ahora, se deberá obtener del backend en el futuro */}
                     <Text style={styles.petCardDetailText}>Alergias: Pollo</Text>
                   </View>
                 </TouchableOpacity>
               ))}
               
-              {/* Add Pet Card */}
               <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
                 <View style={styles.addPetCircle}>
                   <Ionicons name="add" size={40} color="white" />
