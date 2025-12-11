@@ -5,6 +5,7 @@ const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const YELLOW = '#FFD100';
 const LIGHT_BACKGROUND = '#F9F9F9';
+const GREY_TEXT = '#888';
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -25,8 +26,8 @@ export const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   logo: {
-    width: 120,
-    height: 60,
+    width: 160,
+    height: 120,
     resizeMode: 'contain',
   },
   container: {
@@ -35,82 +36,70 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  scrollViewContent: {
+    paddingBottom: 120, // Espacio para el tab navigator
   },
-  scrollView: {
-    paddingBottom: 40,
-  },
-
+  
   // --- Profile Header ---
   profileHeader: {
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
-  },
-  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 25,
     marginBottom: 20,
   },
   backButton: {
     backgroundColor: SECOND_PURPLE,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 15,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginLeft: 20,
   },
-  profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: 'white',
-    marginBottom: 10,
-  },
-  profileInfo: {
-    marginLeft: 20,
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: SECOND_PURPLE,
-  },
-  profileContact: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  editButton: {
-    backgroundColor: YELLOW,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-  },
-  editButtonText: {
-    color: SECOND_PURPLE,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  profileSection: {
-    flexDirection: 'row',
+  
+  // --- User Info Section ---
+  userInfoSection: {
     alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 30,
   },
-
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
+    marginBottom: 15,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+  userInfoText: {
+    fontSize: 16,
+    color: GREY_TEXT,
+    marginTop: 5,
+  },
+  editProfileButton: {
+    backgroundColor: YELLOW,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  editProfileButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+  
   // --- Mascotas Section ---
   petsSection: {
     backgroundColor: 'white',
@@ -132,63 +121,78 @@ export const styles = StyleSheet.create({
   petsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
+    justifyContent: 'space-between',
   },
+  
+  // --- Pet Card ---
   petCard: {
+    width: '48%',
     backgroundColor: LIGHT_BACKGROUND,
     borderRadius: 15,
     padding: 15,
-    width: '48%', // Aprox para 2 por fila
     alignItems: 'center',
+    marginBottom: 15,
   },
-  petImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  petCardImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     marginBottom: 10,
   },
-  petName: {
-    fontSize: 16,
+  petCardName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  petInfo: {
-    fontSize: 13,
-    color: '#777',
+  petCardInfo: {
+    fontSize: 14,
+    color: GREY_TEXT,
+    marginTop: 4,
   },
-  petDetails: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+  petCardDetails: {
     borderTopWidth: 1,
     borderTopColor: '#EEE',
-    paddingTop: 8,
-    textAlign: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    width: '100%',
+    alignItems: 'center',
   },
+  petCardDetailText: {
+    fontSize: 13,
+    color: GREY_TEXT,
+  },
+  
+  // --- Add Pet Card ---
   addPetCard: {
-    backgroundColor: 'transparent',
-    borderRadius: 15,
     width: '48%',
+    backgroundColor: LIGHT_BACKGROUND,
+    borderRadius: 15,
+    padding: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#DDD',
-    paddingVertical: 30, // Ajusta para que tenga altura similar
+    marginBottom: 15,
+    height: 250, // Misma altura que la tarjeta de mascota
   },
   addPetCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: SECOND_PURPLE,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   addPetText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: SECOND_PURPLE,
-    textAlign: 'center'
+    textAlign: 'center',
+  },
+
+  // --- Loading ---
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

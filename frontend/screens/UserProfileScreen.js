@@ -15,14 +15,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getClientProfile } from '../services/authService'; // Necesitaremos esta nueva función
+import { getClientProfile } from '../services/authService';
 import { getPetsByCliente } from '../services/petService';
 import { styles } from '../styles/userProfileScreenStyles';
 
-// Imágenes por defecto locales
+// Imágenes por defecto
 const defaultUserImage = require('../assets/user.png');
 const defaultDogImage = require('../assets/perro.png');
 const defaultCatImage = require('../assets/gato.png');
+
+// URL base (para desarrollo)
+const API_URL = 'http://localhost:8000';
 
 const UserProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params;
@@ -38,7 +41,6 @@ const UserProfileScreen = ({ navigation, route }) => {
       return;
     }
     try {
-      // Cargar perfil y mascotas en paralelo
       const [profileData, petsResponse] = await Promise.all([
         getClientProfile(clienteId),
         getPetsByCliente(clienteId)
@@ -46,8 +48,8 @@ const UserProfileScreen = ({ navigation, route }) => {
       setProfile(profileData);
       setPets(petsResponse.mascotas || []);
     } catch (error) {
-      console.error('❌ Error al cargar datos del perfil:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
+      console.error('❌ Error al cargar perfil:', error);
+      Alert.alert('Error', 'No se pudo cargar la información del perfil.');
     } finally {
       setLoading(false);
     }
@@ -63,9 +65,9 @@ const UserProfileScreen = ({ navigation, route }) => {
   const getPetDefaultImage = (especie) => {
     if (especie.toLowerCase().includes('perro')) return defaultDogImage;
     if (especie.toLowerCase().includes('gato')) return defaultCatImage;
-    return defaultUserImage; // Una imagen genérica si no es perro o gato
+    return defaultUserImage;
   };
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -83,63 +85,84 @@ const UserProfileScreen = ({ navigation, route }) => {
         style={styles.backgroundImage}
         resizeMode="cover"
       />
+
+      {/* --------------------------------------- */}
+      {/* 🔹 HEADER CORREGIDO (Volver + Título + Carrito) */}
+      {/* --------------------------------------- */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Ionicons name="menu" size={30} color="white" />
+        {/* Botón VOLVER */}
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
         </TouchableOpacity>
-        <Image
-          source={require('../assets/logo_amarillo.png')}
-          style={styles.logo}
-        />
+
+        <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>
+          Mi Perfil
+        </Text>
+
+        {/* Botón Carrito */}
         <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
 
+      {/* --------------------------------------- */}
+      {/* 🔹 CONTENIDO */}
+      {/* --------------------------------------- */}
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollView}>
-          {/* SECCIÓN DEL PERFIL DE USUARIO */}
-          <View style={styles.profileHeader}>
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Tu perfil</Text>
+
+          {/* PERFIL DEL USUARIO */}
+          <View style={styles.profileSection}>
+            <Image
+              source={
+                profile?.foto
+                  ? { uri: `${API_URL}/${profile.foto}` }
+                  : defaultUserImage
+              }
+              style={styles.profilePic}
+            />
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
+              <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
+              <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
             </View>
 
-            <View style={styles.profileSection}>
-              <Image 
-                source={profile?.foto ? { uri: profile.foto.replace('static/', 'http://localhost:8000/static/') } : defaultUserImage}
-                style={styles.profilePic} 
-              />
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
-                <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
-                <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
-                <TouchableOpacity style={styles.editButton}>
-                  <Text style={styles.editButtonText}>Editar perfil</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <TouchableOpacity style={styles.editButton}>
+              <Ionicons name="create-outline" size={20} color="#732C71" />
+            </TouchableOpacity>
           </View>
 
-          {/* SECCIÓN DE MASCOTAS */}
+          {/* MASCOTAS */}
           <View style={styles.petsSection}>
             <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
+
             <View style={styles.petsList}>
-              {pets.map(pet => (
-                <TouchableOpacity key={pet.id} style={styles.petCard} onPress={() => navigation.navigate('PetProfile', { clienteId })}>
-                  <Image 
-                    source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : getPetDefaultImage(pet.especie)}
+              {pets.map((pet) => (
+                <TouchableOpacity
+                  key={pet.id}
+                  style={styles.petCard}
+                  onPress={() => navigation.navigate('PetProfile', { clienteId })}
+                >
+                  <Image
+                    source={
+                      pet.foto
+                        ? { uri: `${API_URL}/${pet.foto}` }
+                        : getPetDefaultImage(pet.especie)
+                    }
                     style={styles.petImage}
                   />
                   <Text style={styles.petName}>{pet.nombre}</Text>
                   <Text style={styles.petInfo}>{pet.raza}</Text>
                   <Text style={styles.petInfo}>{pet.edad} años</Text>
-                  <Text style={styles.petDetails}>Peso: {pet.peso || 'N/A'} Kg. Alergias: Pollo</Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+
+              {/* BOTÓN PARA AGREGAR */}
+              <TouchableOpacity
+                style={styles.addPetCard}
+                onPress={() => navigation.navigate('AddPet', { clienteId })}
+              >
                 <View style={styles.addPetCircle}>
                   <Ionicons name="add" size={30} color="white" />
                 </View>
@@ -147,6 +170,7 @@ const UserProfileScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
+
         </ScrollView>
       </View>
     </SafeAreaView>

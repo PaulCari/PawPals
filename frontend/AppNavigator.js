@@ -1,12 +1,11 @@
 // frontend/AppNavigator.js
 
 import React from 'react';
-import { View } from 'react-native';
+import { View } from 'react-native'; // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
@@ -20,56 +19,31 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
-import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
+import PaymentScreen from './screens/PaymentScreen';
+import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
-// import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
-import UserProfileScreen from './screens/UserProfileScreen';
-
+import UserProfileScreen from './screens/UserProfileScreen'; // La nueva pantalla
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
 
 /* ======================================================
-   Navegador Principal con Menú Lateral (Drawer)
-====================================================== */
-function DrawerNavigator({ route }) {
-  const { clienteId } = route.params;
-  return (
-    <Drawer.Navigator
-      screenOptions={{ headerShown: false }}
-    // Aquí podrías agregar un componente de menú personalizado si quieres
-    >
-      <Drawer.Screen name="AppTabs" component={MainTabs} initialParams={{ clienteId }} />
-      {/* Puedes agregar más ítems al menú aquí si quieres */}
-    </Drawer.Navigator>
-  );
-}
-
-/* ======================================================
-   Stack para Home → Detalle de Producto
+   Stack para Home → Detalle de Producto (SIN CAMBIOS)
 ====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="HomeFeed"
-        component={HomeScreen}
-        initialParams={{ clienteId }}
-      />
-      <Stack.Screen
-        name="ProductDetail"
-        component={ProductDetailScreen}
-      />
+      <Stack.Screen name="HomeFeed" component={HomeScreen} initialParams={{ clienteId }} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador de Tabs Principal
+   Navegador de Tabs Principal (CORREGIDO CON EL IMPORT)
 ====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
@@ -111,7 +85,7 @@ function MainTabs({ route }) {
 
           if (focused) {
             return (
-              <View
+              <View // <--- ESTO AHORA FUNCIONARÁ
                 style={{
                   backgroundColor: '#FF8C42',
                   width: 60,
@@ -132,43 +106,23 @@ function MainTabs({ route }) {
             );
           }
           return (
-            <View>
+            <View> 
               <Ionicons name={iconName} size={24} color="white" />
             </View>
           );
         },
       })}
     >
-      <Tab.Screen
-        name="HomeStack"
-        component={HomeStack}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Inicio' }}
-      />
-      <Tab.Screen
-        name="PetProfile"
-        component={PetProfileScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Perfil Mascota' }}
-      />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Carrito' }}
-      />
-      <Tab.Screen
-        name="Favorites"
-        component={FavoritesScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Favoritos' }}
-      />
+      <Tab.Screen name="HomeStack" component={HomeStack} initialParams={{ clienteId }} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="PetProfile" component={PetProfileScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Perfil Mascota' }} />
+      <Tab.Screen name="Cart" component={CartScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Carrito' }} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Favoritos' }} />
     </Tab.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador Global
+   Navegador Global (SIMPLIFICADO)
 ====================================================== */
 const AppNavigator = () => {
   return (
@@ -184,59 +138,19 @@ const AppNavigator = () => {
         <Stack.Screen name="Success" component={SuccessScreen} />
 
         {/* App principal con Tabs */}
-        <Stack.Screen name="Main" component={DrawerNavigator} />
+        <Stack.Screen name="Main" component={MainTabs} />
 
-        {/* Flujo de compra */}
-        <Stack.Screen
-          name="Checkout"
-          component={CheckoutScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/*  NUEVA PANTALLA: Pago */}
-        <Stack.Screen
-          name="Payment"
-          component={PaymentScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
-        {/* <Stack.Screen // <--- BORRA O COMENTA ESTE BLOQUE
-          name="UploadProof"
-          component={UploadProofScreen}
-          options={{ headerShown: false }}
-        /> */}
-
-        <Stack.Screen
-          name="OrderSuccess"
-          component={OrderSuccessScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/* Agregar/Editar Dirección */}
-        <Stack.Screen
-          name="AddAddress"
-          component={AddAddressScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal'
-          }}
-        />
-
-        {/* 👇 --- 2. AGREGAR ESTA NUEVA PANTALLA --- 👇 */}
-        <Stack.Screen
-          name="AddPet"
-          component={AddPetScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal' // Para que aparezca desde abajo
-          }}
-        />
-        {/* ------------------------------------------- */}
+        {/* Flujo de compra y otras pantallas */}
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="UploadProof" component={UploadProofScreen} />
+        <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+        <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
+        
+        {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       </Stack.Navigator>
-
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-      
     </NavigationContainer>
   );
 };

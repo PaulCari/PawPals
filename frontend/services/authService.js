@@ -45,16 +45,16 @@ export const register = async (userData) => {
 
 /**
  * Obtiene el perfil completo de un cliente.
- * Llama al endpoint GET /cliente/id/{cliente_id}.
- * @param {string} clienteId - ID del cliente.
- * @returns {Promise<Object>} El perfil del cliente.
+ * @param {string} clienteId - ID del cliente
+ * @returns {Promise<Object>}
  */
-export const getClientProfile = async (clienteId) => {
+export const getClienteProfile = async (clienteId) => {
   try {
+    if (!clienteId) throw new Error("ID de cliente es requerido");
     const response = await api.get(`/cliente/id/${clienteId}`);
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio getClientProfile:', error.response ? error.response.data : error.message);
+    console.error('❌ Error al obtener perfil del cliente:', error.response?.data || error.message);
     throw error;
   }
 };

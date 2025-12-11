@@ -82,18 +82,26 @@ const HomeScreen = ({ navigation, route }) => {
         resizeMode="cover"
       />
 
-      {/* 🔹 HEADER MORADO */}
+      {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}> {/*aea*/ }
-          <Ionicons name="menu" size={30} color="white" />
+
+        {/* 🔥 Nuevo botón que abre el perfil */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('UserProfile', { clienteId })}
+        >
+          <Ionicons name="person-circle-outline" size={32} color="white" />
         </TouchableOpacity>
 
+        {/* LOGO */}
         <Image
           source={require('../assets/logo_amarillo.png')}
           style={styles.logo}
         />
 
-        <TouchableOpacity>
+        {/* 🔥 Botón Carrito (igual que antes) */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Cart', { clienteId })}
+        >
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
@@ -164,7 +172,7 @@ const HomeScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      {/* ✅ AQUÍ VA TU BOTTOM TAB */}
+      {/* 🔻 Aquí va tu bottom tab (si lo tienes) */}
     </SafeAreaView>
   );
 };
