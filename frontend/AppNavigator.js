@@ -7,7 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-// Importamos todas las pantallas
+// Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
 import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -19,18 +19,18 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
+import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
-import AddAddressScreen from './screens/AddAddressScreen'; // ✅ NUEVO
+import AddAddressScreen from './screens/AddAddressScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 /* ======================================================
    Stack para Home → Detalle de Producto
-   ====================================================== */
+====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
-
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen
@@ -48,16 +48,14 @@ function HomeStack({ route }) {
 
 /* ======================================================
    Navegador de Tabs Principal
-   ====================================================== */
+====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,
-
         tabBarStyle: {
           position: 'absolute',
           bottom: 0,
@@ -71,24 +69,19 @@ function MainTabs({ route }) {
           borderTopWidth: 0,
           paddingTop: 10,
         },
-
         tabBarLabelStyle: {
           color: 'white',
           fontSize: 12,
           marginBottom: 20,
         },
-
         tabBarActiveTintColor: '#FF8C42',
         tabBarInactiveTintColor: 'white',
-
         tabBarItemStyle: {
           paddingBottom: 5,
           height: '100%',
         },
-
         tabBarIcon: ({ focused }) => {
           let iconName;
-
           if (route.name === 'HomeStack') iconName = 'home';
           else if (route.name === 'PetProfile') iconName = 'paw';
           else if (route.name === 'Cart') iconName = 'cart';
@@ -116,7 +109,6 @@ function MainTabs({ route }) {
               </View>
             );
           }
-
           return (
             <View>
               <Ionicons name={iconName} size={24} color="white" />
@@ -131,21 +123,18 @@ function MainTabs({ route }) {
         initialParams={{ clienteId }}
         options={{ tabBarLabel: 'Inicio' }}
       />
-
       <Tab.Screen
         name="PetProfile"
         component={PetProfileScreen}
         initialParams={{ clienteId }}
         options={{ tabBarLabel: 'Perfil Mascota' }}
       />
-
       <Tab.Screen
         name="Cart"
         component={CartScreen}
         initialParams={{ clienteId }}
         options={{ tabBarLabel: 'Carrito' }}
       />
-
       <Tab.Screen
         name="Favorites"
         component={FavoritesScreen}
@@ -158,7 +147,7 @@ function MainTabs({ route }) {
 
 /* ======================================================
    Navegador Global
-   ====================================================== */
+====================================================== */
 const AppNavigator = () => {
   return (
     <NavigationContainer>
@@ -171,30 +160,37 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
-
+        
         {/* App principal con Tabs */}
         <Stack.Screen name="Main" component={MainTabs} />
-
-        {/* Checkout y confirmación de pedido */}
-        <Stack.Screen 
+        
+        {/* Flujo de compra */}
+        <Stack.Screen
           name="Checkout"
           component={CheckoutScreen}
           options={{ headerShown: false }}
         />
-
-        <Stack.Screen 
+        
+        {/* ✅ NUEVA PANTALLA: Pago */}
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{ headerShown: false }}
+        />
+        
+        <Stack.Screen
           name="OrderSuccess"
           component={OrderSuccessScreen}
           options={{ headerShown: false }}
         />
-
-        {/* ✅ NUEVA PANTALLA: Agregar/Editar Dirección */}
-        <Stack.Screen 
+        
+        {/* Agregar/Editar Dirección */}
+        <Stack.Screen
           name="AddAddress"
           component={AddAddressScreen}
-          options={{ 
+          options={{
             headerShown: false,
-            presentation: 'modal' // Se presenta como modal
+            presentation: 'modal'
           }}
         />
       </Stack.Navigator>

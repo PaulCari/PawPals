@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from utils.db import engine
+from routers.cliente import pago as cliente_pago
 
 # Routers generales
 from routers import (
@@ -69,6 +70,7 @@ app.include_router(admin_platos.router)
 app.include_router(admin_repartidores.router)
 app.include_router(admin_subscripciones.router)
 app.include_router(cliente_carrito.router)
+app.include_router(cliente_pago.router)
 
 @app.get("/")
 def root():
