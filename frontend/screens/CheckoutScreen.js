@@ -46,33 +46,38 @@ const CheckoutScreen = ({ navigation, route }) => {
   );
 
   const loadCheckoutData = async () => {
-    try {
-      console.log('📦 Cargando datos de checkout para cliente:', clienteId);
+  try {
+    console.log('📦 Cargando datos de checkout para cliente:', clienteId);
 
-      // Cargar carrito
-      const cartData = await getCart(clienteId);
-      setCart(cartData);
+    // Cargar carrito
+    const cartData = await getCart(clienteId);
+    console.log('🛒 Carrito cargado:', cartData.items.length, 'items');
+    setCart(cartData);
 
-      // Cargar direcciones
-      const addressesData = await getAddresses(clienteId);
-      setAddresses(addressesData);
+    // Cargar direcciones
+    const addressesData = await getAddresses(clienteId);
+    console.log('📍 Direcciones obtenidas:', addressesData.length); // ✅ LOG IMPORTANTE
+    console.log('📍 Direcciones completas:', addressesData); // ✅ VER DATOS
+    setAddresses(addressesData);
 
-      // Seleccionar dirección principal por defecto
-      const mainAddress = addressesData.find(addr => addr.es_principal);
-      if (mainAddress) {
-        setSelectedAddress(mainAddress.id);
-      } else if (addressesData.length > 0) {
-        setSelectedAddress(addressesData[0].id);
-      }
-
-      console.log('✅ Datos de checkout cargados');
-    } catch (error) {
-      console.error('❌ Error cargando datos de checkout:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos necesarios.');
-    } finally {
-      setLoading(false);
+    // Seleccionar dirección principal por defecto
+    const mainAddress = addressesData.find(addr => addr.es_principal);
+    if (mainAddress) {
+      console.log('✅ Dirección principal encontrada:', mainAddress.nombre);
+      setSelectedAddress(mainAddress.id);
+    } else if (addressesData.length > 0) {
+      console.log('✅ Seleccionando primera dirección:', addressesData[0].nombre);
+      setSelectedAddress(addressesData[0].id);
     }
-  };
+
+    console.log('✅ Datos de checkout cargados');
+  } catch (error) {
+    console.error('❌ Error cargando datos de checkout:', error);
+    Alert.alert('Error', 'No se pudieron cargar los datos necesarios.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleConfirmOrder = async () => {
     if (!selectedAddress) {

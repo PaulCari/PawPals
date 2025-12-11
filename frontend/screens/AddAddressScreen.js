@@ -114,44 +114,78 @@ const AddAddressScreen = ({ navigation, route }) => {
 
   // Guardar dirección
   const handleSave = async () => {
-    if (!validateForm()) return;
+  if (!validateForm()) return;
 
-    setSaving(true);
-    try {
-      const addressData = {
-        nombre: nombre.trim(),
-        referencia: referencia.trim(),
-        latitud: parseFloat(latitud),
-        longitud: parseFloat(longitud),
-        es_principal: esPrincipal,
-      };
+  setSaving(true);
+  try {
+    const addressData = {
+      nombre: nombre.trim(),
+      referencia: referencia.trim(),
+      latitud: parseFloat(latitud),
+      longitud: parseFloat(longitud),
+      es_principal: esPrincipal,
+    };
 
-      console.log('💾 Guardando dirección:', addressData);
+    console.log('💾 Guardando dirección:', addressData);
 
-      let result;
-      if (addressId) {
-        // Actualizar dirección existente
-        result = await updateAddress(addressId, addressData);
-        Alert.alert('Éxito', 'Dirección actualizada correctamente.', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
-      } else {
-        // Crear nueva dirección
-        result = await createAddress(clienteId, addressData);
-        Alert.alert('Éxito', 'Dirección agregada correctamente.', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
-      }
-
-      console.log('✅ Dirección guardada:', result);
-    } catch (error) {
-      console.error('❌ Error al guardar dirección:', error);
-      const errorMessage = error.response?.data?.detail || 'No se pudo guardar la dirección.';
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setSaving(false);
+    let result;
+    if (addressId) {
+      // Actualizar dirección existente
+      result = await updateAddress(addressId, addressData);
+      console.log('✅ Dirección actualizada:', result);
+      
+      // ✅ MOSTRAR ALERTA Y VOLVER
+      Alert.alert(
+        '¡Éxito!',
+        'Dirección actualizada correctamente',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              console.log('🔙 Volviendo a Checkout...');
+              navigation.goBack();
+            }
+          }
+        ]
+      );
+    } else {
+      // Crear nueva dirección
+      result = await createAddress(clienteId, addressData);
+      console.log('✅ Dirección creada:', result);
+      
+      // ✅ MOSTRAR ALERTA Y VOLVER
+      Alert.alert(
+        '¡Dirección guardada!',
+        `"${addressData.nombre}" fue agregada correctamente`,
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              console.log('🔙 Volviendo a Checkout...');
+              navigation.goBack();
+            }
+          }
+        ]
+      );
     }
-  };
+
+  } catch (error) {
+    console.error('❌ Error al guardar dirección:', error);
+    
+    // Extraer mensaje de error específico
+    let errorMessage = 'No se pudo guardar la dirección.';
+    
+    if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    Alert.alert('Error', errorMessage);
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>

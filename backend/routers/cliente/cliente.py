@@ -6,28 +6,19 @@ Módulo que gestiona toda la información relacionada al cliente:
 - Consulta de membresía activa (subscripción).
 - Gestión de direcciones de entrega (CRUD).
 - Manejo de imágenes de perfil.
-
-Notas:
-- Los IDs se envían y devuelven como `str` (compatibles con BIGINT).
-- Las claves nuevas se generan con utils.keygen.generate_uint64_key().
-- Las imágenes se almacenan en utils.globals.CLIENTE (default.png si no hay personalizada).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente
+from models import Cliente, Direccion  # ✅ IMPORTAR Direccion
 import os
+
 router = APIRouter(prefix="/cliente", tags=["Cliente"])
 
 # ---------------------------------------------------------------------------
-# GET /cliente/{cliente_id}
-# ---------------------------------------------------------------------------
-# Retorna los datos completos del cliente:
-# nombre, teléfono, correo, membresía activa, foto y direcciones registradas.
-# ---------------------------------------------------------------------------
-# GET /cliente/{cliente_id}
+# GET /cliente/id/{cliente_id}
 # ---------------------------------------------------------------------------
 @router.get("/id/{cliente_id}")
 def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
@@ -76,12 +67,9 @@ def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
         "direcciones": direcciones,
     }
 
-
 # ---------------------------------------------------------------------------
 # PUT /cliente/{cliente_id}
 # ---------------------------------------------------------------------------
-# Actualiza los datos del cliente: nombre, teléfono, correo (opcional), foto.
-# Si no se sube imagen nueva, mantiene o asigna CLIENTE/default.png.
 @router.put("/{cliente_id}")
 def actualizar_datos_cliente(
     cliente_id: str,
@@ -98,7 +86,6 @@ def actualizar_datos_cliente(
     cliente.nombre = nombre
     cliente.telefono = telefono
 
-    # Actualizar correo en CuentaUsuario
     if correo and cliente.cuenta_usuario:
         cliente.cuenta_usuario.correo_electronico = correo
 
@@ -129,7 +116,9 @@ def actualizar_datos_cliente(
         },
     }
 
-
+# ---------------------------------------------------------------------------
+# GET /cliente/{cliente_id}/membresia
+# ---------------------------------------------------------------------------
 @router.get("/{cliente_id}/membresia")
 def obtener_membresia_cliente(cliente_id: str, db: Session = Depends(get_db)):
     cliente = (
@@ -153,8 +142,9 @@ def obtener_membresia_cliente(cliente_id: str, db: Session = Depends(get_db)):
         "descripcion": membresia.descripcion,
         "beneficios": membresia.beneficios,
     }
+
 # ---------------------------------------------------------------------------
-# CRUD de Direcciones
+# POST /cliente/{cliente_id}/direccion - ✅ FUNCIÓN ÚNICA Y CORREGIDA
 # ---------------------------------------------------------------------------
 @router.post("/{cliente_id}/direccion")
 def crear_direccion(
@@ -166,94 +156,106 @@ def crear_direccion(
     es_principal: bool = Form(False),
     db: Session = Depends(get_db),
 ):
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-
-    if es_principal:
-        db.query(Direccion).filter(Direccion.cliente_id == cliente_id).update({"es_principal": False})
-
-    direccion = Direccion(
-        id=keygen.generate_uint64_key(),
-        cliente_id=cliente_id,
-        nombre=nombre,
-        latitud=latitud,
-        longitud=longitud,
-        referencia=referencia,
-        es_principal=es_principal,
-        estado_registro="A",
-    )
-    db.add(direccion)
-    db.commit()
-    return {"mensaje": "Dirección creada correctamente.", "direccion_id": str(direccion.id)}
-
-# ---------------------------------------------------------------------------
-# POST /cliente/{cliente_id}/direccion
-# ---------------------------------------------------------------------------
-# Registra una nueva dirección de entrega.
-# Se genera un id nuevo con keygen y se asocia al cliente.
-# Campos: nombre, latitud, longitud, referencia, es_principal (bool).
-@router.post("/{cliente_id}/direccion")
-def crear_direccion(
-    cliente_id: str,
-    nombre: str = Form(...),
-    latitud: float = Form(...),
-    longitud: float = Form(...),
-    referencia: str = Form(None),
-    es_principal: bool = Form(False),
-    db: Session = Depends(get_db),
-):
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    if es_principal:
-        db.query(Direccion).filter(Direccion.cliente_id == cliente_id).update({"es_principal": False})
-    direccion_id = keygen.generate_uint64_key()
-    direccion = Direccion(
-        id=direccion_id,
-        cliente_id=cliente_id,
-        nombre=nombre,
-        latitud=latitud,
-        longitud=longitud,
-        referencia=referencia,
-        es_principal=es_principal,
-        estado_registro="A",
-    )
-    db.add(direccion)
-    db.commit()
-    return {
-        "mensaje": "Dirección registrada correctamente.",
-        "direccion": {
-            "id": str(direccion.id),
-            "nombre": direccion.nombre,
-            "latitud": direccion.latitud,
-            "longitud": direccion.longitud,
-            "referencia": direccion.referencia,
-            "es_principal": direccion.es_principal,
-        },
-    }
+    try:
+        print(f"📥 Recibiendo dirección para cliente {cliente_id}")
+        print(f"   Nombre: {nombre}")
+        print(f"   Lat/Lng: {latitud}, {longitud}")
+        print(f"   Es principal: {es_principal}")
+        
+        # Verificar que el cliente existe
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        
+        print(f"✅ Cliente encontrado: {cliente.nombre}")
+        
+        # Si es principal, desmarcar todas las demás
+        if es_principal:
+            print("🔄 Desmarcando otras direcciones principales...")
+            db.query(Direccion).filter(
+                Direccion.cliente_id == cliente_id
+            ).update({"es_principal": False})
+            db.flush()
+        
+        # Crear nueva dirección
+        direccion_id = keygen.generate_uint64_key()
+        print(f"🆔 ID generado: {direccion_id}")
+        
+        direccion = Direccion(
+            id=direccion_id,
+            cliente_id=cliente_id,
+            nombre=nombre,
+            latitud=latitud,
+            longitud=longitud,
+            referencia=referencia if referencia else "",
+            es_principal=es_principal,
+            estado_registro="A",
+        )
+        
+        print("💾 Agregando dirección a la sesión...")
+        db.add(direccion)
+        
+        print("🔄 Haciendo flush...")
+        db.flush()
+        
+        print("✅ Haciendo commit...")
+        db.commit()
+        
+        print("🔄 Refrescando objeto...")
+        db.refresh(direccion)
+        
+        print(f"✅ Dirección guardada exitosamente: {direccion.id}")
+        
+        # Devolver objeto completo
+        return {
+            "mensaje": "Dirección registrada correctamente.",
+            "direccion": {
+                "id": str(direccion.id),
+                "nombre": direccion.nombre,
+                "latitud": float(direccion.latitud),
+                "longitud": float(direccion.longitud),
+                "referencia": direccion.referencia,
+                "es_principal": bool(direccion.es_principal),
+            },
+        }
+    
+    except HTTPException:
+        # Re-lanzar excepciones HTTP
+        raise
+    
+    except Exception as e:
+        # Capturar cualquier otro error
+        print(f"❌ ERROR al crear dirección: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al guardar dirección: {str(e)}"
+        )
 
 # ---------------------------------------------------------------------------
 # GET /cliente/{cliente_id}/direcciones
 # ---------------------------------------------------------------------------
-# Lista todas las direcciones del cliente.
-# Incluye cuál está marcada como principal.
 @router.get("/{cliente_id}/direcciones")
 def listar_direcciones(
     cliente_id: str,
     db: Session = Depends(get_db),
 ):
+    print(f"📍 Listando direcciones para cliente: {cliente_id}")
+    
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
     direcciones = (
         db.query(Direccion)
         .filter(Direccion.cliente_id == cliente_id, Direccion.estado_registro == "A")
         .order_by(Direccion.es_principal.desc())
         .all()
     )
-    if not direcciones:
-        return {"mensaje": "El cliente no tiene direcciones registradas."}
+    
+    # Convertir a lista de dicts
     resultado = [
         {
             "id": str(d.id),
@@ -265,13 +267,18 @@ def listar_direcciones(
         }
         for d in direcciones
     ]
-    return {"total": len(resultado), "direcciones": resultado}
+    
+    print(f"📤 Direcciones encontradas: {len(resultado)}")
+    
+    # Siempre devolver un objeto con 'total' y 'direcciones'
+    return {
+        "total": len(resultado),
+        "direcciones": resultado
+    }
 
 # ---------------------------------------------------------------------------
 # PUT /cliente/direccion/{direccion_id}
 # ---------------------------------------------------------------------------
-# Actualiza los datos de una dirección existente.
-# Permite cambiar nombre, referencia, coordenadas o marcarla como principal.
 @router.put("/direccion/{direccion_id}")
 def actualizar_direccion(
     direccion_id: str,
@@ -282,19 +289,26 @@ def actualizar_direccion(
     es_principal: bool = Form(None),
     db: Session = Depends(get_db),
 ):
-    direccion = db.query(Direccion).filter(Direccion.id == direccion_id, Direccion.estado_registro == "A").first()
+    direccion = db.query(Direccion).filter(
+        Direccion.id == direccion_id, 
+        Direccion.estado_registro == "A"
+    ).first()
+    
     if not direccion:
         raise HTTPException(status_code=404, detail="Dirección no encontrada o inactiva.")
+    
     if nombre:
         direccion.nombre = nombre
-    if referencia:
+    if referencia is not None:  # ✅ Permitir cadena vacía
         direccion.referencia = referencia
     if latitud is not None:
         direccion.latitud = latitud
     if longitud is not None:
         direccion.longitud = longitud
+    
     if es_principal is not None:
         if es_principal:
+            # Desmarcar todas las demás del mismo cliente
             db.query(Direccion).filter(
                 Direccion.cliente_id == direccion.cliente_id,
                 Direccion.id != direccion_id
@@ -302,36 +316,45 @@ def actualizar_direccion(
         direccion.es_principal = es_principal
 
     db.commit()
+    db.refresh(direccion)
+    
     return {
         "mensaje": "Dirección actualizada correctamente.",
         "direccion": {
             "id": str(direccion.id),
             "nombre": direccion.nombre,
-            "latitud": direccion.latitud,
-            "longitud": direccion.longitud,
+            "latitud": float(direccion.latitud),
+            "longitud": float(direccion.longitud),
             "referencia": direccion.referencia,
-            "es_principal": direccion.es_principal,
+            "es_principal": bool(direccion.es_principal),
         },
     }
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/direccion/{direccion_id}
 # ---------------------------------------------------------------------------
-# Elimina (o marca inactiva) una dirección del cliente.
-# Si era la principal, se reasigna automáticamente otra si existe.
 @router.delete("/direccion/{direccion_id}")
 def eliminar_direccion(
     direccion_id: str,
     db: Session = Depends(get_db),
 ):
-    direccion = db.query(Direccion).filter(Direccion.id == direccion_id, Direccion.estado_registro == "A").first()
+    direccion = db.query(Direccion).filter(
+        Direccion.id == direccion_id, 
+        Direccion.estado_registro == "A"
+    ).first()
+    
     if not direccion:
         raise HTTPException(status_code=404, detail="Dirección no encontrada o ya inactiva.")
+    
     cliente_id = direccion.cliente_id
     era_principal = direccion.es_principal
+    
+    # Marcar como inactiva
     direccion.estado_registro = "I"
     direccion.es_principal = False
     db.commit()
+    
+    # Si era principal, asignar otra
     if era_principal:
         nueva_principal = (
             db.query(Direccion)
@@ -339,17 +362,20 @@ def eliminar_direccion(
             .order_by(Direccion.id.desc())
             .first()
         )
+        
         if nueva_principal:
             nueva_principal.es_principal = True
             db.commit()
+            
             return {
                 "mensaje": "Dirección eliminada. Se ha reasignado una nueva dirección principal.",
                 "nueva_principal": {
                     "id": str(nueva_principal.id),
                     "nombre": nueva_principal.nombre,
                     "referencia": nueva_principal.referencia,
-                    "latitud": nueva_principal.latitud,
-                    "longitud": nueva_principal.longitud,
+                    "latitud": float(nueva_principal.latitud),
+                    "longitud": float(nueva_principal.longitud),
                 },
             }
+    
     return {"mensaje": "Dirección eliminada correctamente."}
