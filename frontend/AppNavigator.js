@@ -22,7 +22,7 @@ import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
-import UploadProofScreen from './screens/UploadProofScreen';
+// import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
 
 
@@ -182,11 +182,11 @@ const AppNavigator = () => {
         />
 
         {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
-        <Stack.Screen
+        {/* <Stack.Screen // <--- BORRA O COMENTA ESTE BLOQUE
           name="UploadProof"
           component={UploadProofScreen}
           options={{ headerShown: false }}
-        />
+        /> */}
         
         <Stack.Screen
           name="OrderSuccess"

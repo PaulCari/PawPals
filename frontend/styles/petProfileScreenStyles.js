@@ -2,7 +2,7 @@
 
 import { StyleSheet, Platform } from 'react-native';
 
-const MAIN_PURPLE = '#875686';
+export const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
 const LIGHT_BACKGROUND = '#F9F9F9';

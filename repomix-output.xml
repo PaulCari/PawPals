@@ -64,6 +64,9 @@ backend/routers/cliente/subscripciones.py
 backend/routers/nutricionista.py
 backend/routers/repartidor.py
 backend/seed_data.py
+backend/static/imagenes/bebidas/Bebida1.png
+backend/static/imagenes/bebidas/Bebida2.png
+backend/static/imagenes/bebidas/Bebida3.png
 backend/static/imagenes/cliente/default.png
 backend/static/imagenes/cliente/default2.png
 backend/static/imagenes/plato/barf_pato_gato.png
@@ -123,6 +126,7 @@ frontend/index.js
 frontend/package.json
 frontend/README.md
 frontend/screens/AddAddressScreen.js
+frontend/screens/AddPetScreen.js
 frontend/screens/CartScreen.js
 frontend/screens/CheckoutScreen.js
 frontend/screens/FavoritesScreen.js
@@ -135,6 +139,7 @@ frontend/screens/ProductDetailScreen.js
 frontend/screens/RegisterScreen.js
 frontend/screens/SplashScreen.js
 frontend/screens/SuccessScreen.js
+frontend/screens/UploadProofScreen.js
 frontend/screens/WelcomeScreen.js
 frontend/services/addressService.js
 frontend/services/api.js
@@ -145,6 +150,7 @@ frontend/services/paymentService.js
 frontend/services/petService.js
 frontend/services/productService.js
 frontend/styles/addAddressScreenStyles.js
+frontend/styles/addPetScreenStyles.js
 frontend/styles/cartScreenStyles.js
 frontend/styles/checkoutScreenStyles.js
 frontend/styles/favoritesScreenStyles.js
@@ -152,6 +158,7 @@ frontend/styles/homeScreenStyles.js
 frontend/styles/loginScreenStyles.js
 frontend/styles/orderSuccessScreenStyles.js
 frontend/styles/paymentScreenStyles.js
+frontend/styles/petProfileScreenStyles.js
 frontend/styles/productCardStyles.js
 frontend/styles/productDetailScreenStyles.js
 frontend/styles/registerScreenStyles.js
@@ -5030,6 +5037,9 @@ import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
+import UploadProofScreen from './screens/UploadProofScreen';
+import AddPetScreen from './screens/AddPetScreen';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -5179,10 +5189,17 @@ const AppNavigator = () => {
           options={{ headerShown: false }}
         />
         
-        {/* ✅ NUEVA PANTALLA: Pago */}
+        {/*  NUEVA PANTALLA: Pago */}
         <Stack.Screen
           name="Payment"
           component={PaymentScreen}
+          options={{ headerShown: false }}
+        />
+
+        {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
+        <Stack.Screen
+          name="UploadProof"
+          component={UploadProofScreen}
           options={{ headerShown: false }}
         />
         
@@ -5201,6 +5218,17 @@ const AppNavigator = () => {
             presentation: 'modal'
           }}
         />
+
+        {/* 👇 --- 2. AGREGAR ESTA NUEVA PANTALLA --- 👇 */}
+        <Stack.Screen
+          name="AddPet"
+          component={AddPetScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal' // Para que aparezca desde abajo
+          }}
+        />
+        {/* ------------------------------------------- */}
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -5849,6 +5877,172 @@ const AddAddressScreen = ({ navigation, route }) => {
 };
 
 export default AddAddressScreen;
+</file>
+
+<file path="frontend/screens/AddPetScreen.js">
+// frontend/screens/AddPetScreen.js
+
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import { createPet, getSpecies, getBreedsBySpecies } from '../services/petService';
+import { styles } from '../styles/addPetScreenStyles';
+
+const AddPetScreen = ({ navigation, route }) => {
+  const { clienteId } = route.params || {};
+
+  // Estados del formulario
+  const [petName, setPetName] = useState('');
+  const [petType, setPetType] = useState('');
+  const [breed, setBreed] = useState('');
+  const [age, setAge] = useState('');
+  const [petSex, setPetSex] = useState('M');
+
+  // Estados de datos y carga
+  const [especies, setEspecies] = useState([]);
+  const [razas, setRazas] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [razasLoading, setRazasLoading] = useState(false);
+
+  // Carga las especies al iniciar
+  useEffect(() => {
+    const loadSpecies = async () => {
+      try {
+        const speciesData = await getSpecies();
+        setEspecies(speciesData);
+        if (speciesData.length > 0) setPetType(speciesData[0].id);
+      } catch (error) {
+        console.error('❌ Error cargando especies:', error);
+      }
+    };
+    loadSpecies();
+  }, []);
+
+  // Carga las razas cuando cambia el tipo de mascota
+  useEffect(() => {
+    const loadBreeds = async () => {
+      if (!petType) return;
+      setRazasLoading(true);
+      setRazas([]);
+      try {
+        const breedsData = await getBreedsBySpecies(petType);
+        setRazas(breedsData);
+        if (breedsData.length > 0) setBreed(breedsData[0]);
+      } catch (error) {
+        console.error('❌ Error cargando razas:', error);
+      } finally {
+        setRazasLoading(false);
+      }
+    };
+    loadBreeds();
+  }, [petType]);
+
+  const handleSavePet = async () => {
+    if (!petName.trim() || !breed || !age.trim()) {
+      Alert.alert('Campos incompletos', 'Por favor completa todos los campos.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const petData = {
+        nombre: petName,
+        especie_id: petType,
+        raza: breed,
+        edad: parseInt(age, 10),
+        sexo: petSex
+      };
+      await createPet(clienteId, petData);
+      Alert.alert('¡Éxito!', 'Tu mascota ha sido registrada.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrar la mascota.';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isFormValid = petName.trim() && breed && age.trim() && !razasLoading;
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#875686" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Agregar Mascota</Text>
+          <View style={{ width: 28 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
+          <TextInput style={styles.input} placeholder="Nombre de la mascota" value={petName} onChangeText={setPetName} />
+          
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Tipo de mascota:</Text>
+            <Picker selectedValue={petType} onValueChange={setPetType} style={styles.picker}>
+              {especies.map(e => <Picker.Item key={e.id} label={e.nombre} value={e.id} />)}
+            </Picker>
+          </View>
+          
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Raza:</Text>
+            {razasLoading ? (
+              <ActivityIndicator size="small" color="#732C71" style={{ height: 40 }}/>
+            ) : (
+              <Picker selectedValue={breed} onValueChange={setBreed} style={styles.picker} enabled={!razasLoading && razas.length > 0}>
+                {razas.map((r, index) => <Picker.Item key={index} label={r} value={r} />)}
+              </Picker>
+            )}
+          </View>
+
+          <TextInput style={styles.input} placeholder="Edad (años)" value={age} onChangeText={setAge} keyboardType="numeric" />
+          
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Sexo:</Text>
+            <Picker selectedValue={petSex} onValueChange={setPetSex} style={styles.picker}>
+              <Picker.Item label="Macho" value="M" />
+              <Picker.Item label="Hembra" value="H" />
+            </Picker>
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.saveButton, (!isFormValid || isLoading) && styles.saveButtonDisabled]}
+            onPress={handleSavePet}
+            disabled={!isFormValid || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={24} color="white" />
+                <Text style={styles.saveButtonText}>Guardar Mascota</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+export default AddPetScreen;
 </file>
 
 <file path="frontend/screens/CartScreen.js">
@@ -7057,8 +7251,7 @@ export default OrderSuccessScreen;
 </file>
 
 <file path="frontend/screens/PaymentScreen.js">
-// frontend/screens/PaymentScreen.js
-
+// frontend/screens/PaymentScreen.js (VERSIÓN SIMPLIFICADA)
 import React, { useState } from 'react';
 import {
   View,
@@ -7067,92 +7260,38 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { processPayment } from '../services/paymentService';
-import { styles } from '../styles/paymentScreenStyles';
+import { styles } from '../styles/paymentScreenStyles'; // Usamos los mismos estilos base
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { clienteId, direccionId, total, pedidoId } = route.params || {};
+  const { clienteId, total, pedidoId } = route.params || {};
 
-  const [selectedMethod, setSelectedMethod] = useState(null);
-  const [paymentProof, setPaymentProof] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [selectedMethodId, setSelectedMethodId] = useState(null);
 
   const paymentMethods = [
-    { 
-      id: '1', 
-      name: 'Yape', 
-      qr: require('../assets/qr/imagen1.png'),
-      icon: 'phone-portrait-outline'
-    },
-    { 
-      id: '2', 
-      name: 'Plin', 
-      qr: require('../assets/qr/imagen2.png'),
-      icon: 'wallet-outline'
-    },
+    { id: '1', name: 'Yape', qr: require('../assets/qr/imagen1.png'), icon: 'phone-portrait-outline' },
+    { id: '2', name: 'Plin', qr: require('../assets/qr/imagen2.png'), icon: 'wallet-outline' },
   ];
-
-  const handleSelectProof = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permiso requerido', 'Necesitamos acceso a tus fotos para subir el comprobante.');
+  
+  const handleContinue = () => {
+    if (!selectedMethodId) {
+        Alert.alert("Selección requerida", "Por favor, elige un método de pago para continuar.");
         return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-      if (!result.canceled) setPaymentProof(result.assets[0]);
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
     }
-  };
+    
+    const selectedPaymentMethod = paymentMethods.find(m => m.id === selectedMethodId);
 
-  const handleConfirmPayment = async () => {
-    if (!selectedMethod) {
-      Alert.alert('Método requerido', 'Por favor selecciona un método de pago.');
-      return;
-    }
-    if (!paymentProof) {
-      Alert.alert('Comprobante requerido', 'Por favor sube una captura del pago realizado.');
-      return;
-    }
-    Alert.alert(
-      'Confirmar Pago',
-      `¿Deseas confirmar el pago de S/ ${total.toFixed(2)}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: processPaymentAction },
-      ]
-    );
-  };
-
-  const processPaymentAction = async () => {
-    setProcessing(true);
-    try {
-      const result = await processPayment(clienteId, pedidoId, selectedMethod, paymentProof);
-      navigation.replace('OrderSuccess', {
+    // Navegamos a la nueva pantalla pasando todos los datos necesarios
+    navigation.navigate('UploadProof', {
         clienteId,
-        pedidoId: result.pedido_id,
+        pedidoId,
         total,
-      });
-    } catch (error) {
-      const errorMessage = error.response?.data?.detail || error.message || 'No se pudo procesar el pago.';
-      Alert.alert('Error en el pago', errorMessage);
-    } finally {
-      setProcessing(false);
-    }
+        paymentMethod: selectedPaymentMethod, // Pasamos el objeto completo
+    });
   };
 
   return (
@@ -7162,7 +7301,6 @@ const PaymentScreen = ({ navigation, route }) => {
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -7174,10 +7312,9 @@ const PaymentScreen = ({ navigation, route }) => {
 
         <View style={styles.container}>
           <ScrollView
-            style={styles.scrollContainer}
+           style={styles.container} // Quitamos flex: 1
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            bounces={true}
           >
             <Text style={styles.paymentTitle}>Realizar Pago</Text>
 
@@ -7192,29 +7329,19 @@ const PaymentScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Selecciona el método de pago</Text>
+              <Text style={styles.sectionTitle}>1. Selecciona el método de pago</Text>
               <View style={styles.methodsContainer}>
                 {paymentMethods.map((method) => (
                   <TouchableOpacity
                     key={method.id}
-                    style={[
-                      styles.methodCard,
-                      selectedMethod === method.id && styles.methodCardSelected,
-                    ]}
-                    onPress={() => setSelectedMethod(method.id)}
+                    style={[styles.methodCard, selectedMethodId === method.id && styles.methodCardSelected]}
+                    onPress={() => setSelectedMethodId(method.id)}
                   >
                     <View style={styles.radioButton}>
-                      {selectedMethod === method.id && <View style={styles.radioButtonInner} />}
+                      {selectedMethodId === method.id && <View style={styles.radioButtonInner} />}
                     </View>
-                    <Ionicons 
-                      name={method.icon} 
-                      size={24} 
-                      color={selectedMethod === method.id ? '#875686' : '#666'} 
-                    />
-                    <Text style={[
-                      styles.methodName,
-                      selectedMethod === method.id && styles.methodNameSelected
-                    ]}>
+                    <Ionicons name={method.icon} size={24} color={selectedMethodId === method.id ? '#875686' : '#666'} />
+                    <Text style={[styles.methodName, selectedMethodId === method.id && styles.methodNameSelected]}>
                       {method.name}
                     </Text>
                   </TouchableOpacity>
@@ -7222,84 +7349,35 @@ const PaymentScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            {selectedMethod && (
+            {selectedMethodId && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Escanea el código QR</Text>
+                <Text style={styles.sectionTitle}>2. Escanea y Paga</Text>
                 <View style={styles.qrCard}>
-                  <Image
-                    source={paymentMethods.find(m => m.id === selectedMethod)?.qr}
-                    style={styles.qrImage}
-                  />
+                  <Image source={paymentMethods.find(m => m.id === selectedMethodId)?.qr} style={styles.qrImage} />
                   <Text style={styles.qrInstructions}>
-                    1. Abre tu app de {paymentMethods.find(m => m.id === selectedMethod)?.name}
-                    {'\n'}2. Escanea este código QR
-                    {'\n'}3. Confirma el pago de S/ {total?.toFixed(2)}
-                    {'\n'}4. Sube una captura del comprobante
+                    1. Abre tu app de {paymentMethods.find(m => m.id === selectedMethodId)?.name}.
+                    {'\n'}2. Escanea este código QR.
+                    {'\n'}3. Confirma el pago de S/ {total?.toFixed(2)}.
+                    {'\n'}4. Guarda una captura del comprobante.
                   </Text>
                 </View>
               </View>
             )}
-
-            {selectedMethod && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Comprobante de Pago</Text>
-                
-                {!paymentProof ? (
-                  <TouchableOpacity
-                    style={styles.uploadButton}
-                    onPress={handleSelectProof}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <ActivityIndicator color="#875686" />
-                    ) : (
-                      <>
-                        <Ionicons name="cloud-upload-outline" size={40} color="#875686" />
-                        <Text style={styles.uploadText}>Subir captura del pago</Text>
-                        <Text style={styles.uploadSubtext}>JPG, PNG (Máx. 5MB)</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.proofContainer}>
-                    <Image source={{ uri: paymentProof.uri }} style={styles.proofImage} />
-                    <TouchableOpacity style={styles.changeProofButton} onPress={handleSelectProof}>
-                      <Ionicons name="refresh" size={20} color="white" />
-                      <Text style={styles.changeProofText}>Cambiar imagen</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={24} color="#875686" />
-              <Text style={styles.infoText}>
-                Tu pedido será procesado una vez que nuestro equipo verifique el pago.
-                Recibirás una confirmación en breve.
-              </Text>
-            </View>
           </ScrollView>
-        </View>
 
-        {selectedMethod && paymentProof && (
-          <View style={styles.bottomContainer}>
-            <TouchableOpacity
-              style={[styles.confirmButton, processing && styles.confirmButtonDisabled]}
-              onPress={handleConfirmPayment}
-              disabled={processing}
-            >
-              {processing ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={24} color="white" />
-                  <Text style={styles.confirmButtonText}>Confirmar Pago</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+          {/* El botón de abajo ahora navega a la siguiente pantalla */}
+          {selectedMethodId && (
+            <View style={styles.bottomContainer}>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleContinue}
+              >
+                <Text style={styles.confirmButtonText}>Subir Comprobante</Text>
+                <Ionicons name="arrow-forward-circle" size={24} color="white" style={{marginLeft: 8}}/>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -7309,14 +7387,119 @@ export default PaymentScreen;
 </file>
 
 <file path="frontend/screens/PetProfileScreen.js">
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { getMascotasByCliente } from '../services/petService';
+import Header from '../components/Header';
+import { styles } from '../styles/petProfileStyles';
 
-const PetProfileScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Perfil de Mascota (En construcción)</Text>
-  </View>
-);
+const PetProfileScreen = ({ route }) => {
+  const navigation = useNavigation();
+  const { clienteId } = route.params;
+
+  const [mascotas, setMascotas] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar mascotas del cliente
+  useEffect(() => {
+    const loadPets = async () => {
+      try {
+        const response = await getMascotasByCliente(clienteId);
+        setMascotas(response);
+      } catch (error) {
+        console.error('❌ Error cargando mascotas:', error);
+        Alert.alert('Error', 'No se pudieron cargar las mascotas.');
+      }
+      setLoading(false);
+    };
+
+    loadPets();
+  }, []);
+
+  // Selección de mascota
+  const handleSelectPet = (pet) => {
+    setSelectedPet(pet);
+  };
+
+  const handleNavigateToAddPet = () => {
+    navigation.navigate('AddPet', { clienteId });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Header title="Mis Mascotas" />
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Cargando mascotas...</Text>
+        </View>
+      ) : (
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.petSelector}>
+            
+            {/* Mostrar lista de mascotas */}
+            {mascotas.map((pet) => (
+              <TouchableOpacity
+                key={pet.id}
+                style={styles.petSelectorItem}
+                onPress={() => handleSelectPet(pet)}
+              >
+                <View style={styles.petImageWrapper}>
+                  <Image
+                    source={{ uri: pet.foto }}
+                    style={styles.petImage}
+                  />
+                </View>
+                <Text style={styles.petSelectorName}>{pet.nombre}</Text>
+              </TouchableOpacity>
+            ))}
+
+            {/* BOTÓN PARA AGREGAR NUEVAS MASCOTAS (CORREGIDO) */}
+            <TouchableOpacity
+              style={styles.petSelectorItem}
+              onPress={handleNavigateToAddPet}
+            >
+              <View style={styles.petImageWrapper}>
+                <Ionicons name="add" size={30} color="#CCC" />
+              </View>
+              <Text style={styles.petSelectorName}>Agregar</Text>
+            </TouchableOpacity>
+
+          </ScrollView>
+
+          {/* Información de la mascota seleccionada */}
+          {selectedPet ? (
+            <View style={styles.petDetails}>
+              <Text style={styles.petName}>{selectedPet.nombre}</Text>
+              <Text style={styles.petInfo}>Edad: {selectedPet.edad} años</Text>
+              <Text style={styles.petInfo}>Raza: {selectedPet.raza}</Text>
+              <Text style={styles.petInfo}>Peso: {selectedPet.peso} kg</Text>
+            </View>
+          ) : (
+            <View style={styles.noSelection}>
+              <Text style={styles.noSelectionText}>
+                Selecciona una mascota para ver su información
+              </Text>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
 export default PetProfileScreen;
 </file>
 
@@ -7971,6 +8154,247 @@ const SuccessScreen = ({ navigation, route }) => {
 };
 
 export default SuccessScreen;
+</file>
+
+<file path="frontend/screens/UploadProofScreen.js">
+// frontend/screens/UploadProofScreen.js (VERSIÓN FINAL Y ROBUSTA)
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  ImageBackground,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { processPayment } from '../services/paymentService';
+import { styles } from '../styles/paymentScreenStyles';
+
+const UploadProofScreen = ({ navigation, route }) => {
+  const { clienteId, pedidoId, total, paymentMethod } = route.params || {};
+
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [processing, setProcessing] = useState(false);
+
+  // Verificación de que los parámetros llegan correctamente al montar la pantalla
+  useEffect(() => {
+    if (!clienteId || !pedidoId || !total || !paymentMethod) {
+      console.error("❌ Faltan parámetros esenciales en UploadProofScreen:", route.params);
+      Alert.alert(
+        "Error de navegación",
+        "Faltan datos para procesar el pago. Por favor, vuelve a intentarlo desde el checkout.",
+        [{ text: "Volver", onPress: () => navigation.goBack() }]
+      );
+    }
+  }, []);
+
+
+  const handleSelectProof = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a tus fotos para subir el comprobante.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log("✅ Imagen seleccionada:", result.assets[0].uri);
+        setPaymentProof(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('❌ Error al seleccionar imagen:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+    }
+  };
+
+  // ✅ SOLUCIÓN: La lógica se mueve a una función que se llama desde el Alert.
+  // Esto asegura que siempre se ejecute con el estado más reciente.
+  const processPaymentAction = async () => {
+    // Doble verificación por si acaso
+    if (!paymentProof) {
+        Alert.alert('Error', 'No se encontró el comprobante para enviar.');
+        return;
+    }
+
+    console.log('🚀 Iniciando procesamiento de pago...');
+    setProcessing(true);
+    
+    try {
+      const result = await processPayment(
+        clienteId, 
+        pedidoId, 
+        paymentMethod.id, 
+        paymentProof
+      );
+      
+      console.log('✅ Pago procesado exitosamente en el backend.');
+      setProcessing(false);
+      
+      Alert.alert(
+        '🎉 ¡Compra Exitosa!',
+        'Tu pago ha sido procesado correctamente.\n\nRecibirás una confirmación cuando validemos tu comprobante.',
+        [
+          {
+            text: 'Ver Detalles',
+            onPress: () => {
+              console.log('📱 Navegando a la pantalla de éxito...');
+              navigation.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'OrderSuccess',
+                    params: {
+                      clienteId,
+                      pedidoId: result.pedido_id || pedidoId,
+                      total,
+                      metodoPago: paymentMethod.name,
+                    }
+                  }
+                ],
+              });
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+      
+    } catch (error) {
+      console.error('❌ Error al procesar pago:', error.response?.data || error.message);
+      setProcessing(false);
+      
+      const errorMessage = error.response?.data?.detail 
+        || error.message 
+        || 'No se pudo procesar el pago.';
+      
+      Alert.alert(
+        'Error en el pago', 
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+
+  const handleConfirmPayment = () => {
+    console.log("--- DEBUG: Botón 'Confirmar Pago' presionado ---");
+    console.log("--- DEBUG: Verificando 'paymentProof' state:", paymentProof ? `URI: ${paymentProof.uri}` : 'null');
+
+    if (!paymentProof) {
+      Alert.alert('Comprobante requerido', 'Por favor sube una captura del pago realizado.');
+      return;
+    }
+    
+    Alert.alert(
+      'Confirmar Pago',
+      `¿Deseas confirmar el pago de S/ ${total.toFixed(2)}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        // ✅ Se llama a la función de procesamiento directamente desde el onPress
+        { text: 'Confirmar', onPress: processPaymentAction },
+      ]
+    );
+  };
+
+  return (
+    <View style={styles.mainContainer}>
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={30} color="white" />
+          </TouchableOpacity>
+          <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+          <View style={{ width: 30 }} />
+        </View>
+
+        <View style={styles.container}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.paymentTitle}>Sube tu Comprobante</Text>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Resumen</Text>
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total a pagar:</Text>
+                  <Text style={styles.totalValue}>S/ {total?.toFixed(2) || '0.00'}</Text>
+                </View>
+                <View style={[styles.summaryRow, { marginTop: 10 }]}>
+                  <Text style={styles.summaryLabel}>Método:</Text>
+                  <Text style={[styles.summaryLabel, {color: '#875686'}]}>{paymentMethod?.name}</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Comprobante de Pago</Text>
+              {!paymentProof ? (
+                <TouchableOpacity style={styles.uploadButton} onPress={handleSelectProof}>
+                  <Ionicons name="cloud-upload-outline" size={40} color="#875686" />
+                  <Text style={styles.uploadText}>Subir captura del pago</Text>
+                  <Text style={styles.uploadSubtext}>JPG, PNG (Máx. 5MB)</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.proofContainer}>
+                  <Image source={{ uri: paymentProof.uri }} style={styles.proofImage} />
+                  <TouchableOpacity style={styles.changeProofButton} onPress={handleSelectProof}>
+                    <Ionicons name="refresh" size={20} color="white" />
+                    <Text style={styles.changeProofText}>Cambiar imagen</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={24} color="#875686" />
+              <Text style={styles.infoText}>
+                Tu pedido será procesado una vez que nuestro equipo verifique el pago. Recibirás una confirmación en breve.
+              </Text>
+            </View>
+          </ScrollView>
+
+          {/* El botón de confirmar ahora vive aquí */}
+          {paymentProof && (
+            <View style={styles.bottomContainer}>
+              <TouchableOpacity
+                style={[styles.confirmButton, processing && styles.confirmButtonDisabled]}
+                onPress={handleConfirmPayment} 
+                disabled={processing}
+              >
+                {processing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={24} color="white" />
+                    <Text style={styles.confirmButtonText}>Confirmar Pago</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+};
+
+export default UploadProofScreen;
 </file>
 
 <file path="frontend/screens/WelcomeScreen.js">
@@ -9163,6 +9587,99 @@ export const styles = StyleSheet.create({
     backgroundColor: '#CCC',
   },
 
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+});
+</file>
+
+<file path="frontend/styles/addPetScreenStyles.js">
+// frontend/styles/addPetScreenStyles.js
+
+import { StyleSheet, Platform } from 'react-native';
+
+const MAIN_PURPLE = '#875686';
+const SECOND_PURPLE = '#732C71';
+const ORANGE = '#FF8C42';
+const DISABLED_GREY = '#cccccc';
+
+export const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9F9F9',
+  },
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+    textAlign: 'center',
+    flex: 1,
+  },
+  formContainer: {
+    padding: 25,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 25,
+    color: '#333',
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginBottom: 25,
+    fontSize: 16,
+  },
+  pickerContainer: {
+    width: '100%',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  pickerLabel: {
+    color: '#888',
+    fontSize: 16,
+    paddingTop: 10,
+  },
+  picker: {
+    width: '100%',
+    height: 40,
+    color: '#000',
+  },
+  saveButton: {
+    backgroundColor: ORANGE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 30,
+    marginTop: 20,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  saveButtonDisabled: {
+    backgroundColor: DISABLED_GREY,
+  },
   saveButtonText: {
     color: 'white',
     fontSize: 18,
@@ -10502,7 +11019,7 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 30,
     paddingHorizontal: 20,
-    paddingBottom: 250, // ⬆️ AUMENTADO de 200 a 250
+    paddingBottom: -20, // ⬆️ AUMENTADO de 200 a 250
   },
 
   paymentTitle: {
@@ -10622,8 +11139,8 @@ export const styles = StyleSheet.create({
   },
 
   qrImage: {
-    width: 180,
-    height: 180,
+    width: 190,
+    height: 190,
     marginBottom: 20,
     resizeMode: 'contain',
     marginTop: -20,
@@ -10760,8 +11277,8 @@ export const styles = StyleSheet.create({
 },
 
 qrImage: {
-  width: 144,                // ⬅️ Ajusta según quieras
-  height: 144,
+  width: 166,                // ⬅️ Ajusta según quieras
+  height: 166,
   resizeMode: 'contain',
   marginRight: 10,           // ⬅️ Espacio entre imagen y texto
   marginTop: 0,              // ⬅️ quitar margenes negativos
@@ -10776,6 +11293,236 @@ qrInstructions: {
   marginTop: 0,
 },
 
+});
+</file>
+
+<file path="frontend/styles/petProfileScreenStyles.js">
+// frontend/styles/petProfileScreenStyles.js
+
+import { StyleSheet, Platform } from 'react-native';
+
+const MAIN_PURPLE = '#875686';
+const SECOND_PURPLE = '#732C71';
+const ORANGE = '#FF8C42';
+const LIGHT_BACKGROUND = '#F9F9F9';
+
+export const styles = StyleSheet.create({
+  // === CONTENEDOR PRINCIPAL ===
+  safeArea: {
+    flex: 1,
+    backgroundColor: MAIN_PURPLE,
+  },
+
+  backgroundImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+
+  // === HEADER ===
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingBottom: 15,
+  },
+
+  logo: {
+    width: 160,
+    height: 120,
+    resizeMode: 'contain',
+  },
+
+  // === CONTENEDOR BLANCO ===
+  container: {
+    flex: 1,
+    backgroundColor: LIGHT_BACKGROUND,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+  },
+
+  // === ESTADOS DE CARGA Y VACÍO ===
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 24,
+  },
+
+  addButton: {
+    backgroundColor: ORANGE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  
+  // === VISTA DE PERFIL ===
+  profileContainer: {
+    flex: 1,
+  },
+
+  petSelectorContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+
+  petSelectorItem: {
+    alignItems: 'center',
+    marginRight: 20,
+  },
+
+  petImageWrapper: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#CCC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 3,
+  },
+
+  petImageWrapperSelected: {
+    borderColor: MAIN_PURPLE,
+  },
+
+  petImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+  },
+
+  petSelectorName: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888',
+  },
+
+  petSelectorNameSelected: {
+    color: MAIN_PURPLE,
+  },
+
+  // --- Detalles del Perfil ---
+  detailCard: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+
+  mainPetImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 4,
+    borderColor: 'white',
+    marginTop: -80, // Para que flote sobre la tarjeta
+    marginBottom: 15,
+  },
+
+  petName: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+    marginBottom: 15,
+  },
+
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 20,
+  },
+
+  detailItem: {
+    alignItems: 'center',
+    width: '45%',
+    marginVertical: 10,
+  },
+
+  detailLabel: {
+    fontSize: 14,
+    color: '#888',
+  },
+
+  detailValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 4,
+  },
+
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+
+  editButton: {
+    backgroundColor: MAIN_PURPLE,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  buttonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  }
 });
 </file>
 

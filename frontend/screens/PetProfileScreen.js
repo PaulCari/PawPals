@@ -1,3 +1,5 @@
+// frontend/screens/PetProfileScreen.js
+
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -14,18 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { getPetsByCliente } from '../services/petService';
-// 👇 PASO 1: IMPORTAMOS LA VARIABLE DE COLOR DESDE LOS ESTILOS
-import { styles, MAIN_PURPLE } from '../styles/petProfileScreenStyles'; 
+import { styles, MAIN_PURPLE } from '../styles/petProfileScreenStyles';
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
 
-  // Estados para manejar los datos y la UI
   const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Esta función carga las mascotas del cliente
   const loadPets = async () => {
     if (!clienteId) {
       Alert.alert('Error', 'No se pudo identificar al usuario.');
@@ -39,7 +38,6 @@ const PetProfileScreen = ({ navigation, route }) => {
       
       if (response && response.mascotas) {
         setPets(response.mascotas);
-        // Si hay mascotas, seleccionamos la primera por defecto
         if (response.mascotas.length > 0) {
           setSelectedPet(response.mascotas[0]);
         } else {
@@ -57,7 +55,6 @@ const PetProfileScreen = ({ navigation, route }) => {
     }
   };
 
-  // useFocusEffect se ejecuta cada vez que la pantalla está visible
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -65,7 +62,6 @@ const PetProfileScreen = ({ navigation, route }) => {
     }, [clienteId])
   );
 
-  // Renderiza el selector horizontal de mascotas
   const renderPetSelector = () => (
     <View style={styles.petSelectorContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -92,21 +88,16 @@ const PetProfileScreen = ({ navigation, route }) => {
             </Text>
           </TouchableOpacity>
         ))}
-        {/* Botón para agregar más mascotas */}
-        <TouchableOpacity
-  style={styles.petSelectorItem}
-  onPress={() => navigation.navigate('AddPet', { clienteId })}
->
-  <View style={styles.petImageWrapper}>
-    <Ionicons name="add" size={30} color="#CCC" />
-  </View>
-  <Text style={styles.petSelectorName}>Agregar</Text>
-</TouchableOpacity>
+        <TouchableOpacity style={styles.petSelectorItem} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+            <View style={styles.petImageWrapper}>
+                <Ionicons name="add" size={30} color="#CCC" />
+            </View>
+            <Text style={styles.petSelectorName}>Agregar</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 
-  // Renderiza la vista cuando no hay mascotas
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="paw-outline" size={100} color="#ccc" />
@@ -124,7 +115,6 @@ const PetProfileScreen = ({ navigation, route }) => {
     </View>
   );
 
-  // Renderiza los detalles de la mascota seleccionada
   const renderPetDetails = () => (
     <ScrollView>
       <View style={styles.detailCard}>
@@ -133,7 +123,6 @@ const PetProfileScreen = ({ navigation, route }) => {
           style={styles.mainPetImage}
         />
         <Text style={styles.petName}>{selectedPet.nombre}</Text>
-
         <View style={styles.detailGrid}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Especie</Text>
@@ -152,7 +141,6 @@ const PetProfileScreen = ({ navigation, route }) => {
             <Text style={styles.detailValue}>{selectedPet.peso ? `${selectedPet.peso} kg` : 'N/A'}</Text>
           </View>
         </View>
-
         <View style={styles.actionButtonsContainer}>
             <TouchableOpacity style={styles.editButton}>
                 <Ionicons name="create-outline" size={20} color="white" />
@@ -160,7 +148,6 @@ const PetProfileScreen = ({ navigation, route }) => {
             </TouchableOpacity>
         </View>
       </View>
-      {/* Aquí podrías agregar más tarjetas para alergias, etc. */}
     </ScrollView>
   );
 
@@ -171,8 +158,6 @@ const PetProfileScreen = ({ navigation, route }) => {
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity>
           <Ionicons name="menu" size={30} color="white" />
@@ -185,8 +170,6 @@ const PetProfileScreen = ({ navigation, route }) => {
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
-
-      {/* CONTENIDO PRINCIPAL */}
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
