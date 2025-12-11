@@ -23,6 +23,7 @@ import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
 import UploadProofScreen from './screens/UploadProofScreen';
+import AddPetScreen from './screens/AddPetScreen';
 
 
 const Stack = createStackNavigator();
@@ -202,6 +203,17 @@ const AppNavigator = () => {
             presentation: 'modal'
           }}
         />
+
+        {/* 👇 --- 2. AGREGAR ESTA NUEVA PANTALLA --- 👇 */}
+        <Stack.Screen
+          name="AddPet"
+          component={AddPetScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal' // Para que aparezca desde abajo
+          }}
+        />
+        {/* ------------------------------------------- */}
       </Stack.Navigator>
     </NavigationContainer>
   );

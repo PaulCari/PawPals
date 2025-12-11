@@ -1,5 +1,5 @@
-// frontend/screens/UploadProofScreen.js
-import React, { useState } from 'react';
+// frontend/screens/UploadProofScreen.js (VERSIÓN FINAL Y ROBUSTA)
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,14 +15,26 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { processPayment } from '../services/paymentService';
-import { styles } from '../styles/paymentScreenStyles'; // Reutilizaremos los estilos!
+import { styles } from '../styles/paymentScreenStyles';
 
 const UploadProofScreen = ({ navigation, route }) => {
-  // Recibimos todos los datos de la pantalla anterior
   const { clienteId, pedidoId, total, paymentMethod } = route.params || {};
 
   const [paymentProof, setPaymentProof] = useState(null);
   const [processing, setProcessing] = useState(false);
+
+  // Verificación de que los parámetros llegan correctamente al montar la pantalla
+  useEffect(() => {
+    if (!clienteId || !pedidoId || !total || !paymentMethod) {
+      console.error("❌ Faltan parámetros esenciales en UploadProofScreen:", route.params);
+      Alert.alert(
+        "Error de navegación",
+        "Faltan datos para procesar el pago. Por favor, vuelve a intentarlo desde el checkout.",
+        [{ text: "Volver", onPress: () => navigation.goBack() }]
+      );
+    }
+  }, []);
+
 
   const handleSelectProof = async () => {
     try {
@@ -36,44 +48,102 @@ const UploadProofScreen = ({ navigation, route }) => {
         allowsEditing: true,
         quality: 0.8,
       });
-      if (!result.canceled) setPaymentProof(result.assets[0]);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log("✅ Imagen seleccionada:", result.assets[0].uri);
+        setPaymentProof(result.assets[0]);
+      }
     } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
+      console.error('❌ Error al seleccionar imagen:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen.');
     }
   };
 
-  const handleConfirmPayment = async () => {
+  // ✅ SOLUCIÓN: La lógica se mueve a una función que se llama desde el Alert.
+  // Esto asegura que siempre se ejecute con el estado más reciente.
+  const processPaymentAction = async () => {
+    // Doble verificación por si acaso
+    if (!paymentProof) {
+        Alert.alert('Error', 'No se encontró el comprobante para enviar.');
+        return;
+    }
+
+    console.log('🚀 Iniciando procesamiento de pago...');
+    setProcessing(true);
+    
+    try {
+      const result = await processPayment(
+        clienteId, 
+        pedidoId, 
+        paymentMethod.id, 
+        paymentProof
+      );
+      
+      console.log('✅ Pago procesado exitosamente en el backend.');
+      setProcessing(false);
+      
+      Alert.alert(
+        '🎉 ¡Compra Exitosa!',
+        'Tu pago ha sido procesado correctamente.\n\nRecibirás una confirmación cuando validemos tu comprobante.',
+        [
+          {
+            text: 'Ver Detalles',
+            onPress: () => {
+              console.log('📱 Navegando a la pantalla de éxito...');
+              navigation.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'OrderSuccess',
+                    params: {
+                      clienteId,
+                      pedidoId: result.pedido_id || pedidoId,
+                      total,
+                      metodoPago: paymentMethod.name,
+                    }
+                  }
+                ],
+              });
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+      
+    } catch (error) {
+      console.error('❌ Error al procesar pago:', error.response?.data || error.message);
+      setProcessing(false);
+      
+      const errorMessage = error.response?.data?.detail 
+        || error.message 
+        || 'No se pudo procesar el pago.';
+      
+      Alert.alert(
+        'Error en el pago', 
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+
+  const handleConfirmPayment = () => {
+    console.log("--- DEBUG: Botón 'Confirmar Pago' presionado ---");
+    console.log("--- DEBUG: Verificando 'paymentProof' state:", paymentProof ? `URI: ${paymentProof.uri}` : 'null');
+
     if (!paymentProof) {
       Alert.alert('Comprobante requerido', 'Por favor sube una captura del pago realizado.');
       return;
     }
+    
     Alert.alert(
       'Confirmar Pago',
       `¿Deseas confirmar el pago de S/ ${total.toFixed(2)}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
+        // ✅ Se llama a la función de procesamiento directamente desde el onPress
         { text: 'Confirmar', onPress: processPaymentAction },
       ]
     );
-  };
-
-  const processPaymentAction = async () => {
-    setProcessing(true);
-    try {
-      // Usamos el `paymentMethod.id` que recibimos de la pantalla anterior
-      const result = await processPayment(clienteId, pedidoId, paymentMethod.id, paymentProof);
-      navigation.replace('OrderSuccess', {
-        clienteId,
-        pedidoId: result.pedido_id,
-        total,
-      });
-    } catch (error) {
-      const errorMessage = error.response?.data?.detail || error.message || 'No se pudo procesar el pago.';
-      Alert.alert('Error en el pago', errorMessage);
-    } finally {
-      setProcessing(false);
-    }
   };
 
   return (
@@ -94,13 +164,11 @@ const UploadProofScreen = ({ navigation, route }) => {
 
         <View style={styles.container}>
           <ScrollView
-            style={{}} // Quitamos flex: 1 de aquí también
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.paymentTitle}>Sube tu Comprobante</Text>
 
-            {/* Resumen para dar contexto al usuario */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Resumen</Text>
               <View style={styles.summaryCard}>
@@ -115,7 +183,6 @@ const UploadProofScreen = ({ navigation, route }) => {
               </View>
             </View>
             
-            {/* Sección de subida */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Comprobante de Pago</Text>
               {!paymentProof ? (
@@ -148,7 +215,7 @@ const UploadProofScreen = ({ navigation, route }) => {
             <View style={styles.bottomContainer}>
               <TouchableOpacity
                 style={[styles.confirmButton, processing && styles.confirmButtonDisabled]}
-                onPress={handleConfirmPayment}
+                onPress={handleConfirmPayment} 
                 disabled={processing}
               >
                 {processing ? (
