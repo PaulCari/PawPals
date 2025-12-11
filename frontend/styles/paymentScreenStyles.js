@@ -1,76 +1,92 @@
-// frontend/styles/paymentScreenStyles.js (VERSIÓN COMPLETA)
-
+// frontend/styles/paymentScreenStyles.js
 import { StyleSheet, Platform } from 'react-native';
 
 const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
-const LIGHT_BACKGROUND = '#F9F9F9';
+const LIGHT_GRAY = '#F5F5F5';
+const DARK_TEXT = '#333';
+const INFO_BG = '#FFF3E0';
 
 export const styles = StyleSheet.create({
-  safeArea: {
+  mainContainer: {
     flex: 1,
     backgroundColor: MAIN_PURPLE,
   },
 
-  backgroundImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    top: 0,
-    left: 0,
+  safeArea: {
+    flex: 1,
   },
 
-  // === HEADER ===
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingTop: Platform.OS === 'android' ? 40 : 10,
     paddingBottom: 15,
+    backgroundColor: 'transparent',
   },
 
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
+  logo: {
+    width: 160,
+    height: 120,
+    resizeMode: 'contain',
   },
 
-  // === CONTAINER ===
+  // 🔥 CAMBIO CRÍTICO #1: Container con flex
   container: {
     flex: 1,
-    backgroundColor: LIGHT_BACKGROUND,
+    backgroundColor: LIGHT_GRAY,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
 
-  scrollContent: {
-    paddingBottom: 120,
+  // 🔥 CAMBIO CRÍTICO #2: ScrollView sin flex
+  scrollContainer: {
+    flex: 1,
   },
 
-  // === SECCIONES ===
-  section: {
+  // 🔥 CAMBIO CRÍTICO #3: Padding aumentado
+  scrollContent: {
+    paddingTop: 30,
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingBottom: 250, // ⬆️ AUMENTADO de 200 a 250
+  },
+
+  paymentTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#732C71',
+    marginHorizontal: 25,
+    marginBottom: 20,
+    lineHeight: 36,
+  },
+
+  section: {
+    marginBottom: 25,
   },
 
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    color: DARK_TEXT,
+    marginBottom: 12,
   },
 
-  // === RESUMEN DEL PAGO ===
   summaryCard: {
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 25,
-    shadowColor: "#000",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 4,
   },
 
@@ -81,238 +97,237 @@ export const styles = StyleSheet.create({
   },
 
   summaryLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: DARK_TEXT,
   },
 
   totalValue: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: SECOND_PURPLE,
   },
 
-  // === MÉTODOS DE PAGO ===
   methodsContainer: {
     flexDirection: 'row',
-    gap: 15,
+    justifyContent: 'space-around',
+    marginTop: 10,
   },
 
   methodCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: "#000",
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   methodCardSelected: {
+    borderWidth: 2,
     borderColor: MAIN_PURPLE,
-    backgroundColor: '#F5F0F5',
+    backgroundColor: '#F9F5F9',
   },
 
   radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: MAIN_PURPLE,
-    marginBottom: 10,
+    borderColor: '#ccc',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
 
   radioButtonInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: MAIN_PURPLE,
   },
 
   methodName: {
+    marginLeft: 8,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 8,
+    color: DARK_TEXT,
   },
 
   methodNameSelected: {
-    color: MAIN_PURPLE,
     fontWeight: 'bold',
+    color: MAIN_PURPLE,
   },
 
-  // === CÓDIGO QR ===
   qrCard: {
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 25,
+    borderRadius: 15,
+    padding: 20,
     alignItems: 'center',
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   qrImage: {
-    width: 250,
-    height: 250,
+    width: 180,
+    height: 180,
+    marginBottom: 20,
     resizeMode: 'contain',
-    marginBottom: 20,
-    borderRadius: 15,
-  },
-
-  // ✅ NUEVO: Placeholder para QR con ícono
-  qrPlaceholder: {
-    width: 200,
-    height: 200,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    marginTop: -20,
   },
 
   qrInstructions: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#666',
-    lineHeight: 24,
     textAlign: 'left',
-    width: '100%',
+    lineHeight: 22,
+    alignSelf: 'stretch',
+    marginTop: -45,
   },
 
-  // === SUBIR COMPROBANTE ===
   uploadButton: {
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
+    borderRadius: 15,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
     borderStyle: 'dashed',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: MAIN_PURPLE,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   uploadText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: MAIN_PURPLE,
-    marginTop: 15,
+    fontWeight: '600',
+    color: DARK_TEXT,
+    marginTop: 10,
   },
 
   uploadSubtext: {
     fontSize: 13,
     color: '#999',
-    marginTop: 5,
+    marginTop: 4,
   },
 
   proofContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 15,
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
   },
 
   proofImage: {
-    width: '100%',
-    height: 300,
+    width: 220,
+    height: 220,
     borderRadius: 15,
-    resizeMode: 'contain',
     marginBottom: 15,
+    resizeMode: 'cover',
   },
 
   changeProofButton: {
     flexDirection: 'row',
     backgroundColor: MAIN_PURPLE,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 25,
     alignItems: 'center',
   },
 
   changeProofText: {
     color: 'white',
-    fontSize: 15,
+    marginLeft: 6,
     fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: 14,
   },
 
-  // === INFO BOX ===
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#F5F0F5',
-    borderRadius: 15,
+    backgroundColor: INFO_BG,
     padding: 15,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: MAIN_PURPLE,
+    borderRadius: 12,
+    alignItems: 'flex-start',
+    marginBottom: 30,
   },
 
   infoText: {
+    marginLeft: 10,
+    fontSize: 13,
+    color: DARK_TEXT,
     flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    lineHeight: 19,
   },
 
-  // === BOTÓN CONFIRMAR ===
   bottomContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'white',
     paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingBottom: 30,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    paddingTop: 15,
+    backgroundColor: LIGHT_GRAY,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
 
   confirmButton: {
     backgroundColor: ORANGE,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 16,
     borderRadius: 30,
     shadowColor: ORANGE,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 8,
   },
 
   confirmButtonDisabled: {
-    backgroundColor: '#CCC',
+    opacity: 0.6,
   },
 
   confirmButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 10,
+    marginLeft: 8,
   },
+
+  qrCard: {
+  backgroundColor: 'white',
+  borderRadius: 15,
+  padding: 12,
+  flexDirection: 'row',      // ⬅️ Aquí hacemos fila
+  alignItems: 'center',      // Centra verticalmente
+  justifyContent: 'flex-start',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+  elevation: 3,
+},
+
+qrImage: {
+  width: 144,                // ⬅️ Ajusta según quieras
+  height: 144,
+  resizeMode: 'contain',
+  marginRight: 10,           // ⬅️ Espacio entre imagen y texto
+  marginTop: 0,              // ⬅️ quitar margenes negativos
+},
+
+qrInstructions: {
+  fontSize: 14,
+  color: '#666',
+  textAlign: 'left',
+  lineHeight: 22,
+  flex: 1,                   // ⬅️ Que tome el resto del espacio
+  marginTop: 0,
+},
+
 });
