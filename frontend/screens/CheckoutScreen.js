@@ -13,6 +13,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native'; // ✅ NUEVO
 
 import { getAddresses } from '../services/addressService';
 import { getCart, checkout } from '../services/cartService';
@@ -34,9 +35,15 @@ const CheckoutScreen = ({ navigation, route }) => {
       navigation.goBack();
       return;
     }
-
-    loadCheckoutData();
   }, [clienteId]);
+
+  // ✅ ACTUALIZAR: Recargar cuando la pantalla recibe foco
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Checkout enfocado - Recargando datos...');
+      loadCheckoutData();
+    }, [clienteId])
+  );
 
   const loadCheckoutData = async () => {
     try {
@@ -113,13 +120,21 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
 
+  // ✅ ACTUALIZAR: Navegar a AddAddressScreen
   const handleAddAddress = () => {
-    // TODO: Navegar a pantalla de agregar dirección
-    Alert.alert(
-      'Agregar Dirección',
-      'Función en desarrollo. Pronto podrás agregar nuevas direcciones.',
-      [{ text: 'OK' }]
-    );
+    navigation.navigate('AddAddress', { 
+      clienteId,
+      // No pasamos addressId porque es una nueva dirección
+    });
+  };
+
+  // ✅ NUEVO: Editar dirección existente
+  const handleEditAddress = (address) => {
+    navigation.navigate('AddAddress', {
+      clienteId,
+      addressId: address.id,
+      existingAddress: address,
+    });
   };
 
   if (loading) {
@@ -205,40 +220,49 @@ const CheckoutScreen = ({ navigation, route }) => {
             ) : (
               <View style={styles.addressList}>
                 {addresses.map((address) => (
-                  <TouchableOpacity
-                    key={address.id}
-                    style={[
-                      styles.addressCard,
-                      selectedAddress === address.id && styles.addressCardSelected,
-                    ]}
-                    onPress={() => setSelectedAddress(address.id)}
-                  >
-                    <View style={styles.radioButton}>
-                      {selectedAddress === address.id && (
-                        <View style={styles.radioButtonInner} />
-                      )}
-                    </View>
-
-                    <View style={styles.addressInfo}>
-                      <View style={styles.addressHeader}>
-                        <Text style={styles.addressName}>{address.nombre}</Text>
-                        {address.es_principal && (
-                          <View style={styles.principalBadge}>
-                            <Text style={styles.principalBadgeText}>Principal</Text>
-                          </View>
+                  <View key={address.id} style={styles.addressCardWrapper}>
+                    <TouchableOpacity
+                      style={[
+                        styles.addressCard,
+                        selectedAddress === address.id && styles.addressCardSelected,
+                      ]}
+                      onPress={() => setSelectedAddress(address.id)}
+                    >
+                      <View style={styles.radioButton}>
+                        {selectedAddress === address.id && (
+                          <View style={styles.radioButtonInner} />
                         )}
                       </View>
-                      {address.referencia && (
-                        <Text style={styles.addressReference}>{address.referencia}</Text>
-                      )}
-                    </View>
 
-                    <Ionicons
-                      name="location-sharp"
-                      size={24}
-                      color={selectedAddress === address.id ? '#875686' : '#ccc'}
-                    />
-                  </TouchableOpacity>
+                      <View style={styles.addressInfo}>
+                        <View style={styles.addressHeader}>
+                          <Text style={styles.addressName}>{address.nombre}</Text>
+                          {address.es_principal && (
+                            <View style={styles.principalBadge}>
+                              <Text style={styles.principalBadgeText}>Principal</Text>
+                            </View>
+                          )}
+                        </View>
+                        {address.referencia && (
+                          <Text style={styles.addressReference}>{address.referencia}</Text>
+                        )}
+                      </View>
+
+                      <Ionicons
+                        name="location-sharp"
+                        size={24}
+                        color={selectedAddress === address.id ? '#875686' : '#ccc'}
+                      />
+                    </TouchableOpacity>
+
+                    {/* ✅ NUEVO: Botón editar */}
+                    <TouchableOpacity
+                      style={styles.editAddressButton}
+                      onPress={() => handleEditAddress(address)}
+                    >
+                      <Ionicons name="create-outline" size={20} color="#875686" />
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             )}

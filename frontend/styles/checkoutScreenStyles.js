@@ -162,10 +162,16 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
 
+  // ✅ NUEVO: Wrapper para address card + botón editar
+  addressCardWrapper: {
+    position: 'relative',
+  },
+
   addressCard: {
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 15,
+    paddingRight: 50, // ✅ Espacio para el botón editar
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
@@ -233,6 +239,22 @@ export const styles = StyleSheet.create({
   addressReference: {
     fontSize: 14,
     color: '#666',
+  },
+
+  // ✅ NUEVO: Botón editar dirección
+  editAddressButton: {
+    position: 'absolute',
+    right: 15,
+    top: '50%',
+    marginTop: -18, // Centrar verticalmente (36/2)
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F0F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: MAIN_PURPLE,
   },
 
   // === PRODUCTOS ===

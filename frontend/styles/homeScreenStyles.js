@@ -1,5 +1,5 @@
 // src/styles/homeScreenStyles.js
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const MAIN_PURPLE = '#875686';
 const LIGHT_BACKGROUND = '#F9F9F9';

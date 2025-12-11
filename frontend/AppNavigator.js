@@ -20,6 +20,7 @@ import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
+import AddAddressScreen from './screens/AddAddressScreen'; // ✅ NUEVO
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -185,6 +186,16 @@ const AppNavigator = () => {
           name="OrderSuccess"
           component={OrderSuccessScreen}
           options={{ headerShown: false }}
+        />
+
+        {/* ✅ NUEVA PANTALLA: Agregar/Editar Dirección */}
+        <Stack.Screen 
+          name="AddAddress"
+          component={AddAddressScreen}
+          options={{ 
+            headerShown: false,
+            presentation: 'modal' // Se presenta como modal
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
