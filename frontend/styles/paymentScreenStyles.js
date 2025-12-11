@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 30,
     paddingHorizontal: 20,
-    paddingBottom: 250, // ⬆️ AUMENTADO de 200 a 250
+    paddingBottom: -20, // ⬆️ AUMENTADO de 200 a 250
   },
 
   paymentTitle: {
@@ -176,8 +176,8 @@ export const styles = StyleSheet.create({
   },
 
   qrImage: {
-    width: 180,
-    height: 180,
+    width: 190,
+    height: 190,
     marginBottom: 20,
     resizeMode: 'contain',
     marginTop: -20,
@@ -314,8 +314,8 @@ export const styles = StyleSheet.create({
 },
 
 qrImage: {
-  width: 144,                // ⬅️ Ajusta según quieras
-  height: 144,
+  width: 166,                // ⬅️ Ajusta según quieras
+  height: 166,
   resizeMode: 'contain',
   marginRight: 10,           // ⬅️ Espacio entre imagen y texto
   marginTop: 0,              // ⬅️ quitar margenes negativos

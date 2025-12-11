@@ -22,6 +22,8 @@ import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
+import UploadProofScreen from './screens/UploadProofScreen';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -171,10 +173,17 @@ const AppNavigator = () => {
           options={{ headerShown: false }}
         />
         
-        {/* ✅ NUEVA PANTALLA: Pago */}
+        {/*  NUEVA PANTALLA: Pago */}
         <Stack.Screen
           name="Payment"
           component={PaymentScreen}
+          options={{ headerShown: false }}
+        />
+
+        {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
+        <Stack.Screen
+          name="UploadProof"
+          component={UploadProofScreen}
           options={{ headerShown: false }}
         />
         
