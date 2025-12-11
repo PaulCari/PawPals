@@ -23,7 +23,7 @@ export const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 25 : 10,
     paddingBottom: 15, // ✅ IGUAL QUE HOME
     },
-    
+
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -160,4 +160,24 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+
+  titleContainer: {
+  paddingHorizontal: 25,
+  marginBottom: 20,
+},
+
+screenTitle: {
+  fontSize: 28,          // ✅ Más grande
+  fontWeight: '800',     // ✅ Más presencia
+  color: '#732C71',
+  letterSpacing: 0.3,    // ✅ Elegante
+  marginBottom: 10,
+},
+
+countText: {
+  fontSize: 15,
+  fontWeight: '500',
+  color: '#8A8A8A',
+  marginLeft: 5,         // ✅ alineado suave con el título
+},
 });

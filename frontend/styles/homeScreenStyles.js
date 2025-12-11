@@ -43,12 +43,12 @@ export const styles = StyleSheet.create({
 
   // === TÍTULO DE BIENVENIDA ===
   welcomeTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#1c1c1c',
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#732C71',
     marginHorizontal: 25,
     marginBottom: 25,
-    lineHeight: 34,
+    lineHeight: 38,
   },
 
   // === CATEGORÍAS CON LÍNEA INFERIOR ===
@@ -88,7 +88,7 @@ export const styles = StyleSheet.create({
   // === LISTA DE PRODUCTOS ===
   productList: {
     paddingLeft: 25,
-    paddingVertical: 10,
+    paddingVertical: 0,
     paddingBottom: 30,
   },
 
@@ -148,4 +148,6 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+
+  
 });
