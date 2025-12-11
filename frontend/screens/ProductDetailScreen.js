@@ -29,24 +29,43 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const handleAddToCart = async () => {
-    if (!clienteId) {
-      Alert.alert("Error", "Debes iniciar sesión para agregar productos al carrito.");
-      return;
-    }
-    try {
-      await addToCart(clienteId, productId, quantity);
-      Alert.alert(
-        "¡Añadido!",
-        `${product.nombre} (${quantity} unid.) se agregó a tu carrito.`,
-        [
-          { text: "Ver Carrito", onPress: () => navigation.navigate('Cart', { clienteId }) },
-          { text: "Seguir Comprando", style: "cancel" }
-        ]
-      );
-    } catch (error) {
-      Alert.alert("Error", "No se pudo agregar el producto al carrito.");
-    }
-  };
+  if (!clienteId) {
+    Alert.alert('Error', 'No se pudo identificar al usuario.');
+    return;
+  }
+
+  try {
+    console.log('🛒 Agregando al carrito:', {
+      clienteId,
+      productId,
+      quantity,
+      productName: product.nombre
+    });
+    
+    await addToCart(clienteId, product, quantity);
+    
+    console.log('✅ Producto agregado al carrito exitosamente');
+    
+    Alert.alert(
+      "¡Añadido al Carrito!",
+      `${product.nombre} (${quantity} unid.) se agregó correctamente.`,
+      [
+        { 
+          text: "Ver Carrito", 
+          onPress: () => {
+            console.log('📱 Navegando a Cart con clienteId:', clienteId);
+            navigation.navigate('Cart', { clienteId });
+          }
+        },
+        { text: "Seguir Comprando", style: "cancel" }
+      ],
+      { cancelable: true }
+    );
+  } catch (error) {
+    console.error('❌ Error al agregar al carrito:', error);
+    Alert.alert('Error', 'No se pudo agregar al carrito.');
+  }
+};
   
    useEffect(() => {
     if (!clienteId) {
