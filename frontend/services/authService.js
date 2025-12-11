@@ -42,3 +42,19 @@ export const register = async (userData) => {
     throw error;
   }
 };
+
+/**
+ * Obtiene el perfil completo de un cliente.
+ * Llama al endpoint GET /cliente/id/{cliente_id}.
+ * @param {string} clienteId - ID del cliente.
+ * @returns {Promise<Object>} El perfil del cliente.
+ */
+export const getClientProfile = async (clienteId) => {
+  try {
+    const response = await api.get(`/cliente/id/${clienteId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error en el servicio getClientProfile:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};

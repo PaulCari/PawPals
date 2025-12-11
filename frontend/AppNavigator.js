@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
@@ -24,10 +25,28 @@ import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
 // import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
 
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
+
+/* ======================================================
+   Navegador Principal con Menú Lateral (Drawer)
+====================================================== */
+function DrawerNavigator({ route }) {
+  const { clienteId } = route.params;
+  return (
+    <Drawer.Navigator
+      screenOptions={{ headerShown: false }}
+    // Aquí podrías agregar un componente de menú personalizado si quieres
+    >
+      <Drawer.Screen name="AppTabs" component={MainTabs} initialParams={{ clienteId }} />
+      {/* Puedes agregar más ítems al menú aquí si quieres */}
+    </Drawer.Navigator>
+  );
+}
 
 /* ======================================================
    Stack para Home → Detalle de Producto
@@ -163,17 +182,17 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
-        
+
         {/* App principal con Tabs */}
-        <Stack.Screen name="Main" component={MainTabs} />
-        
+        <Stack.Screen name="Main" component={DrawerNavigator} />
+
         {/* Flujo de compra */}
         <Stack.Screen
           name="Checkout"
           component={CheckoutScreen}
           options={{ headerShown: false }}
         />
-        
+
         {/*  NUEVA PANTALLA: Pago */}
         <Stack.Screen
           name="Payment"
@@ -187,13 +206,13 @@ const AppNavigator = () => {
           component={UploadProofScreen}
           options={{ headerShown: false }}
         /> */}
-        
+
         <Stack.Screen
           name="OrderSuccess"
           component={OrderSuccessScreen}
           options={{ headerShown: false }}
         />
-        
+
         {/* Agregar/Editar Dirección */}
         <Stack.Screen
           name="AddAddress"
@@ -215,6 +234,9 @@ const AppNavigator = () => {
         />
         {/* ------------------------------------------- */}
       </Stack.Navigator>
+
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      
     </NavigationContainer>
   );
 };

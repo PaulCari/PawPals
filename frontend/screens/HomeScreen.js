@@ -84,7 +84,7 @@ const HomeScreen = ({ navigation, route }) => {
 
       {/* 🔹 HEADER MORADO */}
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.openDrawer()}> {/*aea*/ }
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
 

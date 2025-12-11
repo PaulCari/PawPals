@@ -67,8 +67,10 @@ backend/seed_data.py
 backend/static/imagenes/bebidas/Bebida1.png
 backend/static/imagenes/bebidas/Bebida2.png
 backend/static/imagenes/bebidas/Bebida3.png
-backend/static/imagenes/cliente/default.png
-backend/static/imagenes/cliente/default2.png
+backend/static/imagenes/cliente/gato.png
+backend/static/imagenes/cliente/perro.png
+backend/static/imagenes/cliente/user.png
+backend/static/imagenes/cliente/user2.png
 backend/static/imagenes/plato/barf_pato_gato.png
 backend/static/imagenes/plato/barf_pollo.png
 backend/static/imagenes/plato/barf_ternera.png
@@ -110,15 +112,18 @@ frontend/assets/ellipse.png
 frontend/assets/favicon.png
 frontend/assets/fondo.jpg
 frontend/assets/FONDOA.png
+frontend/assets/gato.png
 frontend/assets/icon.png
 frontend/assets/logo_amarillo.png
 frontend/assets/logo.png
 frontend/assets/mixto1.png
 frontend/assets/mixto2.png
 frontend/assets/paw.png
+frontend/assets/perro.png
 frontend/assets/placeholder.png
 frontend/assets/qr/imagen1.png
 frontend/assets/qr/imagen2.png
+frontend/assets/user.png
 frontend/components/AuthContainer.js
 frontend/components/CartBadge.js
 frontend/components/ProductCard.js
@@ -140,6 +145,7 @@ frontend/screens/RegisterScreen.js
 frontend/screens/SplashScreen.js
 frontend/screens/SuccessScreen.js
 frontend/screens/UploadProofScreen.js
+frontend/screens/UserProfileScreen.js
 frontend/screens/WelcomeScreen.js
 frontend/services/addressService.js
 frontend/services/api.js
@@ -164,6 +170,7 @@ frontend/styles/productDetailScreenStyles.js
 frontend/styles/registerScreenStyles.js
 frontend/styles/splashScreenStyles.js
 frontend/styles/successScreenStyles.js
+frontend/styles/userProfileScreenStyles.js
 frontend/styles/welcomeScreenStyles.js
 package.json
 README.md
@@ -5021,6 +5028,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
@@ -5037,12 +5045,30 @@ import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
-import UploadProofScreen from './screens/UploadProofScreen';
+// import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
 
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
+
+/* ======================================================
+   Navegador Principal con Menú Lateral (Drawer)
+====================================================== */
+function DrawerNavigator({ route }) {
+  const { clienteId } = route.params;
+  return (
+    <Drawer.Navigator
+      screenOptions={{ headerShown: false }}
+    // Aquí podrías agregar un componente de menú personalizado si quieres
+    >
+      <Drawer.Screen name="AppTabs" component={MainTabs} initialParams={{ clienteId }} />
+      {/* Puedes agregar más ítems al menú aquí si quieres */}
+    </Drawer.Navigator>
+  );
+}
 
 /* ======================================================
    Stack para Home → Detalle de Producto
@@ -5178,17 +5204,17 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
-        
+
         {/* App principal con Tabs */}
-        <Stack.Screen name="Main" component={MainTabs} />
-        
+        <Stack.Screen name="Main" component={DrawerNavigator} />
+
         {/* Flujo de compra */}
         <Stack.Screen
           name="Checkout"
           component={CheckoutScreen}
           options={{ headerShown: false }}
         />
-        
+
         {/*  NUEVA PANTALLA: Pago */}
         <Stack.Screen
           name="Payment"
@@ -5197,18 +5223,18 @@ const AppNavigator = () => {
         />
 
         {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
-        <Stack.Screen
+        {/* <Stack.Screen // <--- BORRA O COMENTA ESTE BLOQUE
           name="UploadProof"
           component={UploadProofScreen}
           options={{ headerShown: false }}
-        />
-        
+        /> */}
+
         <Stack.Screen
           name="OrderSuccess"
           component={OrderSuccessScreen}
           options={{ headerShown: false }}
         />
-        
+
         {/* Agregar/Editar Dirección */}
         <Stack.Screen
           name="AddAddress"
@@ -5230,6 +5256,9 @@ const AppNavigator = () => {
         />
         {/* ------------------------------------------- */}
       </Stack.Navigator>
+
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      
     </NavigationContainer>
   );
 };
@@ -5478,6 +5507,7 @@ registerRootComponent(App);
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-picker/picker": "^2.11.4",
     "@react-navigation/bottom-tabs": "^7.8.12",
+    "@react-navigation/drawer": "^7.7.9",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.8",
     "axios": "^1.13.2",
@@ -5489,6 +5519,8 @@ registerRootComponent(App);
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
+    "react-native-gesture-handler": "^2.29.1",
+    "react-native-reanimated": "^4.2.0",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.0"
@@ -6935,7 +6967,7 @@ const HomeScreen = ({ navigation, route }) => {
 
       {/* 🔹 HEADER MORADO */}
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.openDrawer()}> {/*aea*/ }
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
 
@@ -7387,116 +7419,193 @@ export default PaymentScreen;
 </file>
 
 <file path="frontend/screens/PetProfileScreen.js">
-import React, { useEffect, useState } from 'react';
+// frontend/screens/PetProfileScreen.js
+
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  SafeAreaView,
   Image,
+  TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
+  Alert,
+  ImageBackground
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { getMascotasByCliente } from '../services/petService';
-import Header from '../components/Header';
-import { styles } from '../styles/petProfileStyles';
+import { useFocusEffect } from '@react-navigation/native';
 
-const PetProfileScreen = ({ route }) => {
-  const navigation = useNavigation();
-  const { clienteId } = route.params;
+import { getPetsByCliente } from '../services/petService';
+import { styles, MAIN_PURPLE } from '../styles/petProfileScreenStyles';
 
-  const [mascotas, setMascotas] = useState([]);
+const PetProfileScreen = ({ navigation, route }) => {
+  const { clienteId } = route.params || {};
+
+  const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar mascotas del cliente
-  useEffect(() => {
-    const loadPets = async () => {
-      try {
-        const response = await getMascotasByCliente(clienteId);
-        setMascotas(response);
-      } catch (error) {
-        console.error('❌ Error cargando mascotas:', error);
-        Alert.alert('Error', 'No se pudieron cargar las mascotas.');
-      }
+  const loadPets = async () => {
+    if (!clienteId) {
+      Alert.alert('Error', 'No se pudo identificar al usuario.');
       setLoading(false);
-    };
-
-    loadPets();
-  }, []);
-
-  // Selección de mascota
-  const handleSelectPet = (pet) => {
-    setSelectedPet(pet);
+      return;
+    }
+    
+    try {
+      console.log(`🐾 Cargando mascotas para el cliente: ${clienteId}`);
+      const response = await getPetsByCliente(clienteId);
+      
+      if (response && response.mascotas) {
+        setPets(response.mascotas);
+        if (response.mascotas.length > 0) {
+          setSelectedPet(response.mascotas[0]);
+        } else {
+          setSelectedPet(null);
+        }
+      } else {
+        setPets([]);
+        setSelectedPet(null);
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar mascotas:', error);
+      Alert.alert('Error', 'No se pudieron cargar los perfiles de las mascotas.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNavigateToAddPet = () => {
-    navigation.navigate('AddPet', { clienteId });
-  };
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadPets();
+    }, [clienteId])
+  );
+
+  const renderPetSelector = () => (
+    <View style={styles.petSelectorContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {pets.map(pet => (
+          <TouchableOpacity 
+            key={pet.id} 
+            style={styles.petSelectorItem}
+            onPress={() => setSelectedPet(pet)}
+          >
+            <View style={[
+              styles.petImageWrapper,
+              selectedPet?.id === pet.id && styles.petImageWrapperSelected
+            ]}>
+              <Image 
+                source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')} 
+                style={styles.petImage} 
+              />
+            </View>
+            <Text style={[
+              styles.petSelectorName,
+              selectedPet?.id === pet.id && styles.petSelectorNameSelected
+            ]}>
+              {pet.nombre}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity style={styles.petSelectorItem} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+            <View style={styles.petImageWrapper}>
+                <Ionicons name="add" size={30} color="#CCC" />
+            </View>
+            <Text style={styles.petSelectorName}>Agregar</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="paw-outline" size={100} color="#ccc" />
+      <Text style={styles.emptyTitle}>Aún no tienes mascotas</Text>
+      <Text style={styles.emptySubtitle}>
+        Registra a tu primer compañero para ver su perfil aquí.
+      </Text>
+      <TouchableOpacity 
+        style={styles.addButton} 
+        onPress={() => navigation.navigate('AddPet', { clienteId })}
+      >
+        <Ionicons name="add-circle" size={24} color="white" />
+        <Text style={styles.addButtonText}>Agregar Mascota</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderPetDetails = () => (
+    <ScrollView>
+      <View style={styles.detailCard}>
+        <Image 
+          source={selectedPet.foto ? { uri: selectedPet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')}
+          style={styles.mainPetImage}
+        />
+        <Text style={styles.petName}>{selectedPet.nombre}</Text>
+        <View style={styles.detailGrid}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Especie</Text>
+            <Text style={styles.detailValue}>{selectedPet.especie || 'N/A'}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Raza</Text>
+            <Text style={styles.detailValue}>{selectedPet.raza || 'N/A'}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Edad</Text>
+            <Text style={styles.detailValue}>{selectedPet.edad} años</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Peso</Text>
+            <Text style={styles.detailValue}>{selectedPet.peso ? `${selectedPet.peso} kg` : 'N/A'}</Text>
+          </View>
+        </View>
+        <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.editButton}>
+                <Ionicons name="create-outline" size={20} color="white" />
+                <Text style={styles.buttonText}>Editar Perfil</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </ScrollView>
+  );
 
   return (
-    <View style={styles.container}>
-      <Header title="Mis Mascotas" />
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Cargando mascotas...</Text>
-        </View>
-      ) : (
-        <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.petSelector}>
-            
-            {/* Mostrar lista de mascotas */}
-            {mascotas.map((pet) => (
-              <TouchableOpacity
-                key={pet.id}
-                style={styles.petSelectorItem}
-                onPress={() => handleSelectPet(pet)}
-              >
-                <View style={styles.petImageWrapper}>
-                  <Image
-                    source={{ uri: pet.foto }}
-                    style={styles.petImage}
-                  />
-                </View>
-                <Text style={styles.petSelectorName}>{pet.nombre}</Text>
-              </TouchableOpacity>
-            ))}
-
-            {/* BOTÓN PARA AGREGAR NUEVAS MASCOTAS (CORREGIDO) */}
-            <TouchableOpacity
-              style={styles.petSelectorItem}
-              onPress={handleNavigateToAddPet}
-            >
-              <View style={styles.petImageWrapper}>
-                <Ionicons name="add" size={30} color="#CCC" />
-              </View>
-              <Text style={styles.petSelectorName}>Agregar</Text>
-            </TouchableOpacity>
-
-          </ScrollView>
-
-          {/* Información de la mascota seleccionada */}
-          {selectedPet ? (
-            <View style={styles.petDetails}>
-              <Text style={styles.petName}>{selectedPet.nombre}</Text>
-              <Text style={styles.petInfo}>Edad: {selectedPet.edad} años</Text>
-              <Text style={styles.petInfo}>Raza: {selectedPet.raza}</Text>
-              <Text style={styles.petInfo}>Peso: {selectedPet.peso} kg</Text>
-            </View>
-          ) : (
-            <View style={styles.noSelection}>
-              <Text style={styles.noSelectionText}>
-                Selecciona una mascota para ver su información
-              </Text>
-            </View>
-          )}
-        </>
-      )}
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      <View style={styles.header}>
+        <TouchableOpacity>
+          <Ionicons name="menu" size={30} color="white" />
+        </TouchableOpacity>
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
+          <Ionicons name="cart-outline" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.container}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={MAIN_PURPLE} />
+          </View>
+        ) : pets.length > 0 ? (
+          <View style={styles.profileContainer}>
+            {renderPetSelector()}
+            {selectedPet && renderPetDetails()}
+          </View>
+        ) : (
+          renderEmptyState()
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -8397,6 +8506,165 @@ const UploadProofScreen = ({ navigation, route }) => {
 export default UploadProofScreen;
 </file>
 
+<file path="frontend/screens/UserProfileScreen.js">
+// frontend/screens/UserProfileScreen.js
+
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  ImageBackground,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+
+import { getClientProfile } from '../services/authService'; // Necesitaremos esta nueva función
+import { getPetsByCliente } from '../services/petService';
+import { styles } from '../styles/userProfileScreenStyles';
+
+// Imágenes por defecto locales
+const defaultUserImage = require('../assets/user.png');
+const defaultDogImage = require('../assets/perro.png');
+const defaultCatImage = require('../assets/gato.png');
+
+const UserProfileScreen = ({ navigation, route }) => {
+  const { clienteId } = route.params;
+
+  const [profile, setProfile] = useState(null);
+  const [pets, setPets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    if (!clienteId) {
+      Alert.alert('Error', 'No se pudo identificar al usuario.');
+      setLoading(false);
+      return;
+    }
+    try {
+      // Cargar perfil y mascotas en paralelo
+      const [profileData, petsResponse] = await Promise.all([
+        getClientProfile(clienteId),
+        getPetsByCliente(clienteId)
+      ]);
+      setProfile(profileData);
+      setPets(petsResponse.mascotas || []);
+    } catch (error) {
+      console.error('❌ Error al cargar datos del perfil:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadData();
+    }, [clienteId])
+  );
+
+  const getPetDefaultImage = (especie) => {
+    if (especie.toLowerCase().includes('perro')) return defaultDogImage;
+    if (especie.toLowerCase().includes('gato')) return defaultCatImage;
+    return defaultUserImage; // Una imagen genérica si no es perro o gato
+  };
+  
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFF" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+          <Ionicons name="menu" size={30} color="white" />
+        </TouchableOpacity>
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
+          <Ionicons name="cart-outline" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollView}>
+          {/* SECCIÓN DEL PERFIL DE USUARIO */}
+          <View style={styles.profileHeader}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Tu perfil</Text>
+            </View>
+
+            <View style={styles.profileSection}>
+              <Image 
+                source={profile?.foto ? { uri: profile.foto.replace('static/', 'http://localhost:8000/static/') } : defaultUserImage}
+                style={styles.profilePic} 
+              />
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
+                <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
+                <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
+                <TouchableOpacity style={styles.editButton}>
+                  <Text style={styles.editButtonText}>Editar perfil</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* SECCIÓN DE MASCOTAS */}
+          <View style={styles.petsSection}>
+            <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
+            <View style={styles.petsList}>
+              {pets.map(pet => (
+                <TouchableOpacity key={pet.id} style={styles.petCard} onPress={() => navigation.navigate('PetProfile', { clienteId })}>
+                  <Image 
+                    source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : getPetDefaultImage(pet.especie)}
+                    style={styles.petImage}
+                  />
+                  <Text style={styles.petName}>{pet.nombre}</Text>
+                  <Text style={styles.petInfo}>{pet.raza}</Text>
+                  <Text style={styles.petInfo}>{pet.edad} años</Text>
+                  <Text style={styles.petDetails}>Peso: {pet.peso || 'N/A'} Kg. Alergias: Pollo</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+                <View style={styles.addPetCircle}>
+                  <Ionicons name="add" size={30} color="white" />
+                </View>
+                <Text style={styles.addPetText}>Agregar nueva mascota</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default UserProfileScreen;
+</file>
+
 <file path="frontend/screens/WelcomeScreen.js">
 import React from 'react';
 // StyleSheet ya no se importa aquí
@@ -8641,6 +8909,22 @@ export const register = async (userData) => {
     return response.data;
   } catch (error) {
     console.error('Error en el servicio de registro:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene el perfil completo de un cliente.
+ * Llama al endpoint GET /cliente/id/{cliente_id}.
+ * @param {string} clienteId - ID del cliente.
+ * @returns {Promise<Object>} El perfil del cliente.
+ */
+export const getClientProfile = async (clienteId) => {
+  try {
+    const response = await api.get(`/cliente/id/${clienteId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error en el servicio getClientProfile:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
@@ -11301,7 +11585,7 @@ qrInstructions: {
 
 import { StyleSheet, Platform } from 'react-native';
 
-const MAIN_PURPLE = '#875686';
+export const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
 const LIGHT_BACKGROUND = '#F9F9F9';
@@ -12263,6 +12547,203 @@ export const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+});
+</file>
+
+<file path="frontend/styles/userProfileScreenStyles.js">
+// frontend/styles/userProfileScreenStyles.js
+import { StyleSheet, Platform } from 'react-native';
+
+const MAIN_PURPLE = '#875686';
+const SECOND_PURPLE = '#732C71';
+const YELLOW = '#FFD100';
+const LIGHT_BACKGROUND = '#F9F9F9';
+
+export const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: MAIN_PURPLE,
+  },
+  backgroundImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingBottom: 15,
+  },
+  logo: {
+    width: 120,
+    height: 60,
+    resizeMode: 'contain',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: LIGHT_BACKGROUND,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    paddingBottom: 40,
+  },
+
+  // --- Profile Header ---
+  profileHeader: {
+    paddingHorizontal: 25,
+    paddingTop: 20,
+    paddingBottom: 30,
+    alignItems: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: SECOND_PURPLE,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 20,
+  },
+  profilePic: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: 'white',
+    marginBottom: 10,
+  },
+  profileInfo: {
+    marginLeft: 20,
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+  profileContact: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  editButton: {
+    backgroundColor: YELLOW,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  editButtonText: {
+    color: SECOND_PURPLE,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  // --- Mascotas Section ---
+  petsSection: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  petsSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+  },
+  petsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+  },
+  petCard: {
+    backgroundColor: LIGHT_BACKGROUND,
+    borderRadius: 15,
+    padding: 15,
+    width: '48%', // Aprox para 2 por fila
+    alignItems: 'center',
+  },
+  petImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
+  },
+  petName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  petInfo: {
+    fontSize: 13,
+    color: '#777',
+  },
+  petDetails: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    paddingTop: 8,
+    textAlign: 'center',
+  },
+  addPetCard: {
+    backgroundColor: 'transparent',
+    borderRadius: 15,
+    width: '48%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#DDD',
+    paddingVertical: 30, // Ajusta para que tenga altura similar
+  },
+  addPetCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: SECOND_PURPLE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  addPetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: SECOND_PURPLE,
+    textAlign: 'center'
   },
 });
 </file>
