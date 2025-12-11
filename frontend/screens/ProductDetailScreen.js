@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/productDetailScreenStyles';
 import { getProductById } from '../services/productService';
 import { addFavorite, removeFavorite, checkFavorite } from '../services/favoriteService';
+import { addToCart } from '../services/cartService';
 
 const ProductDetailScreen = ({ route, navigation }) => {
   const { productId, clienteId } = route.params;
@@ -27,6 +28,26 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
+  const handleAddToCart = async () => {
+    if (!clienteId) {
+      Alert.alert("Error", "Debes iniciar sesión para agregar productos al carrito.");
+      return;
+    }
+    try {
+      await addToCart(clienteId, productId, quantity);
+      Alert.alert(
+        "¡Añadido!",
+        `${product.nombre} (${quantity} unid.) se agregó a tu carrito.`,
+        [
+          { text: "Ver Carrito", onPress: () => navigation.navigate('Cart', { clienteId }) },
+          { text: "Seguir Comprando", style: "cancel" }
+        ]
+      );
+    } catch (error) {
+      Alert.alert("Error", "No se pudo agregar el producto al carrito.");
+    }
+  };
+  
    useEffect(() => {
     if (!clienteId) {
       console.error('❌ No se recibió cliente_id en ProductDetailScreen');
@@ -94,21 +115,6 @@ const ProductDetailScreen = ({ route, navigation }) => {
     } finally {
       setFavoriteLoading(false);
     }
-  };
-
-  const handleAddToCart = () => {
-    console.log(`Agregando ${quantity} unidades del producto ${productId} al carrito`);
-    
-    // 👈 AÑADIDO: Ventana emergente de confirmación
-    Alert.alert(
-      "¡Añadido al Carrito!",
-      `${product.nombre} (${quantity} unid.) se agregó correctamente.`,
-      [
-        { text: "Ver Carrito", onPress: () => setActiveTab('cart') },
-        { text: "Seguir Comprando", style: "cancel" }
-      ],
-      { cancelable: true }
-    );
   };
 
   // Loading

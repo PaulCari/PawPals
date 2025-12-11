@@ -21,6 +21,7 @@ from routers.cliente import (
     platos_mascotas,
     subscripciones as cliente_subscripciones,
     favoritos,
+    carrito as cliente_carrito,
 )
 
 # Routers admin
@@ -67,6 +68,7 @@ app.include_router(admin_pedidos.router)
 app.include_router(admin_platos.router)
 app.include_router(admin_repartidores.router)
 app.include_router(admin_subscripciones.router)
+app.include_router(cliente_carrito.router)
 
 @app.get("/")
 def root():

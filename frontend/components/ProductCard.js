@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../styles/productCardStyles';
+import { addToCart } from '../services/cartService';
 
 const ProductCard = ({ item, clienteId }) => {
   const navigation = useNavigation();
@@ -16,6 +17,20 @@ const ProductCard = ({ item, clienteId }) => {
       productId: item.id,
       clienteId 
     });
+
+    const handleAddToCart = async (e) => {
+    e.stopPropagation(); // Evita que se active la navegación al detalle
+    if (!clienteId) {
+      alert("Inicia sesión para agregar al carrito.");
+      return;
+    }
+    try {
+      await addToCart(clienteId, item.id, 1);
+      alert(`${item.nombre} fue agregado al carrito.`);
+    } catch (error) {
+      alert("Error al agregar al carrito.");
+    }
+  };
   };
 
   return (
