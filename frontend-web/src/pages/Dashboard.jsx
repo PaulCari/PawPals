@@ -117,8 +117,10 @@ const Dashboard = () => {
                         </p>
                       </div>
                     </div>
-                    <button className="px-4 py-1.5 bg-paw-dark text-white text-xs font-medium rounded-lg hover:bg-paw-purple transition">
-                      Revisar
+                    <button onClick={() => navigate(`/solicitudes/${item.id}`)} // <--- AQUI LA MAGIA
+                        className="px-4 py-1.5 bg-paw-dark text-white text-xs font-medium rounded-lg hover:bg-paw-purple transition"
+                        >
+                        Revisar
                     </button>
                   </div>
                 ))}

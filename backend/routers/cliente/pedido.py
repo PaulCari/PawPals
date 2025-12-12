@@ -261,6 +261,7 @@ def crear_pedido_especializado(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    print(f"DEBUG: Buscando mascota {registro_mascota_id} para cliente {cliente_id}")
     mascota = (
         db.query(RegistroMascota)
         .options(joinedload(RegistroMascota.especie))

@@ -3,9 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Pacientes from './pages/Pacientes';
+import PacienteDetalle from './pages/PacienteDetalle';
 
 // 👇 IMPORTAMOS EL DASHBOARD REAL (El del diseño bonito)
 import Dashboard from './pages/Dashboard'; 
+import SolicitudDetalle from './pages/SolicitudDetalle';
 
 // Componente para proteger rutas (esto se queda igual)
 const ProtectedRoute = ({ children }) => {
@@ -25,6 +28,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/solicitudes/:id" element={<ProtectedRoute><SolicitudDetalle /></ProtectedRoute>} /> {}
+        <Route path="/pacientes" element={<ProtectedRoute><Pacientes /></ProtectedRoute>} />
+        <Route path="/pacientes/:id" element={<ProtectedRoute><PacienteDetalle /></ProtectedRoute>} />
         
         <Route 
           path="/" 

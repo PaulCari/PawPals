@@ -95,12 +95,37 @@ backend/static/imagenes/plato/imagen8.png
 backend/static/imagenes/plato/imagen9.png
 backend/static/imagenes/qr/imagen1.png
 backend/static/imagenes/qr/imagen2.png
+backend/static/uploads/pedido_especializado/extra_123642442968264686_perro.png
+backend/static/uploads/pedido_especializado/extra_5909835030759986472_perro.png
+backend/static/uploads/pedido_especializado/receta_123642442968264686_gato.png
+backend/static/uploads/pedido_especializado/receta_5909835030759986472_gato.png
 backend/utils/__init__.py
 backend/utils/db.py
 backend/utils/globals.py
 backend/utils/keygen.py
 backend/utils/security.py
 backend/utils/token_manager.py
+frontend-web/.gitignore
+frontend-web/eslint.config.js
+frontend-web/index.html
+frontend-web/package.json
+frontend-web/postcss.config.js
+frontend-web/public/vite.svg
+frontend-web/README.md
+frontend-web/src/App.css
+frontend-web/src/App.jsx
+frontend-web/src/assets/react.svg
+frontend-web/src/components/Layout.jsx
+frontend-web/src/context/AuthContext.jsx
+frontend-web/src/index.css
+frontend-web/src/main.jsx
+frontend-web/src/pages/Dashboard.jsx
+frontend-web/src/pages/Login.jsx
+frontend-web/src/pages/Register.jsx
+frontend-web/src/pages/SolicitudDetalle.jsx
+frontend-web/src/services/api.js
+frontend-web/tailwind.config.js
+frontend-web/vite.config.js
 frontend/App.js
 frontend/app.json
 frontend/AppNavigator.js
@@ -1932,8 +1957,16 @@ from pydantic import BaseModel
 from utils import keygen, security, token_manager
 from models import CuentaUsuario, Cliente, UsuarioRol, Rol
 from datetime import datetime
+from models import Nutricionista
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+class RegisterNutriRequest(BaseModel):
+    nombre: str
+    correo: str
+    contrasena: str
+    telefono: str
+    especialidad: str
+    colegio_veterinario: str
 
 class RegisterRequest(BaseModel):
     nombre: str
@@ -2095,6 +2128,71 @@ def login_user(data: LoginRequest, db: Session = Depends(get_db)):
             "cliente_id": cliente_id, 
         },
     }
+@router.post("/register/nutricionista")
+def register_nutricionista(data: RegisterNutriRequest, db: Session = Depends(get_db)):
+    """
+    Registra un nuevo NUTRICIONISTA (Rol 3) desde la web.
+    """
+    print(f"Registrando Nutricionista: {data.correo}")
+
+    # Verificar si existe
+    existe = db.query(CuentaUsuario).filter(CuentaUsuario.correo_electronico == data.correo).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+
+    try:
+        user_id = keygen.generate_uint64_key()
+        hashed_pass = security.get_password_hash(data.contrasena)
+
+        # 1. Cuenta Usuario
+        nueva_cuenta = CuentaUsuario(
+            id=user_id,
+            correo_electronico=data.correo,
+            nombre_usuario=data.nombre,
+            contrasena=hashed_pass,
+            estado_registro="A",
+            ultimo_acceso=datetime.now()
+        )
+        db.add(nueva_cuenta)
+
+        # 2. Rol Nutricionista (ID 3)
+        db.add(UsuarioRol(
+            id=keygen.generate_uint64_key(),
+            cuenta_usuario_id=user_id,
+            rol_id=3, # 3 = Nutricionista
+            estado_registro="A"
+        ))
+
+        # 3. Perfil Nutricionista
+        nuevo_perfil = Nutricionista(
+            id=keygen.generate_uint64_key(),
+            cuenta_usuario_id=user_id,
+            nombre=data.nombre,
+            telefono=data.telefono,
+            especialidad=data.especialidad,
+            colegio_veterinario=data.colegio_veterinario,
+            estado_registro="A"
+        )
+        db.add(nuevo_perfil)
+
+        db.commit()
+        
+        # Generar token para autologin
+        token = token_manager.generar_token(user_id, 3)
+
+        return {
+            "mensaje": "Nutricionista registrado exitosamente.",
+            "token": token,
+            "usuario": {
+                "nombre": data.nombre,
+                "rol_id": 3
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error: {e}")
+        raise HTTPException(status_code=500, detail="Error al registrar nutricionista.")
 
 # ---------------------------------------------------------------------------
 # POST /auth/logout
@@ -3730,6 +3828,7 @@ def crear_pedido_especializado(
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    print(f"DEBUG: Buscando mascota {registro_mascota_id} para cliente {cliente_id}")
     mascota = (
         db.query(RegistroMascota)
         .options(joinedload(RegistroMascota.especie))
@@ -4393,99 +4492,369 @@ def cancelar_subscripcion(cliente_id: str):
 """
 RUTAS DEL NUTRICIONISTA – REVISIÓN Y APROBACIÓN DE PEDIDOS
 ------------------------------------------------------------
-Permite al nutricionista revisar, aprobar o sugerir modificaciones en
-pedidos especializados de los clientes.
-
-Incluye:
-- Consulta de pedidos especializados pendientes de revisión
-- Revisión de recetas médicas y archivos adjuntos
-- Aprobación o rechazo de pedidos especializados
-- Creación de platos personalizados para mascotas específicas
-- Registro de observaciones y recomendaciones
-
-Notas:
-- IDs en formato `str` (por BIGINT).
-- Las claves nuevas (por ejemplo, de platos creados) se generan con
-  utils.keygen.generate_uint64_key().
-- Los platos creados por nutricionista se guardan con:
-  creado_nutricionista = 1 y publicado = 0 (por defecto).
+Implementación completa de la lógica de negocio para nutricionistas.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
+from sqlalchemy.orm import Session, joinedload
 from utils import keygen, globals
+from utils.db import get_db
+from models import (
+    PedidoEspecializado, Pedido, Cliente, RegistroMascota, 
+    AlergiaMascota, CondicionSalud, PreferenciaAlimentaria, 
+    DescripcionAlergias, RecetaMedica, Consulta, Nutricionista,
+    PlatoCombinado, PlatoPersonal, Especie
+)
+from pydantic import BaseModel
+from datetime import datetime
+import os
 
 router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
 
+# --- Esquemas de Validación (Pydantic) ---
+class RevisionSchema(BaseModel):
+    observaciones: str
+    recomendaciones: str
+    aprobado: bool
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes
 # ---------------------------------------------------------------------------
-# Lista los pedidos especializados pendientes de revisión.
-# Muestra información de la mascota, cliente, objetivo de dieta y fecha de solicitud.
 @router.get("/pedidos/pendientes")
-def listar_pedidos_pendientes():
-    pass
+def listar_pedidos_pendientes(db: Session = Depends(get_db)):
+    """
+    Lista todos los pedidos especializados que requieren atención.
+    Filtra pedidos activos cuyo estado en la tabla Pedido sea 'pendiente'.
+    """
+    pedidos = (
+        db.query(PedidoEspecializado)
+        .join(Pedido)
+        .options(
+            joinedload(PedidoEspecializado.pedido).joinedload(Pedido.cliente),
+            joinedload(PedidoEspecializado.registro_mascota).joinedload(RegistroMascota.especie),
+        )
+        .filter(PedidoEspecializado.estado_registro == "A")
+        .filter(Pedido.estado == "pendiente") 
+        .order_by(Pedido.fecha.desc())
+        .all()
+    )
+
+    resultado = []
+    for p in pedidos:
+        cliente = p.pedido.cliente
+        mascota = p.registro_mascota
+        
+        resultado.append({
+            "id": str(p.id), # ID de la solicitud (PedidoEspecializado)
+            "pedido_id": str(p.pedido_id),
+            "fecha": p.pedido.fecha.isoformat(),
+            "cliente": {
+                "nombre": cliente.nombre if cliente else "Desconocido",
+                "telefono": cliente.telefono if cliente else "",
+                "foto": cliente.foto
+            },
+            "mascota": {
+                "nombre": mascota.nombre if mascota else "Desconocido",
+                "especie": mascota.especie.nombre if mascota and mascota.especie else "",
+                "raza": mascota.raza if mascota else "",
+                "foto": mascota.foto
+            },
+            "objetivo": p.objetivo_dieta,
+            "frecuencia": p.frecuencia_cantidad,
+            "consulta_requerida": bool(p.consulta_nutricionista)
+        })
+
+    return {"total": len(resultado), "solicitudes": resultado}
 
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/{pedido_id}
 # ---------------------------------------------------------------------------
-# Devuelve los detalles de un pedido especializado específico:
-# mascota, archivos adjuntos, receta médica, y observaciones previas.
 @router.get("/pedidos/{pedido_id}")
-def obtener_detalle_pedido_especializado(pedido_id: str):
-    pass
+def obtener_detalle_pedido_especializado(pedido_id: str, db: Session = Depends(get_db)):
+    """
+    Devuelve el expediente clínico completo de la mascota vinculada a la solicitud.
+    Recibe el ID de la tabla `pedido_especializado`.
+    """
+    # 1. Buscar la solicitud especializada
+    pedido_esp = (
+        db.query(PedidoEspecializado)
+        .options(
+            joinedload(PedidoEspecializado.pedido).joinedload(Pedido.cliente),
+            joinedload(PedidoEspecializado.registro_mascota).joinedload(RegistroMascota.especie),
+            joinedload(PedidoEspecializado.receta_medica),
+        )
+        .filter(PedidoEspecializado.id == pedido_id)
+        .first()
+    )
+
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+
+    mascota = pedido_esp.registro_mascota
+    pedido = pedido_esp.pedido
+
+    # 2. Cargar historial clínico detallado de la mascota
+    alergias = db.query(AlergiaMascota).options(joinedload(AlergiaMascota.alergia_especie)).filter(AlergiaMascota.registro_mascota_id == mascota.id).all()
+    condiciones = db.query(CondicionSalud).filter(CondicionSalud.registro_mascota_id == mascota.id).all()
+    preferencias = db.query(PreferenciaAlimentaria).filter(PreferenciaAlimentaria.registro_mascota_id == mascota.id).all()
+    desc_alergias = db.query(DescripcionAlergias).filter(DescripcionAlergias.registro_mascota_id == mascota.id).order_by(DescripcionAlergias.fecha.desc()).first()
+
+    # 3. Construir respuesta estructurada
+    return {
+        "id": str(pedido_esp.id),
+        "pedido": {
+            "id": str(pedido.id),
+            "fecha": pedido.fecha.isoformat(),
+            "estado": pedido.estado,
+            "cliente": {
+                "id": str(pedido.cliente.id),
+                "nombre": pedido.cliente.nombre,
+                "telefono": pedido.cliente.telefono,
+            }
+        },
+        "pedido_especializado": {
+            "objetivo_dieta": pedido_esp.objetivo_dieta,
+            "frecuencia_cantidad": pedido_esp.frecuencia_cantidad,
+            "indicaciones": pedido_esp.indicaciones_adicionales,
+            "archivo_adicional": pedido_esp.archivo_adicional
+        },
+        "mascota": {
+            "id": str(mascota.id),
+            "nombre": mascota.nombre,
+            "especie": mascota.especie.nombre if mascota.especie else "",
+            "raza": mascota.raza,
+            "edad": mascota.edad,
+            "peso": float(mascota.peso) if mascota.peso else 0,
+            "sexo": mascota.sexo,
+            "foto": mascota.foto
+        },
+        "detalles_nutricionales": {
+            "alergias": [
+                {"id": str(a.id), "alergia": a.alergia_especie.nombre, "severidad": a.severidad} 
+                for a in alergias if a.alergia_especie
+            ],
+            "descripcion_alergias": desc_alergias.descripcion if desc_alergias else None,
+            "condiciones_salud": [c.nombre for c in condiciones],
+            "preferencias": [p.nombre for p in preferencias]
+        },
+        "archivos": {
+            "recetas": [r.archivo for r in pedido_esp.receta_medica]
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/revisar
 # ---------------------------------------------------------------------------
-# Permite al nutricionista registrar una revisión:
-# Campos: observaciones, recomendaciones, aprobado (bool).
-# Si se aprueba, se actualiza el estado del pedido especializado.
 @router.post("/pedidos/{pedido_id}/revisar")
-def revisar_pedido_especializado(pedido_id: str):
-    pass
+def revisar_pedido_especializado(
+    pedido_id: str,
+    revision: RevisionSchema,
+    db: Session = Depends(get_db)
+):
+    """
+    Guarda la revisión profesional:
+    1. Crea registro en 'Consulta'.
+    2. Actualiza el estado del pedido a 'atendido' (si se aprueba) u 'observado'.
+    """
+    # Buscar solicitud
+    pedido_esp = db.query(PedidoEspecializado).filter(PedidoEspecializado.id == pedido_id).first()
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+
+    # Asignar al primer nutricionista disponible (en producción usaríamos el token del usuario logueado)
+    nutri = db.query(Nutricionista).first()
+    nutri_id = nutri.id if nutri else None
+
+    # 1. Crear Consulta Médica
+    nueva_consulta = Consulta(
+        id=keygen.generate_uint64_key(),
+        registro_mascota_id=pedido_esp.registro_mascota_id,
+        nutricionista_id=nutri_id,
+        fecha=datetime.now(),
+        observaciones=revision.observaciones,
+        recomendaciones=revision.recomendaciones,
+        estado_registro="A"
+    )
+    db.add(nueva_consulta)
+
+    # 2. Actualizar estado del pedido
+    pedido = db.query(Pedido).filter(Pedido.id == pedido_esp.pedido_id).first()
+    if pedido:
+        pedido.estado = "atendido" if revision.aprobado else "observado"
+
+    db.commit()
+
+    return {
+        "mensaje": "Revisión guardada exitosamente.",
+        "consulta_id": str(nueva_consulta.id),
+        "nuevo_estado_pedido": pedido.estado
+    }
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/receta
 # ---------------------------------------------------------------------------
-# Adjunta o actualiza una receta médica relacionada a un pedido especializado.
-# Permite subir un archivo (PDF, imagen, etc.) que se guarda en el servidor.
 @router.post("/pedidos/{pedido_id}/receta")
-def subir_receta_medica(pedido_id: str, archivo: UploadFile):
-    pass
+def subir_receta_medica(
+    pedido_id: str,
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Sube un archivo de receta médica y lo vincula al pedido especializado.
+    """
+    pedido_esp = db.query(PedidoEspecializado).filter(PedidoEspecializado.id == pedido_id).first()
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Pedido especializado no encontrado.")
+
+    # Guardar archivo
+    uploads_dir = os.path.join("static", "uploads", "recetas")
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    filename = f"receta_{pedido_id}_{archivo.filename}"
+    file_path = os.path.join(uploads_dir, filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(archivo.file.read())
+
+    # Crear registro en BD
+    nueva_receta = RecetaMedica(
+        id=keygen.generate_uint64_key(),
+        registro_mascota_id=pedido_esp.registro_mascota_id,
+        pedido_especializado_id=pedido_esp.id,
+        fecha=datetime.now(),
+        archivo=file_path,
+        estado_registro="A"
+    )
+    db.add(nueva_receta)
+    db.commit()
+
+    return {"mensaje": "Receta subida correctamente.", "archivo": file_path}
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/platos/personalizados
 # ---------------------------------------------------------------------------
-# Crea un nuevo plato personalizado asociado a una mascota específica.
-# Campos: nombre, descripcion, precio, especie_id, registro_mascota_id, imagen (opcional).
-# Estos platos no se publican globalmente.
 @router.post("/platos/personalizados")
-def crear_plato_personalizado(imagen: UploadFile = None):
-    pass
+def crear_plato_personalizado(
+    nombre: str = Form(...),
+    descripcion: str = Form(...),
+    precio: float = Form(...),
+    especie_id: str = Form(...),
+    registro_mascota_id: str = Form(..., description="ID de la mascota específica"),
+    imagen: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un plato exclusivo para una mascota.
+    """
+    # 1. Crear el plato combinado (oculto al público)
+    plato_id = keygen.generate_uint64_key()
+    
+    imagen_path = None
+    if imagen:
+        uploads_dir = os.path.join("static", "uploads", "platos_personalizados")
+        os.makedirs(uploads_dir, exist_ok=True)
+        imagen_path = os.path.join(uploads_dir, f"plato_{plato_id}_{imagen.filename}")
+        with open(imagen_path, "wb") as f:
+            f.write(imagen.file.read())
+
+    nuevo_plato = PlatoCombinado(
+        id=plato_id,
+        nombre=nombre,
+        descripcion=descripcion,
+        precio=precio,
+        especie_id=especie_id,
+        imagen=imagen_path,
+        incluye_plato=1,
+        es_crudo=1,
+        publicado=0, # Oculto en el menú general
+        creado_nutricionista=1, # Flag importante
+        estado_registro="A"
+    )
+    db.add(nuevo_plato)
+    db.flush()
+
+    # 2. Vincularlo específicamente a la mascota
+    link = PlatoPersonal(
+        id=keygen.generate_uint64_key(),
+        plato_combinado_id=plato_id,
+        registro_mascota_id=registro_mascota_id
+    )
+    db.add(link)
+    db.commit()
+
+    return {
+        "mensaje": "Plato personalizado creado.",
+        "plato_id": str(plato_id),
+        "nombre": nombre
+    }
 
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/platos/personalizados/{mascota_id}
 # ---------------------------------------------------------------------------
-# Lista los platos personalizados creados para una mascota específica.
 @router.get("/platos/personalizados/{mascota_id}")
-def listar_platos_personalizados(mascota_id: str):
-    pass
+def listar_platos_personalizados(mascota_id: str, db: Session = Depends(get_db)):
+    """
+    Lista los platos únicos creados para una mascota.
+    """
+    platos_personales = (
+        db.query(PlatoPersonal)
+        .options(joinedload(PlatoPersonal.plato_combinado))
+        .filter(PlatoPersonal.registro_mascota_id == mascota_id)
+        .all()
+    )
+
+    resultado = []
+    for pp in platos_personales:
+        plato = pp.plato_combinado
+        resultado.append({
+            "id": str(plato.id),
+            "nombre": plato.nombre,
+            "descripcion": plato.descripcion,
+            "precio": float(plato.precio),
+            "imagen": plato.imagen
+        })
+
+    return {"total": len(resultado), "platos": resultado}
 
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/historial
 # ---------------------------------------------------------------------------
-# Devuelve el historial de pedidos revisados por el nutricionista.
-# Incluye fecha, mascota, cliente y resultado (aprobado/rechazado).
 @router.get("/historial")
-def listar_historial_revisiones():
-    pass
+def listar_historial_revisiones(db: Session = Depends(get_db)):
+    """
+    Lista el historial de consultas realizadas por los nutricionistas.
+    """
+    consultas = (
+        db.query(Consulta)
+        .options(
+            joinedload(Consulta.registro_mascota).joinedload(RegistroMascota.cliente),
+            joinedload(Consulta.nutricionista)
+        )
+        .order_by(Consulta.fecha.desc())
+        .all()
+    )
+
+    resultado = []
+    for c in consultas:
+        mascota = c.registro_mascota
+        cliente = mascota.cliente if mascota else None
+        
+        resultado.append({
+            "consulta_id": str(c.id),
+            "fecha": c.fecha.isoformat(),
+            "mascota": mascota.nombre if mascota else "Desconocido",
+            "cliente": cliente.nombre if cliente else "Desconocido",
+            "observaciones": c.observaciones,
+            "nutricionista": c.nutricionista.nombre if c.nutricionista else "Sin asignar"
+        })
+
+    return {"total": len(resultado), "historial": resultado}
 </file>
 
 <file path="backend/routers/repartidor.py">
@@ -4978,6 +5347,1168 @@ def decodificar_token(token: str) -> dict:
         raise Exception("Token inválido")
 </file>
 
+<file path="frontend-web/.gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="frontend-web/eslint.config.js">
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+</file>
+
+<file path="frontend-web/index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend-web</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="frontend-web/package.json">
+{
+  "name": "frontend-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "lucide-react": "^0.560.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^7.2.4"
+  }
+}
+</file>
+
+<file path="frontend-web/postcss.config.js">
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+</file>
+
+<file path="frontend-web/public/vite.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+</file>
+
+<file path="frontend-web/README.md">
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+</file>
+
+<file path="frontend-web/src/App.css">
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+</file>
+
+<file path="frontend-web/src/App.jsx">
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
+
+// 👇 IMPORTAMOS EL DASHBOARD REAL (El del diseño bonito)
+import Dashboard from './pages/Dashboard'; 
+import SolicitudDetalle from './pages/SolicitudDetalle';
+
+// Componente para proteger rutas (esto se queda igual)
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return <div className="h-screen flex items-center justify-center">Cargando...</div>;
+  if (!user) return <Navigate to="/login" />;
+  
+  return children;
+};
+
+// ❌ AQUÍ BORRAMOS EL COMPONENTE "const Dashboard = () => ..." QUE TENÍAS ANTES
+
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/solicitudes/:id" element={<ProtectedRoute><SolicitudDetalle /></ProtectedRoute>} /> {}
+        
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              {/* Ahora React usará el Dashboard importado de ./pages/Dashboard.jsx */}
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </AuthProvider>
+  );
+}
+
+export default App;
+</file>
+
+<file path="frontend-web/src/assets/react.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+</file>
+
+<file path="frontend-web/src/components/Layout.jsx">
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Users, 
+  Clock, 
+  Settings, 
+  LogOut, 
+  Bell, 
+  Search,
+  ChevronDown 
+} from 'lucide-react';
+
+const Layout = ({ children }) => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+
+  const menuItems = [
+    { name: 'Inicio', path: '/', icon: LayoutDashboard },
+    { name: 'Recetas Pendientes', path: '/solicitudes', icon: FileText },
+    { name: 'Pacientes', path: '/pacientes', icon: Users },
+    { name: 'Historial de Pedidos', path: '/historial', icon: Clock },
+    { name: 'Configuración', path: '/configuracion', icon: Settings },
+  ];
+
+  return (
+    <div className="flex h-screen bg-paw-gray font-sans">
+      
+      {/* === SIDEBAR OSCURO === */}
+      <aside className="w-64 bg-paw-dark text-white flex flex-col shadow-2xl z-20">
+        {/* Logo */}
+        <div className="h-20 flex items-center px-8 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-paw-yellow text-3xl">🐾</span>
+            <div>
+              <h1 className="text-xl font-bold leading-none">PawPals</h1>
+              <span className="text-xs text-paw-text-muted">Nutri-Panel</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Navegación */}
+        <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  isActive 
+                    ? 'bg-paw-purple text-white shadow-lg shadow-purple-900/50' 
+                    : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <item.icon size={20} className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} />
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer Sidebar */}
+        <div className="p-4 border-t border-white/10">
+          <button 
+            onClick={logout}
+            className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-white/5 rounded-xl transition"
+          >
+            <LogOut size={20} />
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* === CONTENIDO PRINCIPAL === */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        
+        {/* Header Superior */}
+        <header className="h-20 bg-paw-dark flex items-center justify-between px-8 shadow-md z-10">
+          <h2 className="text-white text-lg font-medium opacity-90">Panel de Nutricionista</h2>
+          
+          <div className="flex items-center gap-6">
+            {/* Iconos de notificacion */}
+            <div className="flex items-center gap-4 text-gray-400">
+              <button className="hover:text-white transition"><Search size={20} /></button>
+              <button className="hover:text-white transition relative">
+                <Bell size={20} />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
+
+            {/* Perfil Usuario */}
+            <div className="flex items-center gap-3 pl-6 border-l border-white/10">
+              <div className="text-right hidden md:block">
+                <p className="text-sm font-bold text-white">{user?.nombre || "Dra. Sofia"}</p>
+                <p className="text-xs text-paw-text-muted">Especialista</p>
+              </div>
+              <div className="w-10 h-10 bg-paw-purple rounded-full flex items-center justify-center text-white font-bold border-2 border-paw-dark-light">
+                {user?.nombre?.charAt(0) || "D"}
+              </div>
+              <ChevronDown size={16} className="text-gray-400" />
+            </div>
+          </div>
+        </header>
+
+        {/* Área de Scroll */}
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default Layout;
+</file>
+
+<file path="frontend-web/src/context/AuthContext.jsx">
+// src/context/AuthContext.jsx
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import api from '../services/api';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Verificar si ya hay sesión al cargar la página
+  useEffect(() => {
+    const storedToken = localStorage.getItem('nutri_token');
+    const storedUser = localStorage.getItem('nutri_user');
+
+    if (storedToken && storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  // Función para registrar Nutricionista
+  const registerNutri = async (datos) => {
+    try {
+      const response = await api.post('/auth/register/nutricionista', datos);
+      const { token, usuario } = response.data;
+
+      localStorage.setItem('nutri_token', token);
+      localStorage.setItem('nutri_user', JSON.stringify(usuario));
+      
+      setUser(usuario);
+      return { success: true };
+    } catch (error) {
+      console.error("Register error:", error);
+      return { 
+        success: false, 
+        message: error.response?.data?.detail || 'Error al registrarse.' 
+      };
+    }
+  };
+
+  // Función para Login
+  const login = async (correo, contrasena) => {
+    try {
+      const response = await api.post('/auth/login', { correo, contrasena });
+      const { token, usuario } = response.data;
+
+      // 🛡️ SEGURIDAD: Verificar que sea Nutricionista (Rol 3) o Admin (Rol 1)
+      if (usuario.rol_id !== 3 && usuario.rol_id !== 1) {
+        throw new Error('Acceso denegado. Esta área es exclusiva para nutricionistas.');
+      }
+
+      // Guardar en almacenamiento local
+      localStorage.setItem('nutri_token', token);
+      localStorage.setItem('nutri_user', JSON.stringify(usuario));
+      
+      setUser(usuario);
+      return { success: true };
+    } catch (error) {
+      console.error("Login error:", error);
+      return { 
+        success: false, 
+        message: error.response?.data?.detail || error.message || 'Error de conexión' 
+      };
+    }
+  };
+
+  // Función para Logout
+  const logout = () => {
+    localStorage.removeItem('nutri_token');
+    localStorage.removeItem('nutri_user');
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, registerNutri, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+</file>
+
+<file path="frontend-web/src/index.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+</file>
+
+<file path="frontend-web/src/main.jsx">
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+import { BrowserRouter } from 'react-router-dom' // 1. Importamos aquí
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    {/* 2. Envolvemos la App con BrowserRouter aquí */}
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+)
+</file>
+
+<file path="frontend-web/src/pages/Dashboard.jsx">
+import React, { useEffect, useState } from 'react';
+import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api'; // <--- Importamos la API
+import { 
+  Users, 
+  FileText, 
+  TrendingUp, 
+  Clock, 
+  Search,
+  MoreHorizontal,
+  Loader
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Estados para datos reales
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    pacientes: 0,
+    pendientes: 0,
+    satisfaccion: '100%'
+  });
+
+  // Cargar datos del Backend
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await api.get('/nutricionista/pedidos/pendientes');
+        const data = response.data.solicitudes || [];
+        
+        setSolicitudes(data);
+        
+        // Actualizar estadísticas simples basadas en lo que llegó
+        setStats({
+          pacientes: data.length, // Por ahora contamos solicitudes como pacientes
+          pendientes: response.data.total,
+          satisfaccion: '98%'
+        });
+
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const estadisticasCards = [
+    { label: 'Pacientes Activos', value: stats.pacientes, icon: Users, sub: 'En tratamiento' },
+    { label: 'Recetas Pendientes', value: stats.pendientes, icon: FileText, sub: 'Por revisar' },
+    { label: 'Satisfacción', value: stats.satisfaccion, icon: TrendingUp, sub: 'Cliente' },
+  ];
+
+  return (
+    <Layout>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* === COLUMNA IZQUIERDA (2/3) === */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* 1. Banner de Bienvenida */}
+          <div className="bg-gradient-to-r from-paw-dark to-paw-purple rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold mb-2">¡Bienvenida, {user?.nombre?.split(' ')[0] || 'Doc'}!</h2>
+              <p className="text-purple-100 mb-6 max-w-md">
+                Tienes <span className="font-bold text-white text-xl">{stats.pendientes} solicitudes</span> esperando tu revisión hoy. 
+              </p>
+              <button 
+                onClick={() => navigate('/solicitudes')}
+                className="bg-paw-yellow text-paw-dark px-6 py-2.5 rounded-lg font-bold hover:bg-yellow-400 transition shadow-md"
+              >
+                Ver Solicitudes
+              </button>
+            </div>
+            <div className="absolute right-0 bottom-0 opacity-10">
+              <Users size={200} />
+            </div>
+          </div>
+
+          {/* 2. Tabla: Recetas Pendientes (DATOS REALES) */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Solicitudes Recientes</h3>
+              <button className="text-gray-400 hover:text-paw-purple"><MoreHorizontal /></button>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <Loader className="animate-spin text-paw-purple" size={32} />
+              </div>
+            ) : solicitudes.length === 0 ? (
+              <p className="text-center text-gray-500 py-6">No hay solicitudes pendientes 🎉</p>
+            ) : (
+              <div className="space-y-4">
+                {/* Mapeamos los datos reales del backend */}
+                {solicitudes.slice(0, 5).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition border border-transparent hover:border-gray-100 group">
+                    <div className="flex items-center gap-4">
+                      {/* Avatar con inicial de la mascota */}
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-paw-dark font-bold border border-gray-200">
+                        {item.mascota.nombre.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-800 text-sm">
+                          {item.mascota.nombre} 
+                          <span className="text-gray-400 font-normal"> ({item.mascota.especie})</span>
+                        </p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock size={12} /> {new Date(item.fecha).toLocaleDateString()} • Dueño: {item.cliente.nombre}
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={() => navigate(`/solicitudes/${item.id}`)} // <--- AQUI LA MAGIA
+                        className="px-4 py-1.5 bg-paw-dark text-white text-xs font-medium rounded-lg hover:bg-paw-purple transition"
+                        >
+                        Revisar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* === COLUMNA DERECHA (1/3) === */}
+        <div className="space-y-8">
+          
+          {/* 4. Estadísticas Rápidas (DINÁMICAS) */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-800 mb-6">Estadísticas</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {estadisticasCards.map((stat, index) => (
+                <div key={index} className={`flex flex-col items-center p-4 rounded-xl ${index === 2 ? 'col-span-2 flex-row justify-center gap-4 bg-gray-50' : 'bg-gray-50'}`}>
+                  <div className="p-3 bg-white rounded-full shadow-sm text-paw-purple mb-2">
+                    <stat.icon size={20} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">{stat.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. Actividad Reciente (Estática por ahora, se puede conectar luego) */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-800 mb-6">Actividad Reciente</h3>
+            <div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:h-full before:w-0.5 before:bg-gray-100">
+              
+              <div className="relative pl-10">
+                <div className="absolute left-2 top-1 w-4 h-4 bg-green-500 rounded-full border-4 border-white shadow-sm"></div>
+                <p className="text-sm font-medium text-gray-800">Sistema iniciado</p>
+                <p className="text-xs text-gray-400 mt-1">Hace un momento</p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default Dashboard;
+</file>
+
+<file path="frontend-web/src/pages/Login.jsx">
+// src/pages/Login.jsx
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+// 1. IMPORTANTE: Agregamos 'Link' aquí para poder navegar
+import { useNavigate, Link } from 'react-router-dom';
+import { Lock, Mail, PawPrint } from 'lucide-react';
+
+const Login = () => {
+  const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const result = await login(correo, contrasena);
+
+    if (result.success) {
+      navigate('/'); // Redirigir al Dashboard si es exitoso
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-4 border-paw-purple">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="bg-paw-purple/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <PawPrint className="text-paw-purple" size={32} />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800">PawPals Nutri-Panel</h1>
+          <p className="text-gray-500 text-sm">Acceso exclusivo para especialistas</p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 text-center border border-red-200">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="email"
+                required
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paw-purple focus:border-transparent outline-none transition"
+                placeholder="nutri@pawpals.com"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="password"
+                required
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paw-purple focus:border-transparent outline-none transition"
+                placeholder="••••••••"
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button
+           type="submit"
+            disabled={loading}
+            // CORREGIDO: Usamos colores hexadecimales directos o clases estándar para asegurar que se vea
+            className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transition transform hover:scale-[1.02] active:scale-95 ${
+              loading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-[#FF8C42] hover:bg-[#e67e3a]' // Color Naranja directo
+            }`}
+          >
+            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+
+        {/* 2. NUEVA SECCIÓN: Enlace al Registro */}
+        <div className="mt-6 text-center border-t border-gray-100 pt-4">
+          <p className="text-gray-600 text-sm">
+            ¿Eres un especialista nuevo?{' '}
+            <Link to="/register" className="text-paw-purple font-bold hover:underline hover:text-purple-800 transition">
+              Regístrate aquí
+            </Link>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="frontend-web/src/pages/Register.jsx">
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Mail, Lock, Phone, Award, FileText } from 'lucide-react';
+
+const Register = () => {
+  const navigate = useNavigate();
+  const { registerNutri } = useAuth();
+  const [formData, setFormData] = useState({
+    nombre: '', correo: '', contrasena: '', 
+    telefono: '', especialidad: '', colegio_veterinario: ''
+  });
+  const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await registerNutri(formData);
+    if (result.success) {
+      navigate('/');
+    } else {
+      setError(result.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-10">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border-t-4 border-paw-purple">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Registro de Especialista</h2>
+        
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="text-xs font-bold text-gray-600">Nombre Completo</label>
+                <div className="flex items-center border rounded-lg p-2 mt-1">
+                    <User size={18} className="text-gray-400 mr-2"/>
+                    <input name="nombre" onChange={handleChange} className="w-full outline-none" required />
+                </div>
+            </div>
+            <div>
+                <label className="text-xs font-bold text-gray-600">Teléfono</label>
+                <div className="flex items-center border rounded-lg p-2 mt-1">
+                    <Phone size={18} className="text-gray-400 mr-2"/>
+                    <input name="telefono" onChange={handleChange} className="w-full outline-none" required />
+                </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-600">Correo Electrónico</label>
+            <div className="flex items-center border rounded-lg p-2 mt-1">
+                <Mail size={18} className="text-gray-400 mr-2"/>
+                <input type="email" name="correo" onChange={handleChange} className="w-full outline-none" required />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-600">Contraseña</label>
+            <div className="flex items-center border rounded-lg p-2 mt-1">
+                <Lock size={18} className="text-gray-400 mr-2"/>
+                <input type="password" name="contrasena" onChange={handleChange} className="w-full outline-none" required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="text-xs font-bold text-gray-600">Especialidad</label>
+                <div className="flex items-center border rounded-lg p-2 mt-1">
+                    <Award size={18} className="text-gray-400 mr-2"/>
+                    <input name="especialidad" placeholder="Ej: Canina" onChange={handleChange} className="w-full outline-none" required />
+                </div>
+            </div>
+            <div>
+                <label className="text-xs font-bold text-gray-600">N° Colegiatura</label>
+                <div className="flex items-center border rounded-lg p-2 mt-1">
+                    <FileText size={18} className="text-gray-400 mr-2"/>
+                    <input name="colegio_veterinario" placeholder="CMV-..." onChange={handleChange} className="w-full outline-none" required />
+                </div>
+            </div>
+          </div>
+
+          <button type="submit" className="w-full bg-paw-orange text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition mt-4">
+            Registrarme
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600 text-sm">
+            ¿Ya tienes cuenta? <Link to="/login" className="text-paw-purple font-bold hover:underline">Inicia Sesión</Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
+</file>
+
+<file path="frontend-web/src/pages/SolicitudDetalle.jsx">
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import api from '../services/api';
+import { 
+  ArrowLeft, Save, AlertTriangle, FileText, 
+  Dog, CheckCircle, XCircle 
+} from 'lucide-react';
+
+const SolicitudDetalle = () => {
+  const { id } = useParams(); // El ID de la solicitud
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Estado del formulario de respuesta
+  const [form, setForm] = useState({
+    observaciones: '',
+    recomendaciones: '',
+    aprobado: true
+  });
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        // Llamamos al endpoint que acabas de arreglar en el backend
+        const response = await api.get(`/nutricionista/pedidos/${id}`);
+        setData(response.data);
+      } catch (error) {
+        console.error("Error cargando detalle:", error);
+        alert("No se pudo cargar la solicitud.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    cargarDatos();
+  }, [id]);
+
+  const enviarRevision = async () => {
+    if (!form.observaciones || !form.recomendaciones) {
+      alert("Por favor completa las observaciones y recomendaciones.");
+      return;
+    }
+
+    try {
+      await api.post(`/nutricionista/pedidos/${id}/revisar`, form);
+      alert("✅ ¡Revisión guardada y enviada al cliente!");
+      navigate('/'); // Volver al dashboard
+    } catch (error) {
+      console.error(error);
+      alert("Hubo un error al guardar la revisión.");
+    }
+  };
+
+  if (loading) return <div className="p-10 text-center">Cargando expediente...</div>;
+  if (!data) return <div className="p-10 text-center">Solicitud no encontrada.</div>;
+
+  return (
+    <Layout>
+      <div className="max-w-6xl mx-auto">
+        {/* Header con botón volver */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="flex items-center text-gray-500 hover:text-paw-purple mb-6 transition"
+        >
+          <ArrowLeft size={20} className="mr-2" /> Volver al tablero
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* === COLUMNA IZQUIERDA: EXPEDIENTE === */}
+          <div className="space-y-6">
+            
+            {/* Tarjeta Mascota */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+              <div className="relative inline-block">
+                <img 
+                  src={data.mascota.foto || "https://via.placeholder.com/150"} 
+                  alt={data.mascota.nombre}
+                  className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-gray-50"
+                />
+                <div className="absolute bottom-0 right-0 bg-paw-purple text-white p-1.5 rounded-full border-2 border-white">
+                  <Dog size={16} />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">{data.mascota.nombre}</h2>
+              <p className="text-gray-500 font-medium">{data.mascota.raza}</p>
+              
+              <div className="mt-4 flex justify-center gap-3 text-sm">
+                <span className="bg-gray-100 px-3 py-1 rounded-full text-gray-600">
+                  {data.mascota.edad} años
+                </span>
+                <span className="bg-gray-100 px-3 py-1 rounded-full text-gray-600">
+                  {data.mascota.peso} kg
+                </span>
+                <span className="bg-gray-100 px-3 py-1 rounded-full text-gray-600">
+                  {data.mascota.sexo === 'M' ? 'Macho' : 'Hembra'}
+                </span>
+              </div>
+            </div>
+
+            {/* Tarjeta Alertas Médicas */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-red-400">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <AlertTriangle size={20} className="text-red-500" /> Historial Clínico
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Alergias</p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.detalles_nutricionales.alergias.length > 0 ? (
+                      data.detalles_nutricionales.alergias.map((a, i) => (
+                        <span key={i} className="bg-red-50 text-red-600 px-2 py-1 rounded text-sm font-medium border border-red-100">
+                          {a.alergia} ({a.severidad})
+                        </span>
+                      ))
+                    ) : <span className="text-gray-500 text-sm">Ninguna registrada</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Condiciones de Salud</p>
+                  {data.detalles_nutricionales.condiciones_salud.length > 0 ? (
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      {data.detalles_nutricionales.condiciones_salud.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  ) : <span className="text-gray-500 text-sm">Sin condiciones previas</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* === COLUMNA DERECHA: TRABAJO DEL NUTRICIONISTA === */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Detalles de la Solicitud */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Solicitud del Cliente</h3>
+                  <p className="text-sm text-gray-500">Fecha: {new Date(data.pedido.fecha).toLocaleDateString()}</p>
+                </div>
+                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                  {data.pedido.estado}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase">Objetivo Dietético</p>
+                  <p className="font-semibold text-gray-800 text-lg mt-1">{data.pedido_especializado.objetivo_dieta}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase">Alimentación Actual</p>
+                  <p className="font-medium text-gray-700 mt-1">{data.pedido_especializado.frecuencia_cantidad}</p>
+                </div>
+                {data.pedido_especializado.indicaciones && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase">Notas Adicionales</p>
+                    <p className="text-gray-700 mt-1 italic">"{data.pedido_especializado.indicaciones}"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* FORMULARIO DE RESPUESTA */}
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
+              <h3 className="text-lg font-bold text-paw-purple mb-6 flex items-center gap-2">
+                <FileText size={24} /> Resolución Profesional
+              </h3>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Diagnóstico y Observaciones</label>
+                  <textarea 
+                    rows="3"
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-paw-purple/50 bg-gray-50 transition"
+                    placeholder="Escribe tus observaciones sobre el estado de la mascota..."
+                    value={form.observaciones}
+                    onChange={e => setForm({...form, observaciones: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Plan Nutricional / Recomendaciones</label>
+                  <textarea 
+                    rows="5"
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-paw-purple/50 bg-gray-50 transition"
+                    placeholder="Detalla la dieta BARF recomendada, porciones y suplementos..."
+                    value={form.recomendaciones}
+                    onChange={e => setForm({...form, recomendaciones: e.target.value})}
+                  />
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="pt-4 flex items-center gap-4 border-t border-gray-100 mt-4">
+                  <div className="flex-1">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-6 h-6 rounded border flex items-center justify-center transition ${form.aprobado ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'}`}>
+                        {form.aprobado && <CheckCircle size={16} className="text-white" />}
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        className="hidden"
+                        checked={form.aprobado}
+                        onChange={e => setForm({...form, aprobado: e.target.checked})}
+                      />
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition">Marcar como Aprobado</span>
+                    </label>
+                  </div>
+
+                  <button 
+                    onClick={enviarRevision}
+                    className="bg-paw-yellow text-paw-dark px-8 py-3 rounded-xl font-bold hover:bg-yellow-400 transition shadow-md flex items-center gap-2 transform hover:-translate-y-0.5"
+                  >
+                    <Save size={20} /> Guardar Resolución
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default SolicitudDetalle;
+</file>
+
+<file path="frontend-web/src/services/api.js">
+// src/services/api.js
+import axios from 'axios';
+
+// Asegúrate de que tu backend esté corriendo en este puerto
+const API_URL = 'http://localhost:8000'; 
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor: Antes de cada petición, inyectamos el token si existe
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('nutri_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default api;
+</file>
+
+<file path="frontend-web/tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'paw-dark': '#2A1B4E',       // Morado Oscuro (Sidebar)
+        'paw-dark-light': '#3D2C66', // Morado medio
+        'paw-purple': '#875686',     // Morado Marca
+        'paw-yellow': '#FFC107',     // Amarillo/Dorado (Botones)
+        'paw-orange': '#FF8C42',     // Naranja (Botones Login)
+        'paw-gray': '#F3F4F6',       // Gris de fondo
+        'paw-text-muted': '#A0AEC0', // Texto gris suave
+      }
+    },
+  },
+  plugins: [],
+}
+</file>
+
+<file path="frontend-web/vite.config.js">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+</file>
+
 <file path="frontend/App.js">
 import React from 'react';
 import AppNavigator from './AppNavigator';
@@ -5023,12 +6554,11 @@ export default function App() {
 // frontend/AppNavigator.js
 
 import React from 'react';
-import { View } from 'react-native';
+import { View } from 'react-native'; // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
@@ -5042,56 +6572,31 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
-import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
+import PaymentScreen from './screens/PaymentScreen';
+import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
-// import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
-import UserProfileScreen from './screens/UserProfileScreen';
-
+import UserProfileScreen from './screens/UserProfileScreen'; // La nueva pantalla
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
 
 /* ======================================================
-   Navegador Principal con Menú Lateral (Drawer)
-====================================================== */
-function DrawerNavigator({ route }) {
-  const { clienteId } = route.params;
-  return (
-    <Drawer.Navigator
-      screenOptions={{ headerShown: false }}
-    // Aquí podrías agregar un componente de menú personalizado si quieres
-    >
-      <Drawer.Screen name="AppTabs" component={MainTabs} initialParams={{ clienteId }} />
-      {/* Puedes agregar más ítems al menú aquí si quieres */}
-    </Drawer.Navigator>
-  );
-}
-
-/* ======================================================
-   Stack para Home → Detalle de Producto
+   Stack para Home → Detalle de Producto (SIN CAMBIOS)
 ====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="HomeFeed"
-        component={HomeScreen}
-        initialParams={{ clienteId }}
-      />
-      <Stack.Screen
-        name="ProductDetail"
-        component={ProductDetailScreen}
-      />
+      <Stack.Screen name="HomeFeed" component={HomeScreen} initialParams={{ clienteId }} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador de Tabs Principal
+   Navegador de Tabs Principal (CORREGIDO CON EL IMPORT)
 ====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
@@ -5133,7 +6638,7 @@ function MainTabs({ route }) {
 
           if (focused) {
             return (
-              <View
+              <View // <--- ESTO AHORA FUNCIONARÁ
                 style={{
                   backgroundColor: '#FF8C42',
                   width: 60,
@@ -5154,43 +6659,23 @@ function MainTabs({ route }) {
             );
           }
           return (
-            <View>
+            <View> 
               <Ionicons name={iconName} size={24} color="white" />
             </View>
           );
         },
       })}
     >
-      <Tab.Screen
-        name="HomeStack"
-        component={HomeStack}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Inicio' }}
-      />
-      <Tab.Screen
-        name="PetProfile"
-        component={PetProfileScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Perfil Mascota' }}
-      />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Carrito' }}
-      />
-      <Tab.Screen
-        name="Favorites"
-        component={FavoritesScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Favoritos' }}
-      />
+      <Tab.Screen name="HomeStack" component={HomeStack} initialParams={{ clienteId }} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="PetProfile" component={PetProfileScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Perfil Mascota' }} />
+      <Tab.Screen name="Cart" component={CartScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Carrito' }} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Favoritos' }} />
     </Tab.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador Global
+   Navegador Global (SIMPLIFICADO)
 ====================================================== */
 const AppNavigator = () => {
   return (
@@ -5206,59 +6691,19 @@ const AppNavigator = () => {
         <Stack.Screen name="Success" component={SuccessScreen} />
 
         {/* App principal con Tabs */}
-        <Stack.Screen name="Main" component={DrawerNavigator} />
+        <Stack.Screen name="Main" component={MainTabs} />
 
-        {/* Flujo de compra */}
-        <Stack.Screen
-          name="Checkout"
-          component={CheckoutScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/*  NUEVA PANTALLA: Pago */}
-        <Stack.Screen
-          name="Payment"
-          component={PaymentScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
-        {/* <Stack.Screen // <--- BORRA O COMENTA ESTE BLOQUE
-          name="UploadProof"
-          component={UploadProofScreen}
-          options={{ headerShown: false }}
-        /> */}
-
-        <Stack.Screen
-          name="OrderSuccess"
-          component={OrderSuccessScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/* Agregar/Editar Dirección */}
-        <Stack.Screen
-          name="AddAddress"
-          component={AddAddressScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal'
-          }}
-        />
-
-        {/* 👇 --- 2. AGREGAR ESTA NUEVA PANTALLA --- 👇 */}
-        <Stack.Screen
-          name="AddPet"
-          component={AddPetScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal' // Para que aparezca desde abajo
-          }}
-        />
-        {/* ------------------------------------------- */}
+        {/* Flujo de compra y otras pantallas */}
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="UploadProof" component={UploadProofScreen} />
+        <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+        <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
+        
+        {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       </Stack.Navigator>
-
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-      
     </NavigationContainer>
   );
 };
@@ -6965,18 +8410,26 @@ const HomeScreen = ({ navigation, route }) => {
         resizeMode="cover"
       />
 
-      {/* 🔹 HEADER MORADO */}
+      {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}> {/*aea*/ }
-          <Ionicons name="menu" size={30} color="white" />
+
+        {/* 🔥 Nuevo botón que abre el perfil */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('UserProfile', { clienteId })}
+        >
+          <Ionicons name="person-circle-outline" size={32} color="white" />
         </TouchableOpacity>
 
+        {/* LOGO */}
         <Image
           source={require('../assets/logo_amarillo.png')}
           style={styles.logo}
         />
 
-        <TouchableOpacity>
+        {/* 🔥 Botón Carrito (igual que antes) */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Cart', { clienteId })}
+        >
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
@@ -7047,7 +8500,7 @@ const HomeScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      {/* ✅ AQUÍ VA TU BOTTOM TAB */}
+      {/* 🔻 Aquí va tu bottom tab (si lo tienes) */}
     </SafeAreaView>
   );
 };
@@ -7437,16 +8890,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { getPetsByCliente } from '../services/petService';
-import { styles, MAIN_PURPLE } from '../styles/petProfileScreenStyles';
+import { getClienteProfile } from '../services/authService';
+import { styles } from '../styles/userProfileScreenStyles';
+import api from '../services/api'; // Importamos la configuración de la API
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
 
+  const [userProfile, setUserProfile] = useState(null);
   const [pets, setPets] = useState([]);
-  const [selectedPet, setSelectedPet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadPets = async () => {
+  // --- FUNCIÓN CORREGIDA PARA CONSTRUIR URL DEL BACKEND ---
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    // Remueve 'static/' si viene del backend y construye la URL completa
+    const cleanPath = path.startsWith('static/') ? path.substring(7) : path;
+    return `${api.defaults.baseURL}/static/${cleanPath}`;
+  };
+  
+  const loadData = async () => {
     if (!clienteId) {
       Alert.alert('Error', 'No se pudo identificar al usuario.');
       setLoading(false);
@@ -7454,23 +8917,18 @@ const PetProfileScreen = ({ navigation, route }) => {
     }
     
     try {
-      console.log(`🐾 Cargando mascotas para el cliente: ${clienteId}`);
-      const response = await getPetsByCliente(clienteId);
+      setLoading(true);
+      const [profileData, petsResponse] = await Promise.all([
+        getClienteProfile(clienteId),
+        getPetsByCliente(clienteId)
+      ]);
       
-      if (response && response.mascotas) {
-        setPets(response.mascotas);
-        if (response.mascotas.length > 0) {
-          setSelectedPet(response.mascotas[0]);
-        } else {
-          setSelectedPet(null);
-        }
-      } else {
-        setPets([]);
-        setSelectedPet(null);
-      }
+      setUserProfile(profileData);
+      setPets(petsResponse.mascotas || []);
+
     } catch (error) {
-      console.error('❌ Error al cargar mascotas:', error);
-      Alert.alert('Error', 'No se pudieron cargar los perfiles de las mascotas.');
+      console.error('❌ Error al cargar datos del perfil:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus datos.');
     } finally {
       setLoading(false);
     }
@@ -7478,132 +8936,95 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadPets();
+      loadData();
     }, [clienteId])
   );
 
-  const renderPetSelector = () => (
-    <View style={styles.petSelectorContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {pets.map(pet => (
-          <TouchableOpacity 
-            key={pet.id} 
-            style={styles.petSelectorItem}
-            onPress={() => setSelectedPet(pet)}
-          >
-            <View style={[
-              styles.petImageWrapper,
-              selectedPet?.id === pet.id && styles.petImageWrapperSelected
-            ]}>
-              <Image 
-                source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')} 
-                style={styles.petImage} 
-              />
-            </View>
-            <Text style={[
-              styles.petSelectorName,
-              selectedPet?.id === pet.id && styles.petSelectorNameSelected
-            ]}>
-              {pet.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.petSelectorItem} onPress={() => navigation.navigate('AddPet', { clienteId })}>
-            <View style={styles.petImageWrapper}>
-                <Ionicons name="add" size={30} color="#CCC" />
-            </View>
-            <Text style={styles.petSelectorName}>Agregar</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
+  // --- FUNCIÓN CORREGIDA PARA IMÁGENES LOCALES POR DEFECTO ---
+  const getPetDefaultImage = (especie) => {
+    const especieLower = especie?.toLowerCase() || '';
+    if (especieLower.includes('perro')) {
+      return require('../assets/perro.png');
+    }
+    if (especieLower.includes('gato')) {
+      return require('../assets/gato.png');
+    }
+    return require('../assets/placeholder.png');
+  };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="paw-outline" size={100} color="#ccc" />
-      <Text style={styles.emptyTitle}>Aún no tienes mascotas</Text>
-      <Text style={styles.emptySubtitle}>
-        Registra a tu primer compañero para ver su perfil aquí.
-      </Text>
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => navigation.navigate('AddPet', { clienteId })}
-      >
-        <Ionicons name="add-circle" size={24} color="white" />
-        <Text style={styles.addButtonText}>Agregar Mascota</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderPetDetails = () => (
-    <ScrollView>
-      <View style={styles.detailCard}>
-        <Image 
-          source={selectedPet.foto ? { uri: selectedPet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')}
-          style={styles.mainPetImage}
-        />
-        <Text style={styles.petName}>{selectedPet.nombre}</Text>
-        <View style={styles.detailGrid}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Especie</Text>
-            <Text style={styles.detailValue}>{selectedPet.especie || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Raza</Text>
-            <Text style={styles.detailValue}>{selectedPet.raza || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Edad</Text>
-            <Text style={styles.detailValue}>{selectedPet.edad} años</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Peso</Text>
-            <Text style={styles.detailValue}>{selectedPet.peso ? `${selectedPet.peso} kg` : 'N/A'}</Text>
-          </View>
-        </View>
-        <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.editButton}>
-                <Ionicons name="create-outline" size={20} color="white" />
-                <Text style={styles.buttonText}>Editar Perfil</Text>
-            </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
-  );
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+         <ImageBackground source={require('../assets/FONDOA.png')} style={styles.backgroundImage} resizeMode="cover" />
+        <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#FFF" /></View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ImageBackground
-        source={require('../assets/FONDOA.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      />
+      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.backgroundImage} resizeMode="cover" />
       <View style={styles.header}>
-        <TouchableOpacity>
-          <Ionicons name="menu" size={30} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require('../assets/logo_amarillo.png')}
-          style={styles.logo}
-        />
-        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
-          <Ionicons name="cart-outline" size={30} color="white" />
-        </TouchableOpacity>
+        <TouchableOpacity><Ionicons name="menu" size={30} color="white" /></TouchableOpacity>
+        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}><Ionicons name="cart-outline" size={30} color="white" /></TouchableOpacity>
       </View>
+
       <View style={styles.container}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={MAIN_PURPLE} />
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.profileHeader}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Tu perfil</Text>
           </View>
-        ) : pets.length > 0 ? (
-          <View style={styles.profileContainer}>
-            {renderPetSelector()}
-            {selectedPet && renderPetDetails()}
+
+          {userProfile && (
+            <View style={styles.userInfoSection}>
+              {/* --- LÓGICA DE IMAGEN CORREGIDA PARA USUARIO --- */}
+              <Image 
+                source={userProfile.foto ? { uri: getImageUrl(userProfile.foto) } : require('../assets/user.png')}
+                style={styles.profileImage}
+              />
+              <Text style={styles.userName}>{userProfile.nombre}</Text>
+              <Text style={styles.userInfoText}>{userProfile.telefono}</Text>
+              <Text style={styles.userInfoText}>{userProfile.correo}</Text>
+              <TouchableOpacity style={styles.editProfileButton}>
+                <Text style={styles.editProfileButtonText}>Editar perfil</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.petsSection}>
+            <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
+            <View style={styles.petsList}>
+              {pets.map(pet => (
+                <TouchableOpacity key={pet.id} style={styles.petCard}>
+                  {/* --- LÓGICA DE IMAGEN CORREGIDA PARA MASCOTAS --- */}
+                  <Image
+                    source={pet.foto ? { uri: getImageUrl(pet.foto) } : getPetDefaultImage(pet.especie)}
+                    style={styles.petCardImage}
+                  />
+                  <Text style={styles.petCardName}>{pet.nombre}</Text>
+                  <Text style={styles.petCardInfo}>{pet.raza}</Text>
+                  <Text style={styles.petCardInfo}>{pet.edad} años</Text>
+                  <View style={styles.petCardDetails}>
+                    <Text style={styles.petCardDetailText}>Peso: {pet.peso ? `${pet.peso} Kg.` : 'N/A'}</Text>
+                    {/* Este dato de alergias es estático por ahora, se deberá obtener del backend en el futuro */}
+                    <Text style={styles.petCardDetailText}>Alergias: Pollo</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              
+              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+                <View style={styles.addPetCircle}>
+                  <Ionicons name="add" size={40} color="white" />
+                </View>
+                <Text style={styles.addPetText}>Agregar nueva mascota</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : (
-          renderEmptyState()
-        )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -8524,14 +9945,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getClientProfile } from '../services/authService'; // Necesitaremos esta nueva función
+import { getClientProfile } from '../services/authService';
 import { getPetsByCliente } from '../services/petService';
 import { styles } from '../styles/userProfileScreenStyles';
 
-// Imágenes por defecto locales
+// Imágenes por defecto
 const defaultUserImage = require('../assets/user.png');
 const defaultDogImage = require('../assets/perro.png');
 const defaultCatImage = require('../assets/gato.png');
+
+// URL base (para desarrollo)
+const API_URL = 'http://localhost:8000';
 
 const UserProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params;
@@ -8547,7 +9971,6 @@ const UserProfileScreen = ({ navigation, route }) => {
       return;
     }
     try {
-      // Cargar perfil y mascotas en paralelo
       const [profileData, petsResponse] = await Promise.all([
         getClientProfile(clienteId),
         getPetsByCliente(clienteId)
@@ -8555,8 +9978,8 @@ const UserProfileScreen = ({ navigation, route }) => {
       setProfile(profileData);
       setPets(petsResponse.mascotas || []);
     } catch (error) {
-      console.error('❌ Error al cargar datos del perfil:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
+      console.error('❌ Error al cargar perfil:', error);
+      Alert.alert('Error', 'No se pudo cargar la información del perfil.');
     } finally {
       setLoading(false);
     }
@@ -8572,9 +9995,9 @@ const UserProfileScreen = ({ navigation, route }) => {
   const getPetDefaultImage = (especie) => {
     if (especie.toLowerCase().includes('perro')) return defaultDogImage;
     if (especie.toLowerCase().includes('gato')) return defaultCatImage;
-    return defaultUserImage; // Una imagen genérica si no es perro o gato
+    return defaultUserImage;
   };
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -8592,63 +10015,84 @@ const UserProfileScreen = ({ navigation, route }) => {
         style={styles.backgroundImage}
         resizeMode="cover"
       />
+
+      {/* --------------------------------------- */}
+      {/* 🔹 HEADER CORREGIDO (Volver + Título + Carrito) */}
+      {/* --------------------------------------- */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Ionicons name="menu" size={30} color="white" />
+        {/* Botón VOLVER */}
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
         </TouchableOpacity>
-        <Image
-          source={require('../assets/logo_amarillo.png')}
-          style={styles.logo}
-        />
+
+        <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>
+          Mi Perfil
+        </Text>
+
+        {/* Botón Carrito */}
         <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
 
+      {/* --------------------------------------- */}
+      {/* 🔹 CONTENIDO */}
+      {/* --------------------------------------- */}
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollView}>
-          {/* SECCIÓN DEL PERFIL DE USUARIO */}
-          <View style={styles.profileHeader}>
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Tu perfil</Text>
+
+          {/* PERFIL DEL USUARIO */}
+          <View style={styles.profileSection}>
+            <Image
+              source={
+                profile?.foto
+                  ? { uri: `${API_URL}/${profile.foto}` }
+                  : defaultUserImage
+              }
+              style={styles.profilePic}
+            />
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
+              <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
+              <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
             </View>
 
-            <View style={styles.profileSection}>
-              <Image 
-                source={profile?.foto ? { uri: profile.foto.replace('static/', 'http://localhost:8000/static/') } : defaultUserImage}
-                style={styles.profilePic} 
-              />
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
-                <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
-                <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
-                <TouchableOpacity style={styles.editButton}>
-                  <Text style={styles.editButtonText}>Editar perfil</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <TouchableOpacity style={styles.editButton}>
+              <Ionicons name="create-outline" size={20} color="#732C71" />
+            </TouchableOpacity>
           </View>
 
-          {/* SECCIÓN DE MASCOTAS */}
+          {/* MASCOTAS */}
           <View style={styles.petsSection}>
             <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
+
             <View style={styles.petsList}>
-              {pets.map(pet => (
-                <TouchableOpacity key={pet.id} style={styles.petCard} onPress={() => navigation.navigate('PetProfile', { clienteId })}>
-                  <Image 
-                    source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : getPetDefaultImage(pet.especie)}
+              {pets.map((pet) => (
+                <TouchableOpacity
+                  key={pet.id}
+                  style={styles.petCard}
+                  onPress={() => navigation.navigate('PetProfile', { clienteId })}
+                >
+                  <Image
+                    source={
+                      pet.foto
+                        ? { uri: `${API_URL}/${pet.foto}` }
+                        : getPetDefaultImage(pet.especie)
+                    }
                     style={styles.petImage}
                   />
                   <Text style={styles.petName}>{pet.nombre}</Text>
                   <Text style={styles.petInfo}>{pet.raza}</Text>
                   <Text style={styles.petInfo}>{pet.edad} años</Text>
-                  <Text style={styles.petDetails}>Peso: {pet.peso || 'N/A'} Kg. Alergias: Pollo</Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+
+              {/* BOTÓN PARA AGREGAR */}
+              <TouchableOpacity
+                style={styles.addPetCard}
+                onPress={() => navigation.navigate('AddPet', { clienteId })}
+              >
                 <View style={styles.addPetCircle}>
                   <Ionicons name="add" size={30} color="white" />
                 </View>
@@ -8656,6 +10100,7 @@ const UserProfileScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
+
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -8915,16 +10360,16 @@ export const register = async (userData) => {
 
 /**
  * Obtiene el perfil completo de un cliente.
- * Llama al endpoint GET /cliente/id/{cliente_id}.
- * @param {string} clienteId - ID del cliente.
- * @returns {Promise<Object>} El perfil del cliente.
+ * @param {string} clienteId - ID del cliente
+ * @returns {Promise<Object>}
  */
-export const getClientProfile = async (clienteId) => {
+export const getClienteProfile = async (clienteId) => {
   try {
+    if (!clienteId) throw new Error("ID de cliente es requerido");
     const response = await api.get(`/cliente/id/${clienteId}`);
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio getClientProfile:', error.response ? error.response.data : error.message);
+    console.error('❌ Error al obtener perfil del cliente:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -12559,6 +14004,7 @@ const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const YELLOW = '#FFD100';
 const LIGHT_BACKGROUND = '#F9F9F9';
+const GREY_TEXT = '#888';
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -12579,8 +14025,8 @@ export const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   logo: {
-    width: 120,
-    height: 60,
+    width: 160,
+    height: 120,
     resizeMode: 'contain',
   },
   container: {
@@ -12589,82 +14035,70 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  scrollViewContent: {
+    paddingBottom: 120, // Espacio para el tab navigator
   },
-  scrollView: {
-    paddingBottom: 40,
-  },
-
+  
   // --- Profile Header ---
   profileHeader: {
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
-  },
-  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 25,
     marginBottom: 20,
   },
   backButton: {
     backgroundColor: SECOND_PURPLE,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 15,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginLeft: 20,
   },
-  profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: 'white',
-    marginBottom: 10,
-  },
-  profileInfo: {
-    marginLeft: 20,
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: SECOND_PURPLE,
-  },
-  profileContact: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  editButton: {
-    backgroundColor: YELLOW,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-  },
-  editButtonText: {
-    color: SECOND_PURPLE,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  profileSection: {
-    flexDirection: 'row',
+  
+  // --- User Info Section ---
+  userInfoSection: {
     alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 30,
   },
-
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
+    marginBottom: 15,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+  userInfoText: {
+    fontSize: 16,
+    color: GREY_TEXT,
+    marginTop: 5,
+  },
+  editProfileButton: {
+    backgroundColor: YELLOW,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  editProfileButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+  
   // --- Mascotas Section ---
   petsSection: {
     backgroundColor: 'white',
@@ -12686,64 +14120,79 @@ export const styles = StyleSheet.create({
   petsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
+    justifyContent: 'space-between',
   },
+  
+  // --- Pet Card ---
   petCard: {
+    width: '48%',
     backgroundColor: LIGHT_BACKGROUND,
     borderRadius: 15,
     padding: 15,
-    width: '48%', // Aprox para 2 por fila
     alignItems: 'center',
+    marginBottom: 15,
   },
-  petImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  petCardImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     marginBottom: 10,
   },
-  petName: {
-    fontSize: 16,
+  petCardName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  petInfo: {
-    fontSize: 13,
-    color: '#777',
+  petCardInfo: {
+    fontSize: 14,
+    color: GREY_TEXT,
+    marginTop: 4,
   },
-  petDetails: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+  petCardDetails: {
     borderTopWidth: 1,
     borderTopColor: '#EEE',
-    paddingTop: 8,
-    textAlign: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    width: '100%',
+    alignItems: 'center',
   },
+  petCardDetailText: {
+    fontSize: 13,
+    color: GREY_TEXT,
+  },
+  
+  // --- Add Pet Card ---
   addPetCard: {
-    backgroundColor: 'transparent',
-    borderRadius: 15,
     width: '48%',
+    backgroundColor: LIGHT_BACKGROUND,
+    borderRadius: 15,
+    padding: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#DDD',
-    paddingVertical: 30, // Ajusta para que tenga altura similar
+    marginBottom: 15,
+    height: 250, // Misma altura que la tarjeta de mascota
   },
   addPetCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: SECOND_PURPLE,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   addPetText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: SECOND_PURPLE,
-    textAlign: 'center'
+    textAlign: 'center',
+  },
+
+  // --- Loading ---
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 </file>
@@ -12818,7 +14267,15 @@ export const styles = StyleSheet.create({
 <file path="package.json">
 {
   "dependencies": {
-    "@react-navigation/bottom-tabs": "^7.8.12"
+    "@react-navigation/bottom-tabs": "^7.8.12",
+    "axios": "^1.13.2",
+    "lucide-react": "^0.560.0",
+    "react-router-dom": "^7.10.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }
 </file>

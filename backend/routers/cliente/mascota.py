@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session, joinedload
 from models import Cliente, Especie, RegistroMascota, PedidoEspecializado, AlergiaMascota, AlergiaEspecie, CondicionSalud, RecetaMedica
 import os
 from datetime import datetime
+from models import Consulta, AlergiaMascota, AlergiaEspecie, Nutricionista
+
 
 router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 
@@ -143,10 +145,14 @@ def obtener_detalle_mascota(
     mascota = (
         db.query(RegistroMascota)
         .options(
+            # Carga básica
             joinedload(RegistroMascota.especie),
-            joinedload(RegistroMascota.alergia_mascota),
+            # Carga de alergias corregida para traer el nombre (AlergiaEspecie)
+            joinedload(RegistroMascota.alergia_mascota).joinedload(AlergiaMascota.alergia_especie),
             joinedload(RegistroMascota.condicion_salud),
             joinedload(RegistroMascota.receta_medica),
+            # NUEVO: Cargar el historial de consultas y el nutricionista asociado
+            joinedload(RegistroMascota.consulta).joinedload(Consulta.nutricionista) 
         )
         .filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A")
         .first()
@@ -155,6 +161,7 @@ def obtener_detalle_mascota(
     if not mascota:
         raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
     
+    # Lógica de imagen (se mantiene igual)
     especie_nombre = mascota.especie.nombre if mascota.especie else "Sin especie"
     
     if not mascota.foto:
@@ -167,15 +174,17 @@ def obtener_detalle_mascota(
     else:
         foto = mascota.foto
     
+    # Procesar alergias
     alergias = [
         {
             "id": str(a.id),
-            "alergia": a.alergia_especie.nombre if a.alergia_especie else None,
+            "alergia": a.alergia_especie.nombre if a.alergia_especie else "Desconocida",
             "severidad": a.severidad,
         }
         for a in mascota.alergia_mascota
     ]
     
+    # Procesar condiciones
     condiciones = [
         {
             "id": str(c.id),
@@ -186,6 +195,7 @@ def obtener_detalle_mascota(
         for c in mascota.condicion_salud
     ]
     
+    # Procesar recetas del usuario
     recetas = [
         {
             "id": str(r.id),
@@ -195,6 +205,18 @@ def obtener_detalle_mascota(
         }
         for r in mascota.receta_medica
     ]
+
+    historial_consultas = []
+    consultas_ordenadas = sorted(mascota.consulta, key=lambda x: x.fecha, reverse=True)
+    
+    for c in consultas_ordenadas:
+        historial_consultas.append({
+            "id": str(c.id),
+            "fecha": c.fecha.isoformat(),
+            "nutricionista": c.nutricionista.nombre if c.nutricionista else "Especialista",
+            "diagnostico": c.observaciones,      
+            "plan_nutricional": c.recomendaciones 
+        })
     
     return {
         "id": str(mascota.id),
@@ -207,6 +229,7 @@ def obtener_detalle_mascota(
         "alergias": alergias,
         "condiciones_salud": condiciones,
         "recetas_medicas": recetas,
+        "historial_nutricional": historial_consultas, # <--- CAMPO AÑADIDO
         "observaciones": mascota.observaciones,
     }
 

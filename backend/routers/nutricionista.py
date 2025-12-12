@@ -1,96 +1,401 @@
 """
 RUTAS DEL NUTRICIONISTA – REVISIÓN Y APROBACIÓN DE PEDIDOS
 ------------------------------------------------------------
-Permite al nutricionista revisar, aprobar o sugerir modificaciones en
-pedidos especializados de los clientes.
-
-Incluye:
-- Consulta de pedidos especializados pendientes de revisión
-- Revisión de recetas médicas y archivos adjuntos
-- Aprobación o rechazo de pedidos especializados
-- Creación de platos personalizados para mascotas específicas
-- Registro de observaciones y recomendaciones
-
-Notas:
-- IDs en formato `str` (por BIGINT).
-- Las claves nuevas (por ejemplo, de platos creados) se generan con
-  utils.keygen.generate_uint64_key().
-- Los platos creados por nutricionista se guardan con:
-  creado_nutricionista = 1 y publicado = 0 (por defecto).
+Implementación completa de la lógica de negocio para nutricionistas.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
+from sqlalchemy.orm import Session, joinedload
 from utils import keygen, globals
+from utils.db import get_db
+from models import (
+    PedidoEspecializado, Pedido, Cliente, RegistroMascota, 
+    AlergiaMascota, CondicionSalud, PreferenciaAlimentaria, 
+    DescripcionAlergias, RecetaMedica, Consulta, Nutricionista,
+    PlatoCombinado, PlatoPersonal, Especie
+)
+from pydantic import BaseModel
+from datetime import datetime
+import os
 
 router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
 
+# --- Esquemas de Validación (Pydantic) ---
+class RevisionSchema(BaseModel):
+    observaciones: str
+    recomendaciones: str
+    aprobado: bool
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes
 # ---------------------------------------------------------------------------
-# Lista los pedidos especializados pendientes de revisión.
-# Muestra información de la mascota, cliente, objetivo de dieta y fecha de solicitud.
 @router.get("/pedidos/pendientes")
-def listar_pedidos_pendientes():
-    pass
+def listar_pedidos_pendientes(db: Session = Depends(get_db)):
+    """
+    Lista todos los pedidos especializados que requieren atención.
+    Filtra pedidos activos cuyo estado en la tabla Pedido sea 'pendiente'.
+    """
+    pedidos = (
+        db.query(PedidoEspecializado)
+        .join(Pedido)
+        .options(
+            joinedload(PedidoEspecializado.pedido).joinedload(Pedido.cliente),
+            joinedload(PedidoEspecializado.registro_mascota).joinedload(RegistroMascota.especie),
+        )
+        .filter(PedidoEspecializado.estado_registro == "A")
+        .filter(Pedido.estado == "pendiente") 
+        .order_by(Pedido.fecha.desc())
+        .all()
+    )
 
+    resultado = []
+    for p in pedidos:
+        cliente = p.pedido.cliente
+        mascota = p.registro_mascota
+        
+        resultado.append({
+            "id": str(p.id), # ID de la solicitud (PedidoEspecializado)
+            "pedido_id": str(p.pedido_id),
+            "fecha": p.pedido.fecha.isoformat(),
+            "cliente": {
+                "nombre": cliente.nombre if cliente else "Desconocido",
+                "telefono": cliente.telefono if cliente else "",
+                "foto": cliente.foto
+            },
+            "mascota": {
+                "nombre": mascota.nombre if mascota else "Desconocido",
+                "especie": mascota.especie.nombre if mascota and mascota.especie else "",
+                "raza": mascota.raza if mascota else "",
+                "foto": mascota.foto
+            },
+            "objetivo": p.objetivo_dieta,
+            "frecuencia": p.frecuencia_cantidad,
+            "consulta_requerida": bool(p.consulta_nutricionista)
+        })
+
+    return {"total": len(resultado), "solicitudes": resultado}
+
+@router.get("/pacientes")
+def listar_pacientes_con_historial(db: Session = Depends(get_db)):
+    """
+    Lista las mascotas que ya han tenido al menos una consulta con nutricionista.
+    """
+    # Buscamos mascotas que tengan relación con la tabla 'consulta'
+    pacientes = (
+        db.query(RegistroMascota)
+        .join(Consulta) # Esto filtra solo los que tienen consultas
+        .options(
+            joinedload(RegistroMascota.cliente),
+            joinedload(RegistroMascota.especie),
+            joinedload(RegistroMascota.consulta) # Cargamos consultas para sacar la fecha de la última
+        )
+        .distinct() # Evita duplicados si tiene muchas consultas
+        .all()
+    )
+
+    resultado = []
+    for p in pacientes:
+        # Obtener la fecha de la última consulta
+        ultima_consulta = max(p.consulta, key=lambda x: x.fecha) if p.consulta else None
+        
+        resultado.append({
+            "id": str(p.id),
+            "nombre": p.nombre,
+            "especie": p.especie.nombre if p.especie else "N/A",
+            "raza": p.raza,
+            "foto": p.foto,
+            "cliente": p.cliente.nombre if p.cliente else "Desconocido",
+            "total_consultas": len(p.consulta),
+            "ultima_atencion": ultima_consulta.fecha.isoformat() if ultima_consulta else None
+        })
+
+    return {"total": len(resultado), "pacientes": resultado}
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/{pedido_id}
 # ---------------------------------------------------------------------------
-# Devuelve los detalles de un pedido especializado específico:
-# mascota, archivos adjuntos, receta médica, y observaciones previas.
 @router.get("/pedidos/{pedido_id}")
-def obtener_detalle_pedido_especializado(pedido_id: str):
-    pass
+def obtener_detalle_pedido_especializado(pedido_id: str, db: Session = Depends(get_db)):
+    """
+    Devuelve el expediente clínico completo de la mascota vinculada a la solicitud.
+    Recibe el ID de la tabla `pedido_especializado`.
+    """
+    # 1. Buscar la solicitud especializada
+    pedido_esp = (
+        db.query(PedidoEspecializado)
+        .options(
+            joinedload(PedidoEspecializado.pedido).joinedload(Pedido.cliente),
+            joinedload(PedidoEspecializado.registro_mascota).joinedload(RegistroMascota.especie),
+            joinedload(PedidoEspecializado.receta_medica),
+        )
+        .filter(PedidoEspecializado.id == pedido_id)
+        .first()
+    )
+
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+
+    mascota = pedido_esp.registro_mascota
+    pedido = pedido_esp.pedido
+
+    # 2. Cargar historial clínico detallado de la mascota
+    alergias = db.query(AlergiaMascota).options(joinedload(AlergiaMascota.alergia_especie)).filter(AlergiaMascota.registro_mascota_id == mascota.id).all()
+    condiciones = db.query(CondicionSalud).filter(CondicionSalud.registro_mascota_id == mascota.id).all()
+    preferencias = db.query(PreferenciaAlimentaria).filter(PreferenciaAlimentaria.registro_mascota_id == mascota.id).all()
+    desc_alergias = db.query(DescripcionAlergias).filter(DescripcionAlergias.registro_mascota_id == mascota.id).order_by(DescripcionAlergias.fecha.desc()).first()
+
+    # 3. Construir respuesta estructurada
+    return {
+        "id": str(pedido_esp.id),
+        "pedido": {
+            "id": str(pedido.id),
+            "fecha": pedido.fecha.isoformat(),
+            "estado": pedido.estado,
+            "cliente": {
+                "id": str(pedido.cliente.id),
+                "nombre": pedido.cliente.nombre,
+                "telefono": pedido.cliente.telefono,
+            }
+        },
+        "pedido_especializado": {
+            "objetivo_dieta": pedido_esp.objetivo_dieta,
+            "frecuencia_cantidad": pedido_esp.frecuencia_cantidad,
+            "indicaciones": pedido_esp.indicaciones_adicionales,
+            "archivo_adicional": pedido_esp.archivo_adicional
+        },
+        "mascota": {
+            "id": str(mascota.id),
+            "nombre": mascota.nombre,
+            "especie": mascota.especie.nombre if mascota.especie else "",
+            "raza": mascota.raza,
+            "edad": mascota.edad,
+            "peso": float(mascota.peso) if mascota.peso else 0,
+            "sexo": mascota.sexo,
+            "foto": mascota.foto
+        },
+        "detalles_nutricionales": {
+            "alergias": [
+                {"id": str(a.id), "alergia": a.alergia_especie.nombre, "severidad": a.severidad} 
+                for a in alergias if a.alergia_especie
+            ],
+            "descripcion_alergias": desc_alergias.descripcion if desc_alergias else None,
+            "condiciones_salud": [c.nombre for c in condiciones],
+            "preferencias": [p.nombre for p in preferencias]
+        },
+        "archivos": {
+            "recetas": [r.archivo for r in pedido_esp.receta_medica]
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/revisar
 # ---------------------------------------------------------------------------
-# Permite al nutricionista registrar una revisión:
-# Campos: observaciones, recomendaciones, aprobado (bool).
-# Si se aprueba, se actualiza el estado del pedido especializado.
 @router.post("/pedidos/{pedido_id}/revisar")
-def revisar_pedido_especializado(pedido_id: str):
-    pass
+def revisar_pedido_especializado(
+    pedido_id: str,
+    revision: RevisionSchema,
+    db: Session = Depends(get_db)
+):
+    """
+    Guarda la revisión profesional:
+    1. Crea registro en 'Consulta'.
+    2. Actualiza el estado del pedido a 'atendido' (si se aprueba) u 'observado'.
+    """
+    # Buscar solicitud
+    pedido_esp = db.query(PedidoEspecializado).filter(PedidoEspecializado.id == pedido_id).first()
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+
+    # Asignar al primer nutricionista disponible (en producción usaríamos el token del usuario logueado)
+    nutri = db.query(Nutricionista).first()
+    nutri_id = nutri.id if nutri else None
+
+    # 1. Crear Consulta Médica
+    nueva_consulta = Consulta(
+        id=keygen.generate_uint64_key(),
+        registro_mascota_id=pedido_esp.registro_mascota_id,
+        nutricionista_id=nutri_id,
+        fecha=datetime.now(),
+        observaciones=revision.observaciones,
+        recomendaciones=revision.recomendaciones,
+        estado_registro="A"
+    )
+    db.add(nueva_consulta)
+
+    # 2. Actualizar estado del pedido
+    pedido = db.query(Pedido).filter(Pedido.id == pedido_esp.pedido_id).first()
+    if pedido:
+        pedido.estado = "atendido" if revision.aprobado else "observado"
+
+    db.commit()
+
+    return {
+        "mensaje": "Revisión guardada exitosamente.",
+        "consulta_id": str(nueva_consulta.id),
+        "nuevo_estado_pedido": pedido.estado
+    }
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/pedidos/{pedido_id}/receta
 # ---------------------------------------------------------------------------
-# Adjunta o actualiza una receta médica relacionada a un pedido especializado.
-# Permite subir un archivo (PDF, imagen, etc.) que se guarda en el servidor.
 @router.post("/pedidos/{pedido_id}/receta")
-def subir_receta_medica(pedido_id: str, archivo: UploadFile):
-    pass
+def subir_receta_medica(
+    pedido_id: str,
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Sube un archivo de receta médica y lo vincula al pedido especializado.
+    """
+    pedido_esp = db.query(PedidoEspecializado).filter(PedidoEspecializado.id == pedido_id).first()
+    if not pedido_esp:
+        raise HTTPException(status_code=404, detail="Pedido especializado no encontrado.")
+
+    # Guardar archivo
+    uploads_dir = os.path.join("static", "uploads", "recetas")
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    filename = f"receta_{pedido_id}_{archivo.filename}"
+    file_path = os.path.join(uploads_dir, filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(archivo.file.read())
+
+    # Crear registro en BD
+    nueva_receta = RecetaMedica(
+        id=keygen.generate_uint64_key(),
+        registro_mascota_id=pedido_esp.registro_mascota_id,
+        pedido_especializado_id=pedido_esp.id,
+        fecha=datetime.now(),
+        archivo=file_path,
+        estado_registro="A"
+    )
+    db.add(nueva_receta)
+    db.commit()
+
+    return {"mensaje": "Receta subida correctamente.", "archivo": file_path}
 
 
 # ---------------------------------------------------------------------------
 # POST /nutricionista/platos/personalizados
 # ---------------------------------------------------------------------------
-# Crea un nuevo plato personalizado asociado a una mascota específica.
-# Campos: nombre, descripcion, precio, especie_id, registro_mascota_id, imagen (opcional).
-# Estos platos no se publican globalmente.
 @router.post("/platos/personalizados")
-def crear_plato_personalizado(imagen: UploadFile = None):
-    pass
+def crear_plato_personalizado(
+    nombre: str = Form(...),
+    descripcion: str = Form(...),
+    precio: float = Form(...),
+    especie_id: str = Form(...),
+    registro_mascota_id: str = Form(..., description="ID de la mascota específica"),
+    imagen: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un plato exclusivo para una mascota.
+    """
+    # 1. Crear el plato combinado (oculto al público)
+    plato_id = keygen.generate_uint64_key()
+    
+    imagen_path = None
+    if imagen:
+        uploads_dir = os.path.join("static", "uploads", "platos_personalizados")
+        os.makedirs(uploads_dir, exist_ok=True)
+        imagen_path = os.path.join(uploads_dir, f"plato_{plato_id}_{imagen.filename}")
+        with open(imagen_path, "wb") as f:
+            f.write(imagen.file.read())
+
+    nuevo_plato = PlatoCombinado(
+        id=plato_id,
+        nombre=nombre,
+        descripcion=descripcion,
+        precio=precio,
+        especie_id=especie_id,
+        imagen=imagen_path,
+        incluye_plato=1,
+        es_crudo=1,
+        publicado=0, # Oculto en el menú general
+        creado_nutricionista=1, # Flag importante
+        estado_registro="A"
+    )
+    db.add(nuevo_plato)
+    db.flush()
+
+    # 2. Vincularlo específicamente a la mascota
+    link = PlatoPersonal(
+        id=keygen.generate_uint64_key(),
+        plato_combinado_id=plato_id,
+        registro_mascota_id=registro_mascota_id
+    )
+    db.add(link)
+    db.commit()
+
+    return {
+        "mensaje": "Plato personalizado creado.",
+        "plato_id": str(plato_id),
+        "nombre": nombre
+    }
 
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/platos/personalizados/{mascota_id}
 # ---------------------------------------------------------------------------
-# Lista los platos personalizados creados para una mascota específica.
 @router.get("/platos/personalizados/{mascota_id}")
-def listar_platos_personalizados(mascota_id: str):
-    pass
+def listar_platos_personalizados(mascota_id: str, db: Session = Depends(get_db)):
+    """
+    Lista los platos únicos creados para una mascota.
+    """
+    platos_personales = (
+        db.query(PlatoPersonal)
+        .options(joinedload(PlatoPersonal.plato_combinado))
+        .filter(PlatoPersonal.registro_mascota_id == mascota_id)
+        .all()
+    )
+
+    resultado = []
+    for pp in platos_personales:
+        plato = pp.plato_combinado
+        resultado.append({
+            "id": str(plato.id),
+            "nombre": plato.nombre,
+            "descripcion": plato.descripcion,
+            "precio": float(plato.precio),
+            "imagen": plato.imagen
+        })
+
+    return {"total": len(resultado), "platos": resultado}
 
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/historial
 # ---------------------------------------------------------------------------
-# Devuelve el historial de pedidos revisados por el nutricionista.
-# Incluye fecha, mascota, cliente y resultado (aprobado/rechazado).
 @router.get("/historial")
-def listar_historial_revisiones():
-    pass
+def listar_historial_revisiones(db: Session = Depends(get_db)):
+    """
+    Lista el historial de consultas realizadas por los nutricionistas.
+    """
+    consultas = (
+        db.query(Consulta)
+        .options(
+            joinedload(Consulta.registro_mascota).joinedload(RegistroMascota.cliente),
+            joinedload(Consulta.nutricionista)
+        )
+        .order_by(Consulta.fecha.desc())
+        .all()
+    )
+
+    resultado = []
+    for c in consultas:
+        mascota = c.registro_mascota
+        cliente = mascota.cliente if mascota else None
+        
+        resultado.append({
+            "consulta_id": str(c.id),
+            "fecha": c.fecha.isoformat(),
+            "mascota": mascota.nombre if mascota else "Desconocido",
+            "cliente": cliente.nombre if cliente else "Desconocido",
+            "observaciones": c.observaciones,
+            "nutricionista": c.nutricionista.nombre if c.nutricionista else "Sin asignar"
+        })
+
+    return {"total": len(resultado), "historial": resultado}
