@@ -1,10 +1,9 @@
-// Archivo: services/authService.js
+// frontend/services/authService.js - VERSIÓN CORREGIDA
 
-import api from './api'; // Importamos nuestra instancia configurada de axios
+import api from './api';
 
 /**
  * Función para iniciar sesión.
- * Llama al endpoint POST /auth/login.
  * @param {string} correo 
  * @param {string} contrasena 
  * @returns {Promise<Object>} 
@@ -17,15 +16,14 @@ export const login = async (correo, contrasena) => {
     });
     return response.data; 
   } catch (error) {
-    console.error('Error en el servicio de login:', error.response ? error.response.data : error.message);
+    console.error('❌ Error en login:', error.response?.data || error.message);
     throw error;
   }
 };
 
 /**
  * Función para registrar un nuevo usuario.
- * Llama al endpoint POST /auth/register.
- * @param {Object} userData - Objeto con { nombre, correo, contrasena }.
+ * @param {Object} userData - { nombre, correo, contrasena }
  * @returns {Promise<Object>}
  */
 export const register = async (userData) => {
@@ -33,7 +31,7 @@ export const register = async (userData) => {
     const response = await api.post('/auth/register', userData);
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio de registro:', error.response ? error.response.data : error.message);
+    console.error('❌ Error en registro:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -45,39 +43,61 @@ export const register = async (userData) => {
  */
 export const getClienteProfile = async (clienteId) => {
   try {
-    if (!clienteId) throw new Error("ID de cliente es requerido");
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
+
+    console.log('📥 Obteniendo perfil para cliente:', clienteId);
     const response = await api.get(`/cliente/id/${clienteId}`);
+    
+    console.log('✅ Perfil obtenido:', response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Error al obtener perfil del cliente:', error.response?.data || error.message);
+    console.error('❌ Error al obtener perfil:', error.response?.data || error.message);
     throw error;
   }
 };
 
 /**
- * 🔹 Actualiza el perfil del cliente.
+ * Actualiza el perfil del cliente (VERSIÓN CORREGIDA).
  * Endpoint: PUT /cliente/{cliente_id}
  * Acepta nombre, telefono y un archivo foto (multipart/form-data).
  *
- * @param {number} clienteId
- * @param {string} nombre
- * @param {string} telefono
- * @param {object | null} fotoUri { uri, mimeType, name }
+ * @param {string} clienteId - ID del cliente
+ * @param {Object} updateData - { nombre, telefono }
+ * @param {Object|null} photo - Objeto con { uri, type, name } o null
  * @returns {Promise<object>}
  */
-export const updateClientProfile = async (clienteId, nombre, telefono, fotoUri) => {
+export const updateClientProfile = async (clienteId, updateData, photo = null) => {
   try {
-    const formData = new FormData();
-    formData.append('nombre', nombre);
-    formData.append('telefono', telefono);
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
 
-    if (fotoUri) {
+    console.log('💾 Actualizando perfil:', clienteId);
+    console.log('📝 Datos a actualizar:', updateData);
+
+    // Crear FormData
+    const formData = new FormData();
+    formData.append('nombre', updateData.nombre);
+    formData.append('telefono', updateData.telefono);
+
+    // Agregar foto si existe
+    if (photo && photo.uri && !photo.uri.startsWith('http')) {
+      console.log('📸 Agregando foto al FormData');
+      
+      // Extraer extensión del archivo
+      const uriParts = photo.uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
       formData.append('foto', {
-        uri: fotoUri.uri,
-        type: fotoUri.mimeType,
-        name: fotoUri.name,
+        uri: photo.uri,
+        type: `image/${fileType}`,
+        name: `profile_${clienteId}.${fileType}`,
       });
     }
+
+    console.log('📤 Enviando actualización...');
 
     const response = await api.put(`/cliente/${clienteId}`, formData, {
       headers: {
@@ -85,6 +105,7 @@ export const updateClientProfile = async (clienteId, nombre, telefono, fotoUri) 
       },
     });
 
+    console.log('✅ Perfil actualizado exitosamente');
     return response.data;
   } catch (error) {
     console.error('❌ Error al actualizar perfil:', error.response?.data || error.message);
