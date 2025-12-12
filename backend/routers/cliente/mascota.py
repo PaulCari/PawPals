@@ -18,9 +18,14 @@ from models import (
     AlergiaEspecie,
     CondicionSalud,
     RecetaMedica,
+    Consulta,
+    Nutricionista,
+    PlatoPersonal,
+    PlatoCombinado
 )
 import os
 from datetime import datetime
+
 
 router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 
@@ -33,9 +38,7 @@ def construir_url_imagen(request: Request, ruta_local: str | None):
     if not ruta_local:
         return None
 
-    # Remover 'static/' si está al inicio
     ruta_limpia = ruta_local.replace("static/", "").replace("static\\", "")
-
     base_url = str(request.base_url).rstrip("/")
 
     return f"{base_url}/static/{ruta_limpia}"
@@ -182,13 +185,16 @@ def obtener_detalle_mascota(
     request: Request,
     db: Session = Depends(get_db),
 ):
+
     mascota = (
         db.query(RegistroMascota)
         .options(
             joinedload(RegistroMascota.especie),
-            joinedload(RegistroMascota.alergia_mascota),
+            joinedload(RegistroMascota.alergia_mascota).joinedload(AlergiaMascota.alergia_especie),
             joinedload(RegistroMascota.condicion_salud),
             joinedload(RegistroMascota.receta_medica),
+            joinedload(RegistroMascota.consulta).joinedload(Consulta.nutricionista),
+            joinedload(RegistroMascota.plato_personal).joinedload(PlatoPersonal.plato_combinado)
         )
         .filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A")
         .first()
@@ -211,15 +217,21 @@ def obtener_detalle_mascota(
 
     foto_url = construir_url_imagen(request, ruta_foto)
 
+    # -------------------------------
+    # Alergias
+    # -------------------------------
     alergias = [
         {
             "id": str(a.id),
-            "alergia": a.alergia_especie.nombre if a.alergia_especie else None,
+            "alergia": a.alergia_especie.nombre if a.alergia_especie else "Desconocida",
             "severidad": a.severidad,
         }
         for a in mascota.alergia_mascota
     ]
 
+    # -------------------------------
+    # Condiciones de salud
+    # -------------------------------
     condiciones = [
         {
             "id": str(c.id),
@@ -230,6 +242,9 @@ def obtener_detalle_mascota(
         for c in mascota.condicion_salud
     ]
 
+    # -------------------------------
+    # Recetas médicas
+    # -------------------------------
     recetas = [
         {
             "id": str(r.id),
@@ -239,6 +254,36 @@ def obtener_detalle_mascota(
         }
         for r in mascota.receta_medica
     ]
+
+    # -------------------------------
+    # Historial nutricional (consultas)
+    # -------------------------------
+    historial_consultas = []
+    consultas_ordenadas = sorted(mascota.consulta, key=lambda x: x.fecha, reverse=True)
+
+    for c in consultas_ordenadas:
+        historial_consultas.append({
+            "id": str(c.id),
+            "fecha": c.fecha.isoformat(),
+            "nutricionista": c.nutricionista.nombre if c.nutricionista else "Especialista",
+            "diagnostico": c.observaciones,
+            "plan_nutricional": c.recomendaciones
+        })
+
+    # -------------------------------
+    # Menús personalizados (platos)
+    # -------------------------------
+    menus_asignados = []
+    for pp in mascota.plato_personal:
+        plato = pp.plato_combinado
+        if plato:
+            menus_asignados.append({
+                "id": str(plato.id),
+                "nombre": plato.nombre,
+                "descripcion": plato.descripcion,
+                "precio": float(plato.precio),
+                "imagen": plato.imagen
+            })
 
     return {
         "id": str(mascota.id),
@@ -251,6 +296,8 @@ def obtener_detalle_mascota(
         "alergias": alergias,
         "condiciones_salud": condiciones,
         "recetas_medicas": recetas,
+        "historial_nutricional": historial_consultas,
+        "menus_personalizados": menus_asignados,
         "observaciones": mascota.observaciones,
     }
 
