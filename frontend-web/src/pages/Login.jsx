@@ -82,9 +82,14 @@ const Login = () => {
           </div>
 
           <button
-            type="submit"
+           type="submit"
             disabled={loading}
-            className={`w-full bg-paw-orange text-white py-2.5 rounded-lg font-bold hover:bg-orange-500 transition shadow-md ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            // CORREGIDO: Usamos colores hexadecimales directos o clases estándar para asegurar que se vea
+            className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transition transform hover:scale-[1.02] active:scale-95 ${
+              loading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-[#FF8C42] hover:bg-[#e67e3a]' // Color Naranja directo
+            }`}
           >
             {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>

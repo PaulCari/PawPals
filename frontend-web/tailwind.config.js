@@ -7,15 +7,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        'paw-dark': '#2A1B4E',      // El morado oscuro del sidebar
-        'paw-dark-light': '#3D2C66', // Un tono más claro para items activos
-        'paw-purple': '#875686',    // Tu morado de marca original (botones acciones)
-        'paw-yellow': '#FFC107',    // El amarillo/dorado de los botones
-        'paw-gray': '#F3F4F6',      // Fondo gris claro
-        'paw-text-muted': '#A0AEC0', // Texto gris en fondo oscuro
-      },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'], // Recomendado (puedes dejar el default)
+        'paw-dark': '#2A1B4E',       // Morado Oscuro (Sidebar)
+        'paw-dark-light': '#3D2C66', // Morado medio
+        'paw-purple': '#875686',     // Morado Marca
+        'paw-yellow': '#FFC107',     // Amarillo/Dorado (Botones)
+        'paw-orange': '#FF8C42',     // Naranja (Botones Login)
+        'paw-gray': '#F3F4F6',       // Gris de fondo
+        'paw-text-muted': '#A0AEC0', // Texto gris suave
       }
     },
   },
