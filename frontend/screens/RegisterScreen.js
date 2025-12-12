@@ -143,13 +143,19 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput style={styles.input} placeholder="Contraseña (6-72 caracteres)" value={contrasena} onChangeText={setContrasena} secureTextEntry maxLength={72} />
       <TextInput style={styles.input} placeholder="Repetir Contraseña" value={confirmContrasena} onChangeText={setConfirmContrasena} secureTextEntry maxLength={72} />
       
-      <TouchableOpacity 
-        style={[styles.buttonPrimary, (!isFormValid || isLoading) && styles.buttonDisabled]}
-        onPress={handleNextStep}
-        disabled={!isFormValid || isLoading}
-      >
-        {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Siguiente</Text>}
-      </TouchableOpacity>
+<TouchableOpacity 
+  style={[styles.button, styles.buttonPrimary, (!isFormValid || isLoading) && styles.buttonDisabled]}
+  onPress={handleNextStep}
+  disabled={!isFormValid || isLoading}
+>
+  {isLoading ? (
+    <ActivityIndicator color="#fff" />
+  ) : (
+    <Text style={!isFormValid ? styles.buttonTextDisabled : styles.buttonText}>
+      Siguiente
+    </Text>
+  )}
+</TouchableOpacity>
     </>
   );
 

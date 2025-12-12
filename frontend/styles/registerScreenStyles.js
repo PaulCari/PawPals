@@ -104,4 +104,10 @@ export const styles = StyleSheet.create({
   progressDotActive: {
     backgroundColor: PRIMARY_PURPLE,
   },
+buttonTextDisabled: {
+  color: '#666', // gris oscuro visible
+  fontSize: 18,
+  fontWeight: 'bold',
+},
+
 });
