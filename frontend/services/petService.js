@@ -1,21 +1,13 @@
 // frontend/services/petService.js
+
 import api from './api';
+import { Platform } from 'react-native';
 
 /**
  * Registra una nueva mascota para un cliente específico.
- * 
- * @param {string} clienteId - ID del cliente propietario
- * @param {Object} petData - Datos de la mascota
- * @param {string} petData.nombre - Nombre de la mascota
- * @param {string} petData.especie_id - ID de la especie (1 = perro, 2 = gato, etc.)
- * @param {string} petData.raza - Raza de la mascota
- * @param {number} petData.edad - Edad de la mascota en años
- * @param {string} petData.sexo - Sexo: 'M' (macho) o 'H' (hembra)
- * @returns {Promise<Object>} Respuesta del servidor con los datos de la mascota creada
  */
 export const createPet = async (clienteId, petData) => {
   try {
-    // Crear el FormData para enviar los datos
     const formData = new FormData();
     formData.append('nombre', petData.nombre);
     formData.append('especie_id', petData.especie_id);
@@ -23,15 +15,10 @@ export const createPet = async (clienteId, petData) => {
     formData.append('edad', petData.edad.toString());
     formData.append('sexo', petData.sexo);
 
-    // Hacer la petición POST al backend
     const response = await api.post(
       `/cliente/mascotas/${clienteId}`,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
 
     return response.data;
@@ -43,7 +30,6 @@ export const createPet = async (clienteId, petData) => {
 
 /**
  * Obtiene la lista de especies disponibles.
- * @returns {Promise<Array>} Lista de especies (perro, gato, etc.)
  */
 export const getSpecies = async () => {
   try {
@@ -57,8 +43,6 @@ export const getSpecies = async () => {
 
 /**
  * Obtiene todas las mascotas de un cliente.
- * @param {string} clienteId - ID del cliente
- * @returns {Promise<Array>} Lista de mascotas del cliente
  */
 export const getPetsByCliente = async (clienteId) => {
   try {
@@ -72,8 +56,6 @@ export const getPetsByCliente = async (clienteId) => {
 
 /**
  * Obtiene el detalle completo de una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @returns {Promise<Object>} Detalle de la mascota
  */
 export const getPetDetail = async (mascotaId) => {
   try {
@@ -87,9 +69,6 @@ export const getPetDetail = async (mascotaId) => {
 
 /**
  * Actualiza los datos de una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @param {Object} updateData - Datos a actualizar
- * @returns {Promise<Object>} Respuesta del servidor
  */
 export const updatePet = async (mascotaId, updateData) => {
   try {
@@ -104,15 +83,29 @@ export const updatePet = async (mascotaId, updateData) => {
       const uriParts = updateData.foto.uri.split('.');
       const fileType = uriParts[uriParts.length - 1];
       
-      formData.append('foto', {
-        uri: updateData.foto.uri,
+      const fileToSend = {
+        uri: Platform.OS === 'ios' ? updateData.foto.uri.replace('file://', '') : updateData.foto.uri,
         name: `pet_${mascotaId}.${fileType}`,
         type: `image/${fileType}`,
-      });
+      };
+
+      if (Platform.OS === 'web') {
+        // En web, convertir a Blob
+        const response = await fetch(updateData.foto.uri);
+        const blob = await response.blob();
+        formData.append('foto', blob, fileToSend.name);
+      } else {
+        formData.append('foto', fileToSend);
+      }
     }
 
+    // Configuración headers dinámica para web/mobile
+    const headers = { 'Accept': 'application/json' };
+    if (Platform.OS !== 'web') headers['Content-Type'] = 'multipart/form-data';
+
     const response = await api.put(`/cliente/mascotas/${mascotaId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers,
+      transformRequest: Platform.OS === 'web' ? null : (data) => data,
     });
     return response.data;
   } catch (error) {
@@ -123,8 +116,6 @@ export const updatePet = async (mascotaId, updateData) => {
 
 /**
  * Elimina una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @returns {Promise<Object>} Respuesta del servidor
  */
 export const deletePet = async (mascotaId) => {
   try {
@@ -137,17 +128,105 @@ export const deletePet = async (mascotaId) => {
 };
 
 /**
- * Obtiene una lista de razas para una especie específica.
- * @param {string} especieId - El ID de la especie (e.g., '1' para Perro).
- * @returns {Promise<Array<string>>} Una lista de nombres de razas.
+ * Crea un pedido especializado (Solicitud de dieta).
+ * Maneja lógica híbrida para Web y Móvil.
+ */
+export const createSpecializedRequest = async (clienteId, requestData, file = null) => {
+  try {
+    const formData = new FormData();
+    
+    // 1. Datos de texto
+    formData.append('registro_mascota_id', String(requestData.mascotaId));
+    formData.append('objetivo_dieta', requestData.objetivo);
+    formData.append('frecuencia_cantidad', requestData.frecuencia);
+    formData.append('consulta_nutricionista', 'true'); 
+    
+    if (requestData.observaciones) {
+      formData.append('indicaciones_adicionales', requestData.observaciones);
+    }
+
+    // 2. Manejo del Archivo (LÓGICA HÍBRIDA)
+    if (file && file.uri) {
+      const uriParts = file.uri.split('.');
+      let fileType = uriParts[uriParts.length - 1];
+      
+      // Limpieza de extensión para Web (a veces viene con query params o blob:)
+      if (fileType.length > 5 || fileType.includes('/') || fileType.includes(':')) {
+        fileType = "jpg";
+      }
+
+      const filename = `examen_${requestData.mascotaId}.${fileType}`;
+
+      if (Platform.OS === 'web') {
+        // 🌐 WEB: Convertir URI a Blob real
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        
+        // En web, se pasa (Blob, nombre_archivo)
+        formData.append('archivo_adicional', blob, filename);
+      } else {
+        // 📱 MÓVIL: Objeto estándar de React Native
+        let mimeType = 'image/jpeg';
+        if (fileType.toLowerCase() === 'png') mimeType = 'image/png';
+        
+        const uri = Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri;
+
+        formData.append('archivo_adicional', {
+          uri: uri,
+          name: filename,
+          type: mimeType, 
+        });
+      }
+    }
+
+    // 3. Listas vacías
+    formData.append('alergias_ids', '[]');
+    formData.append('condiciones_salud', '[]');
+    formData.append('preferencias_alimentarias', '[]');
+
+    console.log(`📤 Enviando solicitud (Modo: ${Platform.OS})...`);
+
+    // 4. Configuración de Headers (CRUCIAL PARA WEB)
+    const headers = { 'Accept': 'application/json' };
+    
+    // En Web NO poner 'Content-Type': 'multipart/form-data' manual, el navegador lo pone con el boundary.
+    // En Móvil SÍ es necesario a veces para que Axios no se confunda.
+    if (Platform.OS !== 'web') {
+        headers['Content-Type'] = 'multipart/form-data';
+    }
+
+    const response = await api.post(
+      `/cliente/pedido/especializado/${clienteId}`,
+      formData,
+      { 
+        headers: headers,
+        // En Web, transformRequest en null permite que el navegador maneje el FormData nativo.
+        // En Móvil, retornamos data para evitar stringify.
+        transformRequest: Platform.OS === 'web' ? null : (data) => data
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('❌ Error Backend:', JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error('❌ Error código:', error.message);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Obtiene razas.
  */
 export const getBreedsBySpecies = async (especieId) => {
-  if (!especieId) return []; // No hacer la llamada si no hay especie seleccionada
+  if (!especieId) return [];
   try {
     const response = await api.get(`/cliente/platos-mascotas/especies/${especieId}/razas`);
     return response.data;
   } catch (error) {
     console.error('❌ Error al obtener razas:', error.response?.data || error.message);
-    return ["Mestizo"]; // Devolver un valor por defecto en caso de error
+    return ["Mestizo"];
   }
 };

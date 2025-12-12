@@ -1,7 +1,7 @@
 // frontend/AppNavigator.js
 
 import React from 'react';
-import { View } from 'react-native'; // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -26,12 +26,15 @@ import AddAddressScreen from './screens/AddAddressScreen';
 import AddPetScreen from './screens/AddPetScreen';
 import EditPetScreen from './screens/EditPetScreen';
 import UserProfileScreen from './screens/UserProfileScreen';
+import SubscriptionScreen from './screens/SubscriptionScreen';
+import NutritionistScreen from './screens/NutritionistScreen';
+import RequestDietScreen from './screens/RequestDietScreen'; // ✅ NUEVO IMPORT
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 /* ======================================================
-   Stack para Home → Detalle de Producto (SIN CAMBIOS)
+   Stack para Home → Detalle de Producto
 ====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
@@ -44,7 +47,7 @@ function HomeStack({ route }) {
 }
 
 /* ======================================================
-   Navegador de Tabs Principal (CORREGIDO CON EL IMPORT)
+   Navegador de Tabs Principal
 ====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
@@ -68,7 +71,7 @@ function MainTabs({ route }) {
         },
         tabBarLabelStyle: {
           color: 'white',
-          fontSize: 12,
+          fontSize: 10,
           marginBottom: 20,
         },
         tabBarActiveTintColor: '#FF8C42',
@@ -79,14 +82,17 @@ function MainTabs({ route }) {
         },
         tabBarIcon: ({ focused }) => {
           let iconName;
+          
+          // ✅ Lógica de iconos actualizada
           if (route.name === 'HomeStack') iconName = 'home';
+          else if (route.name === 'Nutritionist') iconName = 'nutrition'; // Nuevo icono
           else if (route.name === 'PetProfile') iconName = 'paw';
           else if (route.name === 'Cart') iconName = 'cart';
           else if (route.name === 'Favorites') iconName = 'heart';
 
           if (focused) {
             return (
-              <View // <--- ESTO AHORA FUNCIONARÁ
+              <View
                 style={{
                   backgroundColor: '#FF8C42',
                   width: 60,
@@ -114,16 +120,47 @@ function MainTabs({ route }) {
         },
       })}
     >
-      <Tab.Screen name="HomeStack" component={HomeStack} initialParams={{ clienteId }} options={{ tabBarLabel: 'Inicio' }} />
-      <Tab.Screen name="PetProfile" component={PetProfileScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Perfil Mascota' }} />
-      <Tab.Screen name="Cart" component={CartScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Carrito' }} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Favoritos' }} />
+      <Tab.Screen 
+        name="HomeStack" 
+        component={HomeStack} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Inicio' }} 
+      />
+      
+      {/* ✅ NUEVA PESTAÑA NUTRICIONISTA */}
+      <Tab.Screen 
+        name="Nutritionist" 
+        component={NutritionistScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Nutri' }} 
+      />
+
+      <Tab.Screen 
+        name="PetProfile" 
+        component={PetProfileScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Mascotas' }} 
+      />
+      
+      <Tab.Screen 
+        name="Cart" 
+        component={CartScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Carrito' }} 
+      />
+      
+      <Tab.Screen 
+        name="Favorites" 
+        component={FavoritesScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Favoritos' }} 
+      />
     </Tab.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador Global (SIMPLIFICADO)
+   Navegador Global
 ====================================================== */
 const AppNavigator = () => {
   return (
@@ -146,11 +183,22 @@ const AppNavigator = () => {
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="UploadProof" component={UploadProofScreen} />
         <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+        
+        {/* Modales */}
         <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EditPet" component={EditPetScreen} options={{ presentation: 'modal' }} />
-        {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        
+        {/* Suscripciones */}
+        <Stack.Screen 
+          name="Subscription" 
+          component={SubscriptionScreen} 
+          options={{ presentation: 'modal' }} 
+        />
+
+        {/* ✅ Formulario de Solicitud de Dieta */}
+        <Stack.Screen name="RequestDiet" component={RequestDietScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

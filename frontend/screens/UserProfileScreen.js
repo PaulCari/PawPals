@@ -1,6 +1,6 @@
-// frontend/screens/UserProfileScreen.js - VERSIÓN FINAL CORREGIDA (2)
+// frontend/screens/UserProfileScreen.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native'; // Importante para recargar al volver
 import { getClienteProfile, updateClientProfile } from '../services/authService';
+import { getPetsByCliente } from '../services/petService';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 const UserProfileScreen = ({ navigation, route }) => {
@@ -27,6 +29,11 @@ const UserProfileScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  
+  // Estado para la membresía
+  const [membresia, setMembresia] = useState(null);
+  
+  const [pets, setPets] = useState([]);
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -34,9 +41,11 @@ const UserProfileScreen = ({ navigation, route }) => {
   });
 
   // ========================== CARGAR PERFIL ==========================
-  useEffect(() => {
-    loadProfileData();
-  }, [clienteId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+    }, [clienteId])
+  );
 
   const loadProfileData = async () => {
     if (!clienteId) {
@@ -46,20 +55,30 @@ const UserProfileScreen = ({ navigation, route }) => {
     }
 
     try {
-      setLoading(true);
-      const data = await getClienteProfile(clienteId);
+      // Cargamos perfil y mascotas en paralelo
+      const [profileData, petsResponse] = await Promise.all([
+        getClienteProfile(clienteId),
+        getPetsByCliente(clienteId)
+      ]);
 
       setFormData({
-        nombre: data.nombre || '',
-        telefono: data.telefono || '',
-        correo: data.correo || '',
+        nombre: profileData.nombre || '',
+        telefono: profileData.telefono || '',
+        correo: profileData.correo || '',
       });
 
-      if (data.foto) {
-        setProfilePhoto({ uri: data.foto });
+      if (profileData.foto) {
+        setProfilePhoto({ uri: profileData.foto });
       }
+
+      // Guardamos info de la membresía
+      setMembresia(profileData.membresia_activa);
+      
+      // Guardamos mascotas
+      setPets(petsResponse.mascotas || []);
+
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -70,10 +89,7 @@ const UserProfileScreen = ({ navigation, route }) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permiso requerido',
-          'Necesitamos acceso a tus fotos para cambiar tu imagen de perfil.'
-        );
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a tus fotos.');
         return;
       }
 
@@ -87,8 +103,6 @@ const UserProfileScreen = ({ navigation, route }) => {
       if (result.canceled) return;
 
       const original = result.assets[0].uri;
-
-      // Comprimir
       const manipulated = await manipulateAsync(
         original,
         [{ resize: { width: 800 } }],
@@ -109,11 +123,7 @@ const UserProfileScreen = ({ navigation, route }) => {
   // ========================== GUARDAR ==========================
   const handleSaveChanges = async () => {
     if (!formData.nombre.trim() || !formData.telefono.trim()) {
-      Alert.alert('Campos requeridos', 'El nombre y el teléfono no pueden estar vacíos.');
-      return;
-    }
-    if (formData.telefono.length < 9) {
-      Alert.alert('Teléfono inválido', 'Ingresa un número de teléfono válido.');
+      Alert.alert('Campos requeridos', 'Nombre y teléfono son obligatorios.');
       return;
     }
 
@@ -128,47 +138,42 @@ const UserProfileScreen = ({ navigation, route }) => {
         photoToSend = profilePhoto;
       }
       await updateClientProfile(clienteId, updateData, photoToSend);
-      Alert.alert('¡Éxito!', 'Tu perfil ha sido actualizado correctamente.', [
-        { text: 'OK', onPress: () => loadProfileData() }
-      ]);
+      Alert.alert('¡Éxito!', 'Perfil actualizado correctamente.');
+      loadProfileData(); // Recargar para asegurar consistencia
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'No se pudieron guardar los cambios.';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', 'No se pudieron guardar los cambios.');
     } finally {
       setSaving(false);
     }
   };
 
-  // ========================== LOADING ==========================
+  // ========================== RENDER ==========================
   if (loading) {
     return (
-      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.root} resizeMode="cover">
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text style={styles.loadingText}>Cargando perfil...</Text>
-          </View>
-        </SafeAreaView>
-      </ImageBackground>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#875686" />
+      </View>
     );
   }
 
-  // ========================== UI ==========================
+  // URL API para imágenes (ajusta si es necesario)
+  const API_URL = 'http://localhost:8000';
+
   return (
     <ImageBackground source={require('../assets/FONDOA.png')} style={styles.root} resizeMode="cover">
       <SafeAreaView style={styles.safeArea}>
         
-        {/* === HEADER AL ESTILO HOME === */}
+        {/* HEADER */}
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back-outline" size={32} color="white" />
+            <Ionicons name="arrow-back-outline" size={30} color="white" />
           </TouchableOpacity>
           <Image 
-            source={require('../assets/logo_amarillo.png')} // <-- CAMBIA ESTO POR EL NOMBRE DE TU LOGO
+            source={require('../assets/logo_amarillo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
             <Ionicons name="cart-outline" size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -177,66 +182,80 @@ const UserProfileScreen = ({ navigation, route }) => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {/* === CONTENEDOR PRINCIPAL BLANCO === */}
           <View style={styles.mainContainer}>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* TÍTULO DENTRO DEL CONTENEDOR */}
               <Text style={styles.screenTitle}>Mi Perfil</Text>
 
               {/* FOTO */}
               <View style={styles.photoSection}>
                 <TouchableOpacity style={styles.photoContainer} onPress={handleSelectPhoto}>
                   <Image
-                    source={profilePhoto ? { uri: profilePhoto.uri } : require('../assets/user.png')}
+                    source={profilePhoto ? { uri: profilePhoto.uri.startsWith('http') ? profilePhoto.uri : profilePhoto.uri } : require('../assets/user.png')}
                     style={styles.profileImage}
                   />
                   <View style={styles.editPhotoButton}>
                     <Ionicons name="camera" size={20} color="white" />
                   </View>
                 </TouchableOpacity>
-                <Text style={styles.photoHint}>Toca para cambiar la foto</Text>
               </View>
+
+              {/* === 💎 SECCIÓN MEMBRESÍA (NUEVO) === */}
+              <TouchableOpacity 
+                style={[
+                  styles.membershipCard, 
+                  membresia?.precio > 0 ? styles.premiumBg : styles.basicBg
+                ]}
+                onPress={() => navigation.navigate('Subscription', { clienteId })}
+              >
+                <View style={styles.membershipContent}>
+                  <View>
+                    <Text style={styles.membershipLabel}>PLAN ACTUAL</Text>
+                    <Text style={styles.membershipTitle}>
+                      {membresia?.nombre || 'Básico (Gratis)'}
+                    </Text>
+                  </View>
+                  <View style={styles.upgradeBtn}>
+                    <Text style={styles.upgradeText}>
+                      {membresia?.precio > 0 ? 'GESTIONAR' : 'MEJORAR'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={MAIN_PURPLE} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+              {/* ========================================= */}
 
               {/* FORMULARIO */}
               <View style={styles.formContainer}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nombre completo <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>Nombre completo</Text>
                   <TextInput
                     style={styles.input}
                     value={formData.nombre}
                     onChangeText={(text) => setFormData({ ...formData, nombre: text })}
-                    placeholder="Ej: Juan Pérez"
-                    placeholderTextColor="#999"
                   />
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>Teléfono</Text>
                   <TextInput
                     style={styles.input}
                     value={formData.telefono}
                     onChangeText={(text) => setFormData({ ...formData, telefono: text })}
-                    placeholder="Ej: 987654321"
-                    placeholderTextColor="#999"
                     keyboardType="phone-pad"
-                    maxLength={15}
                   />
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Correo electrónico</Text>
+                  <Text style={styles.label}>Correo (No editable)</Text>
                   <TextInput
                     style={[styles.input, styles.inputDisabled]}
                     value={formData.correo}
                     editable={false}
-                    placeholderTextColor="#999"
                   />
-                  <Text style={styles.hint}>El correo no puede ser modificado</Text>
                 </View>
                 
-                {/* BOTÓN GUARDAR */}
                 <TouchableOpacity
                   style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                   onPress={handleSaveChanges}
@@ -245,13 +264,23 @@ const UserProfileScreen = ({ navigation, route }) => {
                   {saving ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={24} color="white" />
-                      <Text style={styles.saveButtonText}>Guardar Cambios</Text>
-                    </>
+                    <Text style={styles.saveButtonText}>Guardar Cambios</Text>
                   )}
                 </TouchableOpacity>
               </View>
+
+              {/* LISTA RAPIDA DE MASCOTAS */}
+              <View style={styles.petsPreview}>
+                <Text style={styles.sectionTitle}>Mis Mascotas ({pets.length})</Text>
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('PetProfile', { clienteId })}
+                  style={styles.managePetsBtn}
+                >
+                  <Text style={styles.managePetsText}>Gestionar Mascotas</Text>
+                  <Ionicons name="paw" size={16} color="white" />
+                </TouchableOpacity>
+              </View>
+
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -260,156 +289,142 @@ const UserProfileScreen = ({ navigation, route }) => {
   );
 };
 
-// ========================== ESTILOS ==========================
-const MAIN_PURPLE = '#732C71'; // Un morado más oscuro para el texto del título
-const LIGHT_BACKGROUND = '#FFFFFF';
+const MAIN_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
+const YELLOW = '#FFD100';
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: 'transparent' },
-
+  safeArea: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
-    height: 140, // Altura del área morada superior
+    height: 100,
+    marginTop: 20,
   },
-  logo: {
-    width: 160,
-    height: 120,
-  },
+  logo: { width: 140, height: 80 },
 
   mainContainer: {
     flex: 1,
-    backgroundColor: LIGHT_BACKGROUND,
+    backgroundColor: '#fff',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    overflow: 'hidden',
     paddingTop: 30,
   },
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: 50 },
 
   screenTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: MAIN_PURPLE,
     paddingHorizontal: 30,
-    paddingTop: 10,
-    marginBottom: 5,
-  },
-
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-  },
-
-  photoSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  photoContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 4,
-    borderColor: '#fff',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    backgroundColor: '#E0E0E0',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 70,
-  },
-  editPhotoButton: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: ORANGE,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  photoHint: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-
-  formContainer: {
-    paddingHorizontal: 30,
-  },
-  inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+
+  photoSection: { alignItems: 'center', marginBottom: 20 },
+  photoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#eee',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  required: { color: '#FF5A5A' },
-  input: {
-    backgroundColor: '#F7F7F7',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#333',
-  },
-  inputDisabled: {
-    backgroundColor: '#E9E9E9',
-    color: '#888',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 5,
-    fontStyle: 'italic',
+  profileImage: { width: '100%', height: '100%', borderRadius: 60 },
+  editPhotoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: ORANGE,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
   },
 
-  saveButton: {
-    backgroundColor: ORANGE,
+  // ESTILOS MEMBRESIA
+  membershipCard: {
+    marginHorizontal: 30,
+    marginBottom: 25,
+    borderRadius: 15,
+    padding: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  basicBg: { backgroundColor: '#F0F0F0', borderLeftWidth: 5, borderLeftColor: '#999' },
+  premiumBg: { backgroundColor: '#FFF9C4', borderLeftWidth: 5, borderLeftColor: YELLOW }, // Fondo amarillito
+  
+  membershipContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  membershipLabel: { fontSize: 10, fontWeight: 'bold', color: '#666', marginBottom: 2 },
+  membershipTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  
+  upgradeBtn: { 
+    backgroundColor: 'rgba(255,255,255,0.8)', 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginTop: 15,
-    elevation: 4,
-    shadowColor: ORANGE,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    gap: 4
   },
-  saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+  upgradeText: { fontSize: 12, fontWeight: 'bold', color: MAIN_PURPLE },
+
+  // FORMULARIO
+  formContainer: { paddingHorizontal: 30 },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 5 },
+  input: {
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    color: '#333',
   },
+  inputDisabled: { backgroundColor: '#eee', color: '#888' },
+
+  saveButton: {
+    backgroundColor: MAIN_PURPLE,
+    padding: 15,
+    borderRadius: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+
+  // PETS PREVIEW
+  petsPreview: {
+    marginTop: 30,
+    paddingHorizontal: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  managePetsBtn: {
+    backgroundColor: ORANGE,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  managePetsText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
 });
 
-export default UserProfileScreen;
+export default UserProfileScreen; 

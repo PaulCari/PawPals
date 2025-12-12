@@ -4,16 +4,18 @@ import Layout from '../components/Layout';
 import api from '../services/api';
 import { 
   ArrowLeft, Save, AlertTriangle, FileText, 
-  Dog, CheckCircle, XCircle 
+  Dog, CheckCircle, Paperclip, Eye 
 } from 'lucide-react';
 
+// URL Base del Backend para cargar imágenes estáticas
+const BASE_URL = 'http://localhost:8000';
+
 const SolicitudDetalle = () => {
-  const { id } = useParams(); // El ID de la solicitud
+  const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Estado del formulario de respuesta
   const [form, setForm] = useState({
     observaciones: '',
     recomendaciones: '',
@@ -23,7 +25,6 @@ const SolicitudDetalle = () => {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        // Llamamos al endpoint que acabas de arreglar en el backend
         const response = await api.get(`/nutricionista/pedidos/${id}`);
         setData(response.data);
       } catch (error) {
@@ -45,20 +46,29 @@ const SolicitudDetalle = () => {
     try {
       await api.post(`/nutricionista/pedidos/${id}/revisar`, form);
       alert("✅ ¡Revisión guardada y enviada al cliente!");
-      navigate('/'); // Volver al dashboard
+      navigate('/');
     } catch (error) {
       console.error(error);
       alert("Hubo un error al guardar la revisión.");
     }
   };
 
+  // Función para construir la URL de la imagen
+  const getFileUrl = (path) => {
+    if (!path) return null;
+    // Normalizar slashes para Windows/Linux
+    const cleanPath = path.replace(/\\/g, '/');
+    return `${BASE_URL}/${cleanPath}`;
+  };
+
   if (loading) return <div className="p-10 text-center">Cargando expediente...</div>;
   if (!data) return <div className="p-10 text-center">Solicitud no encontrada.</div>;
+
+  const archivoAdjuntoUrl = getFileUrl(data.pedido_especializado.archivo_adicional);
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
-        {/* Header con botón volver */}
         <button 
           onClick={() => navigate(-1)} 
           className="flex items-center text-gray-500 hover:text-paw-purple mb-6 transition"
@@ -70,8 +80,6 @@ const SolicitudDetalle = () => {
           
           {/* === COLUMNA IZQUIERDA: EXPEDIENTE === */}
           <div className="space-y-6">
-            
-            {/* Tarjeta Mascota */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
               <div className="relative inline-block">
                 <img 
@@ -99,7 +107,6 @@ const SolicitudDetalle = () => {
               </div>
             </div>
 
-            {/* Tarjeta Alertas Médicas */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-red-400">
               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <AlertTriangle size={20} className="text-red-500" /> Historial Clínico
@@ -118,22 +125,11 @@ const SolicitudDetalle = () => {
                     ) : <span className="text-gray-500 text-sm">Ninguna registrada</span>}
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Condiciones de Salud</p>
-                  {data.detalles_nutricionales.condiciones_salud.length > 0 ? (
-                    <ul className="list-disc list-inside text-sm text-gray-700">
-                      {data.detalles_nutricionales.condiciones_salud.map((c, i) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  ) : <span className="text-gray-500 text-sm">Sin condiciones previas</span>}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* === COLUMNA DERECHA: TRABAJO DEL NUTRICIONISTA === */}
+          {/* === COLUMNA DERECHA === */}
           <div className="lg:col-span-2 space-y-6">
             
             {/* Detalles de la Solicitud */}
@@ -166,6 +162,42 @@ const SolicitudDetalle = () => {
               </div>
             </div>
 
+            {/* ✅ NUEVA SECCIÓN: VISOR DE ARCHIVOS ADJUNTOS */}
+            {archivoAdjuntoUrl && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+                <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                  <Paperclip size={20} /> Archivos Adjuntos del Cliente
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-500">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-700">Examen / Receta Adjunta</p>
+                      <p className="text-xs text-gray-500">Click para visualizar</p>
+                    </div>
+                  </div>
+                  <a 
+                    href={archivoAdjuntoUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <Eye size={16} /> Ver Archivo
+                  </a>
+                </div>
+                
+                {/* Previsualización si es imagen */}
+                {(archivoAdjuntoUrl.endsWith('.jpg') || archivoAdjuntoUrl.endsWith('.png') || archivoAdjuntoUrl.endsWith('.jpeg')) && (
+                  <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
+                    <img src={archivoAdjuntoUrl} alt="Adjunto" className="w-full h-auto max-h-96 object-contain bg-gray-900" />
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ------------------------------------------------ */}
+
             {/* FORMULARIO DE RESPUESTA */}
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
               <h3 className="text-lg font-bold text-paw-purple mb-6 flex items-center gap-2">
@@ -189,13 +221,12 @@ const SolicitudDetalle = () => {
                   <textarea 
                     rows="5"
                     className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-paw-purple/50 bg-gray-50 transition"
-                    placeholder="Detalla la dieta BARF recomendada, porciones y suplementos..."
+                    placeholder="Detalla la dieta BARF recomendada..."
                     value={form.recomendaciones}
                     onChange={e => setForm({...form, recomendaciones: e.target.value})}
                   />
                 </div>
 
-                {/* Botones de Acción */}
                 <div className="pt-4 flex items-center gap-4 border-t border-gray-100 mt-4">
                   <div className="flex-1">
                     <label className="flex items-center gap-3 cursor-pointer group">
