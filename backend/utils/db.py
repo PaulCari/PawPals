@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # Datos de conexión a MySQL
 DATABASE_URL = "mysql+pymysql://root:@localhost/mascotas"
 # Crea el motor de conexión
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 # Sesión para interactuar con la base de datos
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Clase base para modelos (ORM)

@@ -99,6 +99,17 @@ export const updatePet = async (mascotaId, updateData) => {
     if (updateData.peso) formData.append('peso', updateData.peso.toString());
     if (updateData.raza) formData.append('raza', updateData.raza);
     if (updateData.observaciones) formData.append('observaciones', updateData.observaciones);
+    
+    if (updateData.foto && !updateData.foto.uri.startsWith('http')) {
+      const uriParts = updateData.foto.uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
+      formData.append('foto', {
+        uri: updateData.foto.uri,
+        name: `pet_${mascotaId}.${fileType}`,
+        type: `image/${fileType}`,
+      });
+    }
 
     const response = await api.put(`/cliente/mascotas/${mascotaId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
