@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, joinedload
 from models import Cliente, Especie, RegistroMascota, PedidoEspecializado, AlergiaMascota, AlergiaEspecie, CondicionSalud, RecetaMedica
 import os
 from datetime import datetime
-from models import Consulta, AlergiaMascota, AlergiaEspecie, Nutricionista
+from models import Consulta, AlergiaMascota, AlergiaEspecie, Nutricionista, PlatoPersonal, PlatoCombinado
 
 
 router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
@@ -147,12 +147,14 @@ def obtener_detalle_mascota(
         .options(
             # Carga básica
             joinedload(RegistroMascota.especie),
-            # Carga de alergias corregida para traer el nombre (AlergiaEspecie)
+            # Carga de alergias
             joinedload(RegistroMascota.alergia_mascota).joinedload(AlergiaMascota.alergia_especie),
             joinedload(RegistroMascota.condicion_salud),
             joinedload(RegistroMascota.receta_medica),
-            # NUEVO: Cargar el historial de consultas y el nutricionista asociado
-            joinedload(RegistroMascota.consulta).joinedload(Consulta.nutricionista) 
+            # Cargar el historial de consultas
+            joinedload(RegistroMascota.consulta).joinedload(Consulta.nutricionista),
+            # ✅ NUEVO: Cargar los platos personalizados asignados a esta mascota
+            joinedload(RegistroMascota.plato_personal).joinedload(PlatoPersonal.plato_combinado)
         )
         .filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A")
         .first()
@@ -161,7 +163,7 @@ def obtener_detalle_mascota(
     if not mascota:
         raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
     
-    # Lógica de imagen (se mantiene igual)
+    # Lógica de imagen
     especie_nombre = mascota.especie.nombre if mascota.especie else "Sin especie"
     
     if not mascota.foto:
@@ -206,6 +208,7 @@ def obtener_detalle_mascota(
         for r in mascota.receta_medica
     ]
 
+    # Procesar Historial de Consultas
     historial_consultas = []
     consultas_ordenadas = sorted(mascota.consulta, key=lambda x: x.fecha, reverse=True)
     
@@ -217,6 +220,19 @@ def obtener_detalle_mascota(
             "diagnostico": c.observaciones,      
             "plan_nutricional": c.recomendaciones 
         })
+
+    menus_asignados = []
+    # Ordenar o filtrar si es necesario (aquí tomamos todos)
+    for pp in mascota.plato_personal:
+        plato = pp.plato_combinado
+        if plato:
+            menus_asignados.append({
+                "id": str(plato.id),
+                "nombre": plato.nombre,
+                "descripcion": plato.descripcion,
+                "precio": float(plato.precio),
+                "imagen": plato.imagen
+            })
     
     return {
         "id": str(mascota.id),
@@ -229,7 +245,8 @@ def obtener_detalle_mascota(
         "alergias": alergias,
         "condiciones_salud": condiciones,
         "recetas_medicas": recetas,
-        "historial_nutricional": historial_consultas, # <--- CAMPO AÑADIDO
+        "historial_nutricional": historial_consultas, 
+        "menus_personalizados": menus_asignados, # <--- CAMPO AÑADIDO
         "observaciones": mascota.observaciones,
     }
 

@@ -4,7 +4,7 @@ RUTAS DEL NUTRICIONISTA – REVISIÓN Y APROBACIÓN DE PEDIDOS
 Implementación completa de la lógica de negocio para nutricionistas.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body, Query
 from sqlalchemy.orm import Session, joinedload
 from utils import keygen, globals
 from utils.db import get_db
@@ -16,6 +16,8 @@ from models import (
 )
 from pydantic import BaseModel
 from datetime import datetime
+from typing import List 
+from pydantic import BaseModel
 import os
 
 router = APIRouter(prefix="/nutricionista", tags=["Nutricionista"])
@@ -25,6 +27,82 @@ class RevisionSchema(BaseModel):
     observaciones: str
     recomendaciones: str
     aprobado: bool
+class ItemMix(BaseModel):
+    id: str
+    cantidad: int # Por si quiere poner "2 porciones de pollo"
+
+class CrearMixSchema(BaseModel):
+    registro_mascota_id: str
+    nombre_mix: str
+    items: List[ItemMix]
+    precio_total: float
+    descripcion: str
+# ---------------------------------------------------------------------------
+# GET /nutricionista/items/buscar
+# ---------------------------------------------------------------------------
+@router.get("/items/buscar")
+def buscar_items_para_dieta(q: str = Query(..., min_length=2), db: Session = Depends(get_db)):
+    """
+    Busca productos (platos existentes o ingredientes base) por nombre.
+    """
+    items = (
+        db.query(PlatoCombinado)
+        .filter(
+            PlatoCombinado.nombre.ilike(f"%{q}%"),
+            PlatoCombinado.estado_registro == "A"
+        )
+        .limit(10)
+        .all()
+    )
+    
+    return [
+        {
+            "id": str(i.id),
+            "nombre": i.nombre,
+            "precio": float(i.precio),
+            "categoria": i.categoria.nombre if i.categoria else "General",
+            "imagen": i.imagen
+        }
+        for i in items
+    ]
+
+# ---------------------------------------------------------------------------
+# POST /nutricionista/platos/mix
+# ---------------------------------------------------------------------------
+@router.post("/platos/mix")
+def crear_plato_mix(data: CrearMixSchema, db: Session = Depends(get_db)):
+    """
+    Crea un plato personalizado compuesto por varios items seleccionados.
+    """
+    # 1. Crear el nuevo Plato Combinado (El Mix)
+    mix_id = keygen.generate_uint64_key()
+    
+    
+    nuevo_plato = PlatoCombinado(
+        id=mix_id,
+        nombre=data.nombre_mix,
+        descripcion=data.descripcion, # Ej: "Mix de Pollo + Hígado + Arroz"
+        precio=data.precio_total,
+        incluye_plato=1,
+        es_crudo=1,
+        publicado=0, # Oculto al público general
+        creado_nutricionista=1,
+        estado_registro="A"
+    )
+    db.add(nuevo_plato)
+    db.flush()
+
+    # 2. Vincular a la Mascota (PlatoPersonal)
+    link = PlatoPersonal(
+        id=keygen.generate_uint64_key(),
+        plato_combinado_id=mix_id,
+        registro_mascota_id=data.registro_mascota_id
+    )
+    db.add(link)
+
+    db.commit()
+
+    return {"mensaje": "Mix personalizado creado y asignado.", "plato_id": str(mix_id)}
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes

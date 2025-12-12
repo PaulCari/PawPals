@@ -5,8 +5,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Pacientes from './pages/Pacientes';
 import PacienteDetalle from './pages/PacienteDetalle';
+import CrearDieta from './pages/CrearDieta';
 
-// 👇 IMPORTAMOS EL DASHBOARD REAL (El del diseño bonito)
+
 import Dashboard from './pages/Dashboard'; 
 import SolicitudDetalle from './pages/SolicitudDetalle';
 
@@ -32,6 +33,8 @@ function App() {
         <Route path="/solicitudes/:id" element={<ProtectedRoute><SolicitudDetalle /></ProtectedRoute>} /> {}
         <Route path="/pacientes" element={<ProtectedRoute><Pacientes /></ProtectedRoute>} />
         <Route path="/pacientes/:id" element={<ProtectedRoute><PacienteDetalle /></ProtectedRoute>} />
+        <Route path="/pacientes/:mascotaId/crear-dieta" element={<ProtectedRoute><CrearDieta /></ProtectedRoute>} />
+
         
         <Route 
           path="/" 
