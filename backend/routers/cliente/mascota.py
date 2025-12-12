@@ -26,7 +26,7 @@ router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 
 
 # ---------------------------------------------------------------------------
-# 🔥 FUNCIÓN AUXILIAR PARA CONSTRUIR URL COMPLETA
+#  FUNCIÓN AUXILIAR PARA CONSTRUIR URL COMPLETA
 # ---------------------------------------------------------------------------
 def construir_url_imagen(request: Request, ruta_local: str | None):
     """Construye URL completa para imágenes desde ruta local"""
@@ -254,6 +254,99 @@ def obtener_detalle_mascota(
         "observaciones": mascota.observaciones,
     }
 
+# ---------------------------------------------------------------------------
+# PUT /cliente/mascotas/{mascota_id} - 🔥 ENDPOINT ACTUALIZADO
+# ---------------------------------------------------------------------------
+@router.put("/{mascota_id}")
+def actualizar_mascota(
+    mascota_id: str,
+    request: Request,
+    nombre: Optional[str] = Form(None),
+    edad: Optional[int] = Form(None),
+    peso: Optional[float] = Form(None),
+    raza: Optional[str] = Form(None),
+    observaciones: Optional[str] = Form(None),
+    foto: Optional[UploadFile] = File(None),  # 🔥 FOTO OPCIONAL
+    db: Session = Depends(get_db),
+):
+    """
+    Actualiza los datos de una mascota existente.
+    Permite actualizar: nombre, edad, peso, raza, observaciones y foto.
+    """
+    try:
+        print(f"📥 Recibiendo actualización para mascota: {mascota_id}")
+        
+        # Buscar la mascota
+        mascota = (
+            db.query(RegistroMascota)
+            .filter(RegistroMascota.id == mascota_id)
+            .first()
+        )
+        
+        if not mascota:
+            raise HTTPException(status_code=404, detail="Mascota no encontrada.")
+        
+        # Actualizar campos si se proporcionan
+        if nombre:
+            mascota.nombre = nombre
+        
+        if edad is not None:
+            mascota.edad = edad
+        
+        if peso is not None:
+            mascota.peso = peso
+        
+        if raza:
+            mascota.raza = raza
+        
+        if observaciones is not None:
+            mascota.observaciones = observaciones
+        
+        # 🔥 MANEJO DE FOTO
+        if foto:
+            print(f"📸 Procesando nueva foto: {foto.filename}")
+            
+            uploads_dir = globals.MASCOTA
+            os.makedirs(uploads_dir, exist_ok=True)
+            
+            file_extension = os.path.splitext(foto.filename)[1]
+            filename = f"pet_{mascota_id}_{int(datetime.now().timestamp())}{file_extension}"
+            file_path = os.path.join(uploads_dir, filename)
+            
+            with open(file_path, "wb") as f:
+                f.write(foto.file.read())
+            
+            mascota.foto = file_path
+        
+        # Guardar cambios
+        db.commit()
+        db.refresh(mascota)
+        
+        foto_url = construir_url_imagen(request, mascota.foto)
+
+        return {
+            "mensaje": "Mascota actualizada correctamente.",
+            "mascota": {
+                "id": str(mascota.id),
+                "nombre": mascota.nombre,
+                "edad": mascota.edad,
+                "peso": float(mascota.peso) if mascota.peso else None,
+                "raza": mascota.raza,
+                "observaciones": mascota.observaciones,
+                "foto": foto_url,
+            },
+        }
+    
+    except HTTPException:
+        raise
+    
+    except Exception as e:
+        print(f"❌ Error al actualizar mascota: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al actualizar mascota: {str(e)}"
+        )
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/mascotas/{mascota_id}
