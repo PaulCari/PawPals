@@ -357,12 +357,10 @@ deletePetText: {
     fontWeight: '600',
     marginLeft: 4,
   },
-  customOrderButton: {
+customOrderButton: {
   backgroundColor: ORANGE,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
   paddingVertical: 16,
+  paddingHorizontal: 20,
   borderRadius: 30,
   marginHorizontal: 20,
   marginTop: 25,
@@ -374,13 +372,19 @@ deletePetText: {
   elevation: 6,
 },
 
+customOrderContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
 customOrderButtonText: {
   color: 'white',
   fontSize: 16,
   fontWeight: 'bold',
-  marginLeft: 10,
   textAlign: 'center',
-  flex: 1,
+  marginLeft: 10, // separa un poco el icono del texto
+  lineHeight: 22, // para que las líneas del texto estén bien espaciadas
 },
 
-});
+}); 

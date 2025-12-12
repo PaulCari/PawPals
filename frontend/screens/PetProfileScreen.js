@@ -215,15 +215,17 @@ const PetProfileScreen = ({ navigation, route }) => {
             </View>
 
               
-          <TouchableOpacity
-            style={styles.customOrderButton}
-            onPress={() => navigation.navigate('CustomOrder', { clienteId })}
-          >
-            <Ionicons name="restaurant" size={24} color="white" />
-            <Text style={styles.customOrderButtonText}>
-              Solicitar Plan Nutricional Personalizado
-            </Text>
-          </TouchableOpacity>
+<TouchableOpacity
+  style={styles.customOrderButton}
+  onPress={() => navigation.navigate('CustomOrder', { clienteId })}
+>
+  <View style={styles.customOrderContent}>
+    <Ionicons name="restaurant" size={20} color="white" />
+    <Text style={styles.customOrderButtonText}>
+      Solicitar Plan Nutricional{'\n'}Personalizado
+    </Text>
+  </View>
+</TouchableOpacity>
 
 
             <View style={styles.petsList}>
