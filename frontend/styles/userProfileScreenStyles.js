@@ -357,5 +357,30 @@ deletePetText: {
     fontWeight: '600',
     marginLeft: 4,
   },
+  customOrderButton: {
+  backgroundColor: ORANGE,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 16,
+  borderRadius: 30,
+  marginHorizontal: 20,
+  marginTop: 25,
+  marginBottom: 20,
+  shadowColor: ORANGE,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 6,
+},
+
+customOrderButtonText: {
+  color: 'white',
+  fontSize: 16,
+  fontWeight: 'bold',
+  marginLeft: 10,
+  textAlign: 'center',
+  flex: 1,
+},
 
 });
