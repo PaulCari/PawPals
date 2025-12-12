@@ -9,8 +9,16 @@ from pydantic import BaseModel
 from utils import keygen, security, token_manager
 from models import CuentaUsuario, Cliente, UsuarioRol, Rol
 from datetime import datetime
+from models import Nutricionista
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+class RegisterNutriRequest(BaseModel):
+    nombre: str
+    correo: str
+    contrasena: str
+    telefono: str
+    especialidad: str
+    colegio_veterinario: str
 
 class RegisterRequest(BaseModel):
     nombre: str
@@ -172,6 +180,71 @@ def login_user(data: LoginRequest, db: Session = Depends(get_db)):
             "cliente_id": cliente_id, 
         },
     }
+@router.post("/register/nutricionista")
+def register_nutricionista(data: RegisterNutriRequest, db: Session = Depends(get_db)):
+    """
+    Registra un nuevo NUTRICIONISTA (Rol 3) desde la web.
+    """
+    print(f"Registrando Nutricionista: {data.correo}")
+
+    # Verificar si existe
+    existe = db.query(CuentaUsuario).filter(CuentaUsuario.correo_electronico == data.correo).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+
+    try:
+        user_id = keygen.generate_uint64_key()
+        hashed_pass = security.get_password_hash(data.contrasena)
+
+        # 1. Cuenta Usuario
+        nueva_cuenta = CuentaUsuario(
+            id=user_id,
+            correo_electronico=data.correo,
+            nombre_usuario=data.nombre,
+            contrasena=hashed_pass,
+            estado_registro="A",
+            ultimo_acceso=datetime.now()
+        )
+        db.add(nueva_cuenta)
+
+        # 2. Rol Nutricionista (ID 3)
+        db.add(UsuarioRol(
+            id=keygen.generate_uint64_key(),
+            cuenta_usuario_id=user_id,
+            rol_id=3, # 3 = Nutricionista
+            estado_registro="A"
+        ))
+
+        # 3. Perfil Nutricionista
+        nuevo_perfil = Nutricionista(
+            id=keygen.generate_uint64_key(),
+            cuenta_usuario_id=user_id,
+            nombre=data.nombre,
+            telefono=data.telefono,
+            especialidad=data.especialidad,
+            colegio_veterinario=data.colegio_veterinario,
+            estado_registro="A"
+        )
+        db.add(nuevo_perfil)
+
+        db.commit()
+        
+        # Generar token para autologin
+        token = token_manager.generar_token(user_id, 3)
+
+        return {
+            "mensaje": "Nutricionista registrado exitosamente.",
+            "token": token,
+            "usuario": {
+                "nombre": data.nombre,
+                "rol_id": 3
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error: {e}")
+        raise HTTPException(status_code=500, detail="Error al registrar nutricionista.")
 
 # ---------------------------------------------------------------------------
 # POST /auth/logout
