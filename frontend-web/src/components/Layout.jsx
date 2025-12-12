@@ -3,10 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
-  FileText, 
   Users, 
-  Clock, 
-  Settings, 
   LogOut, 
   Bell, 
   Search,
@@ -17,12 +14,10 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
+  // Menú simplificado: Solo Inicio y Pacientes
   const menuItems = [
     { name: 'Inicio', path: '/', icon: LayoutDashboard },
-    { name: 'Recetas Pendientes', path: '/solicitudes', icon: FileText },
     { name: 'Pacientes', path: '/pacientes', icon: Users },
-    { name: 'Historial de Pedidos', path: '/historial', icon: Clock },
-    { name: 'Configuración', path: '/configuracion', icon: Settings },
   ];
 
   return (
@@ -94,8 +89,8 @@ const Layout = ({ children }) => {
             {/* Perfil Usuario */}
             <div className="flex items-center gap-3 pl-6 border-l border-white/10">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-white">{user?.nombre || "Dra. Sofia"}</p>
-                <p className="text-xs text-paw-text-muted">Especialista</p>
+                <p className="text-sm font-bold text-white">{user?.nombre || "Especialista"}</p>
+                <p className="text-xs text-paw-text-muted">Nutrición</p>
               </div>
               <div className="w-10 h-10 bg-paw-purple rounded-full flex items-center justify-center text-white font-bold border-2 border-paw-dark-light">
                 {user?.nombre?.charAt(0) || "D"}
