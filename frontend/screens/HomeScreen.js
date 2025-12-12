@@ -85,11 +85,9 @@ const HomeScreen = ({ navigation, route }) => {
       {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
 
-        {/* 🔥 Nuevo botón que abre el perfil */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('UserProfile', { clienteId })}
-        >
-          <Ionicons name="person-circle-outline" size={32} color="white" />
+        {/* 🔥 Botón menú (tres rayitas) */}
+        <TouchableOpacity onPress={() => console.log("Menú presionado")}>
+          <Ionicons name="menu-outline" size={32} color="white" />
         </TouchableOpacity>
 
         {/* LOGO */}
@@ -98,14 +96,13 @@ const HomeScreen = ({ navigation, route }) => {
           style={styles.logo}
         />
 
-        {/* 🔥 Botón Carrito (igual que antes) */}
+        {/* 🔥 Botón Carrito */}
         <TouchableOpacity
           onPress={() => navigation.navigate('Cart', { clienteId })}
         >
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
-
       {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>
