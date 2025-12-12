@@ -71,6 +71,9 @@ backend/static/imagenes/cliente/gato.png
 backend/static/imagenes/cliente/perro.png
 backend/static/imagenes/cliente/user.png
 backend/static/imagenes/cliente/user2.png
+backend/static/imagenes/mascota/default.png
+backend/static/imagenes/mascota/gato.png
+backend/static/imagenes/mascota/perro.png
 backend/static/imagenes/plato/barf_pato_gato.png
 backend/static/imagenes/plato/barf_pollo.png
 backend/static/imagenes/plato/barf_ternera.png
@@ -101,6 +104,18 @@ backend/utils/globals.py
 backend/utils/keygen.py
 backend/utils/security.py
 backend/utils/token_manager.py
+frontend-web/.gitignore
+frontend-web/eslint.config.js
+frontend-web/index.html
+frontend-web/package.json
+frontend-web/public/vite.svg
+frontend-web/README.md
+frontend-web/src/App.css
+frontend-web/src/App.jsx
+frontend-web/src/assets/react.svg
+frontend-web/src/index.css
+frontend-web/src/main.jsx
+frontend-web/vite.config.js
 frontend/App.js
 frontend/app.json
 frontend/AppNavigator.js
@@ -127,6 +142,7 @@ frontend/assets/user.png
 frontend/components/AuthContainer.js
 frontend/components/CartBadge.js
 frontend/components/ProductCard.js
+frontend/components/SuccessNotification.js
 frontend/index.js
 frontend/package.json
 frontend/README.md
@@ -134,6 +150,7 @@ frontend/screens/AddAddressScreen.js
 frontend/screens/AddPetScreen.js
 frontend/screens/CartScreen.js
 frontend/screens/CheckoutScreen.js
+frontend/screens/EditPetScreen.js
 frontend/screens/FavoritesScreen.js
 frontend/screens/HomeScreen.js
 frontend/screens/LoginScreen.js
@@ -2201,21 +2218,13 @@ def ver_carrito(cliente_id: str, db: Session = Depends(get_db)):
 </file>
 
 <file path="backend/routers/cliente/cliente.py">
-"""
-RUTAS DEL CLIENTE – PERFIL Y DATOS PERSONALES
-----------------------------------------------
-Módulo que gestiona toda la información relacionada al cliente:
-- Perfil personal y actualización de datos.
-- Consulta de membresía activa (subscripción).
-- Gestión de direcciones de entrega (CRUD).
-- Manejo de imágenes de perfil.
-"""
+# backend/routers/cliente/cliente.py - VERSIÓN CORREGIDA
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente, Direccion  # ✅ IMPORTAR Direccion
+from models import Cliente, Direccion
 import os
 
 router = APIRouter(prefix="/cliente", tags=["Cliente"])
@@ -2225,6 +2234,11 @@ router = APIRouter(prefix="/cliente", tags=["Cliente"])
 # ---------------------------------------------------------------------------
 @router.get("/id/{cliente_id}")
 def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
+    """
+    Obtiene el perfil completo de un cliente.
+    """
+    print(f"📥 Obteniendo perfil para cliente: {cliente_id}")
+    
     cliente = (
         db.query(Cliente)
         .options(
@@ -2241,8 +2255,14 @@ def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
 
     cuenta = cliente.cuenta_usuario
     membresia = cliente.membresia_subscripcion
-    foto_path = cliente.foto or os.path.join(globals.CLIENTE, "default.png")
-
+    
+    # 🔥 CORRECCIÓN: Construir URL completa para la foto
+    foto_url = None
+    if cliente.foto:
+        # Limpiar ruta: eliminar 'static/' del inicio si existe
+        foto_path = cliente.foto.replace('static/', '').replace('static\\', '')
+        foto_url = f"{globals.CLIENTE}{os.path.basename(foto_path)}"
+    
     direcciones = [
         {
             "id": str(d.id),
@@ -2255,12 +2275,12 @@ def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
         for d in cliente.direccion if d.estado_registro == "A"
     ]
 
-    return {
+    response = {
         "id": str(cliente.id),
         "nombre": cliente.nombre,
         "telefono": cliente.telefono,
         "correo": cuenta.correo_electronico if cuenta else None,
-        "foto": foto_path,
+        "foto": foto_url,
         "membresia_activa": {
             "id": str(membresia.id),
             "nombre": membresia.nombre,
@@ -2269,44 +2289,88 @@ def obtener_perfil_cliente(cliente_id: str, db: Session = Depends(get_db)):
         } if membresia else None,
         "direcciones": direcciones,
     }
+    
+    print(f"✅ Perfil obtenido: {cliente.nombre}")
+    return response
 
 # ---------------------------------------------------------------------------
-# PUT /cliente/{cliente_id}
+# PUT /cliente/{cliente_id} - VERSIÓN CORREGIDA
 # ---------------------------------------------------------------------------
 @router.put("/{cliente_id}")
 def actualizar_datos_cliente(
     cliente_id: str,
     nombre: str = Form(...),
     telefono: str = Form(...),
-    correo: str = Form(None),
     foto: UploadFile | None = None,
     db: Session = Depends(get_db),
 ):
-    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    """
+    Actualiza los datos del cliente.
+    El correo NO se puede modificar.
+    """
+    print(f"💾 Actualizando cliente: {cliente_id}")
+    print(f"   Nombre: {nombre}")
+    print(f"   Teléfono: {telefono}")
+    print(f"   Foto: {'Sí' if foto else 'No'}")
+    
+    # Buscar cliente
+    cliente = (
+        db.query(Cliente)
+        .options(joinedload(Cliente.cuenta_usuario))
+        .filter(Cliente.id == cliente_id)
+        .first()
+    )
+    
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
 
-    cliente.nombre = nombre
-    cliente.telefono = telefono
+    # Actualizar datos básicos
+    cliente.nombre = nombre.strip()
+    cliente.telefono = telefono.strip()
 
-    if correo and cliente.cuenta_usuario:
-        cliente.cuenta_usuario.correo_electronico = correo
-
-    uploads_dir = globals.CLIENTE
-    os.makedirs(uploads_dir, exist_ok=True)
-
+    # 🔥 MANEJO DE FOTO MEJORADO
     if foto:
-        filename = f"cliente_{cliente_id}_{foto.filename}"
-        file_path = os.path.join(uploads_dir, filename)
-        with open(file_path, "wb") as f:
-            f.write(foto.file.read())
-        cliente.foto = file_path
-    else:
-        if not cliente.foto:
-            cliente.foto = os.path.join(uploads_dir, "default.png")
+        try:
+            # Crear directorio si no existe
+            uploads_dir = globals.CLIENTE
+            os.makedirs(uploads_dir, exist_ok=True)
 
-    db.commit()
-    db.refresh(cliente)
+            # Generar nombre único
+            filename = f"cliente_{cliente_id}_{foto.filename}"
+            file_path = os.path.join(uploads_dir, filename)
+
+            # Guardar archivo
+            with open(file_path, "wb") as f:
+                f.write(foto.file.read())
+            
+            # Guardar solo la ruta relativa
+            cliente.foto = file_path
+            print(f"✅ Foto guardada: {file_path}")
+            
+        except Exception as e:
+            print(f"❌ Error al guardar foto: {str(e)}")
+            # No fallar si hay error con la foto
+            pass
+    else:
+        # Si no se envía foto, mantener la actual o usar default
+        if not cliente.foto:
+            cliente.foto = os.path.join(globals.CLIENTE, "user.png")
+
+    # Guardar cambios
+    try:
+        db.commit()
+        db.refresh(cliente)
+        print("✅ Cliente actualizado correctamente")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al guardar: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al actualizar el cliente.")
+
+    # Construir URL de foto
+    foto_url = None
+    if cliente.foto:
+        foto_path = cliente.foto.replace('static/', '').replace('static\\', '')
+        foto_url = f"{globals.CLIENTE}{os.path.basename(foto_path)}"
 
     return {
         "mensaje": "Datos del cliente actualizados correctamente.",
@@ -2315,7 +2379,7 @@ def actualizar_datos_cliente(
             "nombre": cliente.nombre,
             "telefono": cliente.telefono,
             "correo": cliente.cuenta_usuario.correo_electronico if cliente.cuenta_usuario else None,
-            "foto": cliente.foto,
+            "foto": foto_url,
         },
     }
 
@@ -2347,7 +2411,7 @@ def obtener_membresia_cliente(cliente_id: str, db: Session = Depends(get_db)):
     }
 
 # ---------------------------------------------------------------------------
-# POST /cliente/{cliente_id}/direccion - ✅ FUNCIÓN ÚNICA Y CORREGIDA
+# POST /cliente/{cliente_id}/direccion
 # ---------------------------------------------------------------------------
 @router.post("/{cliente_id}/direccion")
 def crear_direccion(
@@ -2360,19 +2424,17 @@ def crear_direccion(
     db: Session = Depends(get_db),
 ):
     try:
-        print(f"📥 Recibiendo dirección para cliente {cliente_id}")
+        print(f"🔥 Recibiendo dirección para cliente {cliente_id}")
         print(f"   Nombre: {nombre}")
         print(f"   Lat/Lng: {latitud}, {longitud}")
         print(f"   Es principal: {es_principal}")
         
-        # Verificar que el cliente existe
         cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado.")
         
         print(f"✅ Cliente encontrado: {cliente.nombre}")
         
-        # Si es principal, desmarcar todas las demás
         if es_principal:
             print("🔄 Desmarcando otras direcciones principales...")
             db.query(Direccion).filter(
@@ -2380,7 +2442,6 @@ def crear_direccion(
             ).update({"es_principal": False})
             db.flush()
         
-        # Crear nueva dirección
         direccion_id = keygen.generate_uint64_key()
         print(f"🆔 ID generado: {direccion_id}")
         
@@ -2409,7 +2470,6 @@ def crear_direccion(
         
         print(f"✅ Dirección guardada exitosamente: {direccion.id}")
         
-        # Devolver objeto completo
         return {
             "mensaje": "Dirección registrada correctamente.",
             "direccion": {
@@ -2423,11 +2483,9 @@ def crear_direccion(
         }
     
     except HTTPException:
-        # Re-lanzar excepciones HTTP
         raise
     
     except Exception as e:
-        # Capturar cualquier otro error
         print(f"❌ ERROR al crear dirección: {str(e)}")
         import traceback
         traceback.print_exc()
@@ -2445,7 +2503,7 @@ def listar_direcciones(
     cliente_id: str,
     db: Session = Depends(get_db),
 ):
-    print(f"📍 Listando direcciones para cliente: {cliente_id}")
+    print(f"🗺 Listando direcciones para cliente: {cliente_id}")
     
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -2458,7 +2516,6 @@ def listar_direcciones(
         .all()
     )
     
-    # Convertir a lista de dicts
     resultado = [
         {
             "id": str(d.id),
@@ -2473,7 +2530,157 @@ def listar_direcciones(
     
     print(f"📤 Direcciones encontradas: {len(resultado)}")
     
-    # Siempre devolver un objeto con 'total' y 'direcciones'
+    return {
+        "total": len(resultado),
+        "direcciones": resultado
+    }
+# ---------------------------------------------------------------------------
+# GET /cliente/{cliente_id}/membresia
+# ---------------------------------------------------------------------------
+@router.get("/{cliente_id}/membresia")
+def obtener_membresia_cliente(cliente_id: str, db: Session = Depends(get_db)):
+    cliente = (
+        db.query(Cliente)
+        .options(joinedload(Cliente.membresia_subscripcion))
+        .filter(Cliente.id == cliente_id)
+        .first()
+    )
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+
+    membresia = cliente.membresia_subscripcion
+    if not membresia:
+        return {"mensaje": "El cliente no tiene membresía activa."}
+
+    return {
+        "id": str(membresia.id),
+        "nombre": membresia.nombre,
+        "duracion_dias": membresia.duracion,
+        "precio": float(membresia.precio),
+        "descripcion": membresia.descripcion,
+        "beneficios": membresia.beneficios,
+    }
+
+# ---------------------------------------------------------------------------
+# POST /cliente/{cliente_id}/direccion
+# ---------------------------------------------------------------------------
+@router.post("/{cliente_id}/direccion")
+def crear_direccion(
+    cliente_id: str,
+    nombre: str = Form(...),
+    latitud: float = Form(...),
+    longitud: float = Form(...),
+    referencia: str = Form(None),
+    es_principal: bool = Form(False),
+    db: Session = Depends(get_db),
+):
+    try:
+        print(f"🔥 Recibiendo dirección para cliente {cliente_id}")
+        print(f"   Nombre: {nombre}")
+        print(f"   Lat/Lng: {latitud}, {longitud}")
+        print(f"   Es principal: {es_principal}")
+        
+        cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        
+        print(f"✅ Cliente encontrado: {cliente.nombre}")
+        
+        if es_principal:
+            print("🔄 Desmarcando otras direcciones principales...")
+            db.query(Direccion).filter(
+                Direccion.cliente_id == cliente_id
+            ).update({"es_principal": False})
+            db.flush()
+        
+        direccion_id = keygen.generate_uint64_key()
+        print(f"🆔 ID generado: {direccion_id}")
+        
+        direccion = Direccion(
+            id=direccion_id,
+            cliente_id=cliente_id,
+            nombre=nombre,
+            latitud=latitud,
+            longitud=longitud,
+            referencia=referencia if referencia else "",
+            es_principal=es_principal,
+            estado_registro="A",
+        )
+        
+        print("💾 Agregando dirección a la sesión...")
+        db.add(direccion)
+        
+        print("🔄 Haciendo flush...")
+        db.flush()
+        
+        print("✅ Haciendo commit...")
+        db.commit()
+        
+        print("🔄 Refrescando objeto...")
+        db.refresh(direccion)
+        
+        print(f"✅ Dirección guardada exitosamente: {direccion.id}")
+        
+        return {
+            "mensaje": "Dirección registrada correctamente.",
+            "direccion": {
+                "id": str(direccion.id),
+                "nombre": direccion.nombre,
+                "latitud": float(direccion.latitud),
+                "longitud": float(direccion.longitud),
+                "referencia": direccion.referencia,
+                "es_principal": bool(direccion.es_principal),
+            },
+        }
+    
+    except HTTPException:
+        raise
+    
+    except Exception as e:
+        print(f"❌ ERROR al crear dirección: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al guardar dirección: {str(e)}"
+        )
+
+# ---------------------------------------------------------------------------
+# GET /cliente/{cliente_id}/direcciones
+# ---------------------------------------------------------------------------
+@router.get("/{cliente_id}/direcciones")
+def listar_direcciones(
+    cliente_id: str,
+    db: Session = Depends(get_db),
+):
+    print(f"🗺 Listando direcciones para cliente: {cliente_id}")
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
+    direcciones = (
+        db.query(Direccion)
+        .filter(Direccion.cliente_id == cliente_id, Direccion.estado_registro == "A")
+        .order_by(Direccion.es_principal.desc())
+        .all()
+    )
+    
+    resultado = [
+        {
+            "id": str(d.id),
+            "nombre": d.nombre,
+            "latitud": float(d.latitud),
+            "longitud": float(d.longitud),
+            "referencia": d.referencia,
+            "es_principal": bool(d.es_principal),
+        }
+        for d in direcciones
+    ]
+    
+    print(f"📤 Direcciones encontradas: {len(resultado)}")
+    
     return {
         "total": len(resultado),
         "direcciones": resultado
@@ -2798,15 +3005,41 @@ Permite al cliente administrar el registro de sus mascotas y sus datos
 vinculados: especie, alergias, condiciones de salud, recetas médicas, etc.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form, Request
 from utils import globals, keygen
 from utils.db import get_db
 from sqlalchemy.orm import Session, joinedload
-from models import Cliente, Especie, RegistroMascota, PedidoEspecializado, AlergiaMascota, AlergiaEspecie, CondicionSalud, RecetaMedica
+from models import (
+    Cliente,
+    Especie,
+    RegistroMascota,
+    PedidoEspecializado,
+    AlergiaMascota,
+    AlergiaEspecie,
+    CondicionSalud,
+    RecetaMedica,
+)
 import os
 from datetime import datetime
 
 router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
+
+
+# ---------------------------------------------------------------------------
+# 🔥 FUNCIÓN AUXILIAR PARA CONSTRUIR URL COMPLETA
+# ---------------------------------------------------------------------------
+def construir_url_imagen(request: Request, ruta_local: str | None):
+    """Construye URL completa para imágenes desde ruta local"""
+    if not ruta_local:
+        return None
+
+    # Remover 'static/' si está al inicio
+    ruta_limpia = ruta_local.replace("static/", "").replace("static\\", "")
+
+    base_url = str(request.base_url).rstrip("/")
+
+    return f"{base_url}/static/{ruta_limpia}"
+
 
 # ---------------------------------------------------------------------------
 # GET /cliente/mascotas/{cliente_id}
@@ -2814,46 +3047,59 @@ router = APIRouter(prefix="/cliente/mascotas", tags=["Mascotas del Cliente"])
 @router.get("/{cliente_id}")
 def listar_mascotas_cliente(
     cliente_id: str,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    
+
     mascotas = (
         db.query(RegistroMascota)
         .join(Especie)
-        .filter(RegistroMascota.cliente_id == cliente_id, RegistroMascota.estado_registro == "A")
+        .filter(
+            RegistroMascota.cliente_id == cliente_id,
+            RegistroMascota.estado_registro == "A",
+        )
         .all()
     )
-    
+
     if not mascotas:
         return {"mensaje": "El cliente no tiene mascotas registradas."}
-    
+
     resultado = []
+
     for m in mascotas:
         especie_nombre = m.especie.nombre if m.especie else "Sin especie"
+
+        # 🔥 Foto por defecto según especie
         if not m.foto:
             if "perro" in especie_nombre.lower():
-                foto = os.path.join(globals.MASCOTA, "perro.png")
+                ruta_foto = "static/imagenes/cliente/perro.png"
             elif "gato" in especie_nombre.lower():
-                foto = os.path.join(globals.MASCOTA, "gato.png")
+                ruta_foto = "static/imagenes/cliente/gato.png"
             else:
-                foto = os.path.join(globals.MASCOTA, "default.png")
+                ruta_foto = "static/imagenes/cliente/user.png"
         else:
-            foto = m.foto
-        
-        resultado.append({
-            "id": str(m.id),
-            "nombre": m.nombre,
-            "especie": especie_nombre,
-            "raza": m.raza,
-            "edad": m.edad,
-            "peso": float(m.peso) if m.peso else None,
-            "foto": foto,
-        })
-    
+            ruta_foto = m.foto
+
+        foto_url = construir_url_imagen(request, ruta_foto)
+
+        resultado.append(
+            {
+                "id": str(m.id),
+                "nombre": m.nombre,
+                "especie": especie_nombre,
+                "raza": m.raza,
+                "edad": m.edad,
+                "peso": float(m.peso) if m.peso else None,
+                "foto": foto_url,
+            }
+        )
+
     return {"total": len(resultado), "mascotas": resultado}
+
 
 # ---------------------------------------------------------------------------
 # POST /cliente/mascotas/{cliente_id}
@@ -2861,37 +3107,40 @@ def listar_mascotas_cliente(
 @router.post("/{cliente_id}")
 def registrar_mascota(
     cliente_id: str,
+    request: Request,
     nombre: str = Form(...),
     especie_id: str = Form(...),
     raza: str = Form(...),
     edad: int = Form(...),
-    sexo: str = Form(..., description="Sexo de la mascota: M (macho) o H (hembra)"),
+    sexo: str = Form(..., description="Sexo: M (macho) / H (hembra)"),
     db: Session = Depends(get_db),
 ):
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    
+
     especie = db.query(Especie).filter(Especie.id == especie_id).first()
+
     if not especie:
         raise HTTPException(status_code=404, detail="Especie no encontrada.")
-    
-    # Validar sexo
-    if sexo not in ['M', 'H']:
-        raise HTTPException(status_code=400, detail="El sexo debe ser 'M' (macho) o 'H' (hembra).")
-    
+
+    if sexo not in ["M", "H"]:
+        raise HTTPException(
+            status_code=400, detail="El sexo debe ser 'M' (macho) o 'H' (hembra)."
+        )
+
     mascota_id = keygen.generate_uint64_key()
     especie_nombre = especie.nombre.lower()
-    
-    # Asignar foto según especie
+
+    # 🔥 Foto por defecto según especie
     if "perro" in especie_nombre:
-        foto_path = os.path.join(globals.MASCOTA, "perro.png")
+        foto_path = "static/imagenes/cliente/perro.png"
     elif "gato" in especie_nombre:
-        foto_path = os.path.join(globals.MASCOTA, "gato.png")
+        foto_path = "static/imagenes/cliente/gato.png"
     else:
-        foto_path = os.path.join(globals.MASCOTA, "default.png")
-    
-    # Crear mascota con todos los campos requeridos
+        foto_path = "static/imagenes/cliente/user.png"
+
     mascota = RegistroMascota(
         id=mascota_id,
         cliente_id=cliente_id,
@@ -2904,13 +3153,12 @@ def registrar_mascota(
         foto=foto_path,
         estado_registro="A",
     )
-    
-    # ✅ LÍNEA CORREGIDA: Eliminamos el acceso al atributo inexistente
-    print(f"✅ Registrando mascota: {mascota.nombre}, especie: {especie.nombre}, ID: {mascota_id}")
 
     db.add(mascota)
     db.commit()
-    
+
+    foto_url = construir_url_imagen(request, mascota.foto)
+
     return {
         "mensaje": "Mascota registrada exitosamente.",
         "mascota": {
@@ -2920,9 +3168,10 @@ def registrar_mascota(
             "raza": mascota.raza,
             "edad": mascota.edad,
             "sexo": mascota.sexo,
-            "foto": mascota.foto,
+            "foto": foto_url,
         },
     }
+
 
 # ---------------------------------------------------------------------------
 # GET /cliente/mascotas/detalle/{mascota_id}
@@ -2930,6 +3179,7 @@ def registrar_mascota(
 @router.get("/detalle/{mascota_id}")
 def obtener_detalle_mascota(
     mascota_id: str,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     mascota = (
@@ -2943,22 +3193,24 @@ def obtener_detalle_mascota(
         .filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A")
         .first()
     )
-    
+
     if not mascota:
         raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    
+
     especie_nombre = mascota.especie.nombre if mascota.especie else "Sin especie"
-    
+
     if not mascota.foto:
         if "perro" in especie_nombre.lower():
-            foto = os.path.join(globals.MASCOTA, "perro.png")
+            ruta_foto = "static/imagenes/cliente/perro.png"
         elif "gato" in especie_nombre.lower():
-            foto = os.path.join(globals.MASCOTA, "gato.png")
+            ruta_foto = "static/imagenes/cliente/gato.png"
         else:
-            foto = os.path.join(globals.MASCOTA, "default.png")
+            ruta_foto = "static/imagenes/cliente/user.png"
     else:
-        foto = mascota.foto
-    
+        ruta_foto = mascota.foto
+
+    foto_url = construir_url_imagen(request, ruta_foto)
+
     alergias = [
         {
             "id": str(a.id),
@@ -2967,7 +3219,7 @@ def obtener_detalle_mascota(
         }
         for a in mascota.alergia_mascota
     ]
-    
+
     condiciones = [
         {
             "id": str(c.id),
@@ -2977,7 +3229,7 @@ def obtener_detalle_mascota(
         }
         for c in mascota.condicion_salud
     ]
-    
+
     recetas = [
         {
             "id": str(r.id),
@@ -2987,7 +3239,7 @@ def obtener_detalle_mascota(
         }
         for r in mascota.receta_medica
     ]
-    
+
     return {
         "id": str(mascota.id),
         "nombre": mascota.nombre,
@@ -2995,297 +3247,35 @@ def obtener_detalle_mascota(
         "raza": mascota.raza,
         "edad": mascota.edad,
         "peso": float(mascota.peso) if mascota.peso else None,
-        "foto": foto,
+        "foto": foto_url,
         "alergias": alergias,
         "condiciones_salud": condiciones,
         "recetas_medicas": recetas,
         "observaciones": mascota.observaciones,
     }
 
-# ---------------------------------------------------------------------------
-# PUT /cliente/mascotas/{mascota_id}
-# ---------------------------------------------------------------------------
-# Edita los datos de una mascota existente (nombre, peso, edad, observaciones, etc.).
-@router.put("/{mascota_id}")
-def actualizar_mascota(
-    mascota_id: str,
-    nombre: str = Form(None),
-    edad: int = Form(None),
-    peso: float = Form(None),
-    raza: str = Form(None),
-    observaciones: str = Form(None),
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A").first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    if nombre:
-        mascota.nombre = nombre
-    if edad is not None:
-        mascota.edad = edad
-    if peso is not None:
-        mascota.peso = peso
-    if raza:
-        mascota.raza = raza
-    if observaciones:
-        mascota.observaciones = observaciones
-    db.commit()
-    return {
-        "mensaje": "Datos de la mascota actualizados correctamente.",
-        "mascota": {
-            "id": str(mascota.id),
-            "nombre": mascota.nombre,
-            "edad": mascota.edad,
-            "peso": float(mascota.peso) if mascota.peso else None,
-            "raza": mascota.raza,
-            "observaciones": mascota.observaciones,
-        },
-    }
-
-# ---------------------------------------------------------------------------
-# PUT /cliente/mascotas/{mascota_id}/foto
-# ---------------------------------------------------------------------------
-# Cambia la foto de la mascota. Si no se envía imagen, mantiene la actual.
-@router.put("/{mascota_id}/foto")
-def actualizar_foto_mascota(
-    mascota_id: str,
-    foto: UploadFile = None,
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A").first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    uploads_dir = os.path.join("static", "uploads", "mascotas")
-    os.makedirs(uploads_dir, exist_ok=True)
-    if foto:
-        extension = os.path.splitext(foto.filename)[1].lower()
-        if extension not in [".jpg", ".jpeg", ".png"]:
-            raise HTTPException(status_code=400, detail="Formato de imagen no permitido.")
-        nuevo_nombre = f"mascota_{mascota_id}{extension}"
-        foto_path = os.path.join(uploads_dir, nuevo_nombre)
-        with open(foto_path, "wb") as f:
-            f.write(foto.file.read())
-        mascota.foto = foto_path
-    db.commit()
-    return {
-        "mensaje": "Foto de mascota actualizada correctamente.",
-        "foto": mascota.foto,
-    }
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/mascotas/{mascota_id}
 # ---------------------------------------------------------------------------
-# Elimina o marca como inactiva una mascota del cliente.
-# Si tiene pedidos activos asociados, no se borra físicamente.
 @router.delete("/{mascota_id}")
 def eliminar_mascota(
     mascota_id: str,
     db: Session = Depends(get_db),
 ):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id).first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada.")
-    pedidos_activos = (
-        db.query(PedidoEspecializado)
-        .filter(
-            PedidoEspecializado.registro_mascota_id == mascota_id,
-            PedidoEspecializado.estado_registro == "A",
-        )
-        .count()
-    )
-    if pedidos_activos > 0:
-        mascota.estado_registro = "I"
-        db.commit()
-        return {"mensaje": "Mascota marcada como inactiva por tener pedidos asociados."}
-    db.delete(mascota)
-    db.commit()
-    return {"mensaje": "Mascota eliminada correctamente."}
-
-# ---------------------------------------------------------------------------
-# GET /cliente/mascotas/{mascota_id}/alergias
-# ---------------------------------------------------------------------------
-# Devuelve la lista de alergias registradas para la mascota.
-# Incluye nombre, severidad y descripción.
-@router.get("/{mascota_id}/alergias")
-def listar_alergias_mascota(
-    mascota_id: str,
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A").first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    alergias = (
-        db.query(AlergiaMascota)
-        .options(joinedload(AlergiaMascota.alergia_especie))
-        .filter(AlergiaMascota.registro_mascota_id == mascota_id)
-        .all()
-    )
-    if not alergias:
-        return {"mensaje": "No se encontraron alergias registradas para esta mascota."}
-    resultado = [
-        {
-            "id": str(a.id),
-            "nombre": a.alergia_especie.nombre if a.alergia_especie else None,
-            "severidad": a.severidad,
-            "descripcion": a.descripcion,
-        }
-        for a in alergias
-    ]
-    return {"total": len(resultado), "alergias": resultado}
-
-# ---------------------------------------------------------------------------
-# POST /cliente/mascotas/{mascota_id}/alergias
-# ---------------------------------------------------------------------------
-# Registra una nueva alergia asociada a la mascota.
-# Campos: alergia_especie_id, severidad, descripcion (opcional).
-@router.post("/{mascota_id}/alergias")
-def registrar_alergia_mascota(
-    mascota_id: str,
-    alergia_especie_id: str = Form(...),
-    severidad: str = Form(...),
-    descripcion: str = Form(None),
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A").first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    alergia = db.query(AlergiaEspecie).filter(AlergiaEspecie.id == alergia_especie_id).first()
-    if not alergia:
-        raise HTTPException(status_code=404, detail="Alergia no encontrada en catálogo de especies.")
-    # Evitar duplicados
-    existente = (
-        db.query(AlergiaMascota)
-        .filter(
-            AlergiaMascota.registro_mascota_id == mascota_id,
-            AlergiaMascota.alergia_especie_id == alergia_especie_id,
-        )
+    mascota = (
+        db.query(RegistroMascota)
+        .filter(RegistroMascota.id == mascota_id)
         .first()
     )
-    if existente:
-        raise HTTPException(status_code=400, detail="La mascota ya tiene registrada esta alergia.")
-    nueva = AlergiaMascota(
-        id=keygen.generate_uint64_key(),
-        registro_mascota_id=mascota_id,
-        alergia_especie_id=alergia_especie_id,
-        severidad=severidad,
-        descripcion=descripcion,
-    )
-    db.add(nueva)
+
+    if not mascota:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada.")
+
+    mascota.estado_registro = "I"
     db.commit()
-    return {
-        "mensaje": "Alergia registrada exitosamente.",
-        "alergia": {
-            "id": str(nueva.id),
-            "nombre": alergia.nombre,
-            "severidad": nueva.severidad,
-            "descripcion": nueva.descripcion,
-        },
-    }
 
-# ---------------------------------------------------------------------------
-# GET /cliente/mascotas/{mascota_id}/condiciones
-# ---------------------------------------------------------------------------
-# Devuelve la lista de condiciones de salud asociadas a la mascota.
-# Incluye nombre, fecha y estado_registro.
-@router.get("/{mascota_id}/condiciones")
-def listar_condiciones_mascota(
-    mascota_id: str,
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == mascota_id, RegistroMascota.estado_registro == "A").first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    condiciones = (
-        db.query(CondicionSalud)
-        .filter(CondicionSalud.registro_mascota_id == mascota_id)
-        .order_by(CondicionSalud.fecha.desc())
-        .all()
-    )
-    if not condiciones:
-        return {"mensaje": "No se encontraron condiciones de salud registradas para esta mascota."}
-    resultado = [
-        {
-            "id": str(c.id),
-            "nombre": c.nombre,
-            "fecha": c.fecha.isoformat() if c.fecha else None,
-            "estado_registro": c.estado_registro,
-        }
-        for c in condiciones
-    ]
-    return {"total": len(resultado), "condiciones_salud": resultado}
-
-# ---------------------------------------------------------------------------
-# POST /cliente/mascotas/{mascota_id}/condiciones
-# ---------------------------------------------------------------------------
-# Registra una nueva condición de salud (ej. “gastroenteritis”, “anemia leve”).
-@router.post("/{mascota_id}/condiciones")
-def registrar_condicion_mascota(
-    mascota_id: str,
-    nombre: str = Form(...),
-    descripcion: str = Form(None),
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(
-        RegistroMascota.id == mascota_id,
-        RegistroMascota.estado_registro == "A"
-    ).first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    condicion = CondicionSalud(
-        id=keygen.generate_uint64_key(),
-        registro_mascota_id=mascota_id,
-        nombre=nombre,
-        descripcion=descripcion,
-        fecha=datetime.now(),
-        estado_registro="A",
-    )
-    db.add(condicion)
-    db.commit()
-    return {
-        "mensaje": "Condición de salud registrada exitosamente.",
-        "condicion": {
-            "id": str(condicion.id),
-            "nombre": condicion.nombre,
-            "descripcion": condicion.descripcion,
-            "fecha": condicion.fecha.isoformat(),
-            "estado_registro": condicion.estado_registro,
-        },
-    }
-
-# ---------------------------------------------------------------------------
-# GET /cliente/mascotas/{mascota_id}/recetas
-# ---------------------------------------------------------------------------
-# Lista las recetas médicas asociadas a la mascota.
-# Incluye fecha, estado y archivo descargable.
-@router.get("/{mascota_id}/recetas")
-def listar_recetas_mascota(
-    mascota_id: str,
-    db: Session = Depends(get_db),
-):
-    mascota = db.query(RegistroMascota).filter(
-        RegistroMascota.id == mascota_id,
-        RegistroMascota.estado_registro == "A"
-    ).first()
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada o inactiva.")
-    recetas = (
-        db.query(RecetaMedica)
-        .filter(RecetaMedica.registro_mascota_id == mascota_id)
-        .order_by(RecetaMedica.fecha.desc())
-        .all()
-    )
-    if not recetas:
-        return {"mensaje": "No se encontraron recetas médicas para esta mascota."}
-    resultado = [
-        {
-            "id": str(r.id),
-            "fecha": r.fecha.isoformat() if r.fecha else None,
-            "estado_registro": r.estado_registro,
-            "archivo": r.archivo,
-        }
-        for r in recetas
-    ]
-    return {"total": len(resultado), "recetas_medicas": resultado}
+    return {"mensaje": "Mascota eliminada correctamente.", "mascota_id": str(mascota_id)}
 </file>
 
 <file path="backend/routers/cliente/pago.py">
@@ -4872,7 +4862,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # Datos de conexión a MySQL
 DATABASE_URL = "mysql+pymysql://root:@localhost/mascotas"
 # Crea el motor de conexión
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 # Sesión para interactuar con la base de datos
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Clase base para modelos (ORM)
@@ -4978,6 +4968,315 @@ def decodificar_token(token: str) -> dict:
         raise Exception("Token inválido")
 </file>
 
+<file path="frontend-web/.gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="frontend-web/eslint.config.js">
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+</file>
+
+<file path="frontend-web/index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend-web</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="frontend-web/package.json">
+{
+  "name": "frontend-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "vite": "^7.2.4"
+  }
+}
+</file>
+
+<file path="frontend-web/public/vite.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+</file>
+
+<file path="frontend-web/README.md">
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+</file>
+
+<file path="frontend-web/src/App.css">
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+</file>
+
+<file path="frontend-web/src/App.jsx">
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import './App.css'
+
+function App() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <>
+      <div>
+        <a href="https://vite.dev" target="_blank">
+          <img src={viteLogo} className="logo" alt="Vite logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+      </div>
+      <h1>Vite + React</h1>
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+        <p>
+          Edit <code>src/App.jsx</code> and save to test HMR
+        </p>
+      </div>
+      <p className="read-the-docs">
+        Click on the Vite and React logos to learn more
+      </p>
+    </>
+  )
+}
+
+export default App
+</file>
+
+<file path="frontend-web/src/assets/react.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+</file>
+
+<file path="frontend-web/src/index.css">
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+</file>
+
+<file path="frontend-web/src/main.jsx">
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+</file>
+
+<file path="frontend-web/vite.config.js">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+</file>
+
 <file path="frontend/App.js">
 import React from 'react';
 import AppNavigator from './AppNavigator';
@@ -5023,12 +5322,11 @@ export default function App() {
 // frontend/AppNavigator.js
 
 import React from 'react';
-import { View } from 'react-native';
+import { View } from 'react-native'; // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Importar todas las pantallas
 import SplashScreen from './screens/SplashScreen';
@@ -5042,56 +5340,32 @@ import FavoritesScreen from './screens/FavoritesScreen';
 import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
-import PaymentScreen from './screens/PaymentScreen'; // ✅ NUEVO
+import PaymentScreen from './screens/PaymentScreen';
+import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
-// import UploadProofScreen from './screens/UploadProofScreen';
 import AddPetScreen from './screens/AddPetScreen';
+import EditPetScreen from './screens/EditPetScreen';
 import UserProfileScreen from './screens/UserProfileScreen';
-
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
 
 /* ======================================================
-   Navegador Principal con Menú Lateral (Drawer)
-====================================================== */
-function DrawerNavigator({ route }) {
-  const { clienteId } = route.params;
-  return (
-    <Drawer.Navigator
-      screenOptions={{ headerShown: false }}
-    // Aquí podrías agregar un componente de menú personalizado si quieres
-    >
-      <Drawer.Screen name="AppTabs" component={MainTabs} initialParams={{ clienteId }} />
-      {/* Puedes agregar más ítems al menú aquí si quieres */}
-    </Drawer.Navigator>
-  );
-}
-
-/* ======================================================
-   Stack para Home → Detalle de Producto
+   Stack para Home → Detalle de Producto (SIN CAMBIOS)
 ====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="HomeFeed"
-        component={HomeScreen}
-        initialParams={{ clienteId }}
-      />
-      <Stack.Screen
-        name="ProductDetail"
-        component={ProductDetailScreen}
-      />
+      <Stack.Screen name="HomeFeed" component={HomeScreen} initialParams={{ clienteId }} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador de Tabs Principal
+   Navegador de Tabs Principal (CORREGIDO CON EL IMPORT)
 ====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
@@ -5133,7 +5407,7 @@ function MainTabs({ route }) {
 
           if (focused) {
             return (
-              <View
+              <View // <--- ESTO AHORA FUNCIONARÁ
                 style={{
                   backgroundColor: '#FF8C42',
                   width: 60,
@@ -5154,43 +5428,23 @@ function MainTabs({ route }) {
             );
           }
           return (
-            <View>
+            <View> 
               <Ionicons name={iconName} size={24} color="white" />
             </View>
           );
         },
       })}
     >
-      <Tab.Screen
-        name="HomeStack"
-        component={HomeStack}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Inicio' }}
-      />
-      <Tab.Screen
-        name="PetProfile"
-        component={PetProfileScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Perfil Mascota' }}
-      />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Carrito' }}
-      />
-      <Tab.Screen
-        name="Favorites"
-        component={FavoritesScreen}
-        initialParams={{ clienteId }}
-        options={{ tabBarLabel: 'Favoritos' }}
-      />
+      <Tab.Screen name="HomeStack" component={HomeStack} initialParams={{ clienteId }} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="PetProfile" component={PetProfileScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Perfil Mascota' }} />
+      <Tab.Screen name="Cart" component={CartScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Carrito' }} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Favoritos' }} />
     </Tab.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador Global
+   Navegador Global (SIMPLIFICADO)
 ====================================================== */
 const AppNavigator = () => {
   return (
@@ -5206,59 +5460,20 @@ const AppNavigator = () => {
         <Stack.Screen name="Success" component={SuccessScreen} />
 
         {/* App principal con Tabs */}
-        <Stack.Screen name="Main" component={DrawerNavigator} />
+        <Stack.Screen name="Main" component={MainTabs} />
 
-        {/* Flujo de compra */}
-        <Stack.Screen
-          name="Checkout"
-          component={CheckoutScreen}
-          options={{ headerShown: false }}
-        />
+        {/* Flujo de compra y otras pantallas */}
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="UploadProof" component={UploadProofScreen} />
+        <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+        <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="EditPet" component={EditPetScreen} options={{ presentation: 'modal' }} />
+        {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
 
-        {/*  NUEVA PANTALLA: Pago */}
-        <Stack.Screen
-          name="Payment"
-          component={PaymentScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/*  AÑADE LA NUEVA PANTALLA AQUÍ  */}
-        {/* <Stack.Screen // <--- BORRA O COMENTA ESTE BLOQUE
-          name="UploadProof"
-          component={UploadProofScreen}
-          options={{ headerShown: false }}
-        /> */}
-
-        <Stack.Screen
-          name="OrderSuccess"
-          component={OrderSuccessScreen}
-          options={{ headerShown: false }}
-        />
-
-        {/* Agregar/Editar Dirección */}
-        <Stack.Screen
-          name="AddAddress"
-          component={AddAddressScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal'
-          }}
-        />
-
-        {/* 👇 --- 2. AGREGAR ESTA NUEVA PANTALLA --- 👇 */}
-        <Stack.Screen
-          name="AddPet"
-          component={AddPetScreen}
-          options={{
-            headerShown: false,
-            presentation: 'modal' // Para que aparezca desde abajo
-          }}
-        />
-        {/* ------------------------------------------- */}
       </Stack.Navigator>
-
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-      
     </NavigationContainer>
   );
 };
@@ -5479,6 +5694,113 @@ const ProductCard = ({ item, clienteId }) => {
 export default ProductCard;
 </file>
 
+<file path="frontend/components/SuccessNotification.js">
+// frontend/components/SuccessNotification.js
+
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+const SuccessNotification = ({ message, onComplete }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    // Animación de entrada
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Auto-cerrar después de 2 segundos
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        if (onComplete) onComplete();
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      <View style={styles.content}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
+        </View>
+        <Text style={styles.message}>{message}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 9999,
+  },
+  content: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    maxWidth: '80%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  iconContainer: {
+    marginBottom: 15,
+  },
+  message: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});
+
+export default SuccessNotification;
+</file>
+
 <file path="frontend/index.js">
 import { registerRootComponent } from 'expo';
 
@@ -5512,6 +5834,7 @@ registerRootComponent(App);
     "@react-navigation/stack": "^7.4.8",
     "axios": "^1.13.2",
     "expo": "~54.0.9",
+    "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.9",
     "expo-linear-gradient": "~15.0.7",
     "expo-location": "~18.0.7",
@@ -5926,11 +6249,16 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  ImageBackground,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { createPet, getSpecies, getBreedsBySpecies } from '../services/petService';
 import { styles } from '../styles/addPetScreenStyles';
+
+//  IMPORTAR NOTIFICACIÓN
+import SuccessNotification from '../components/SuccessNotification';
 
 const AddPetScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
@@ -5942,13 +6270,16 @@ const AddPetScreen = ({ navigation, route }) => {
   const [age, setAge] = useState('');
   const [petSex, setPetSex] = useState('M');
 
-  // Estados de datos y carga
+  // Estados de datos
   const [especies, setEspecies] = useState([]);
   const [razas, setRazas] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [razasLoading, setRazasLoading] = useState(false);
 
-  // Carga las especies al iniciar
+  //  NUEVO: Estado para mostrar la notificación
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Cargar especies
   useEffect(() => {
     const loadSpecies = async () => {
       try {
@@ -5962,12 +6293,13 @@ const AddPetScreen = ({ navigation, route }) => {
     loadSpecies();
   }, []);
 
-  // Carga las razas cuando cambia el tipo de mascota
+  // Cargar razas al cambiar especie
   useEffect(() => {
     const loadBreeds = async () => {
       if (!petType) return;
       setRazasLoading(true);
       setRazas([]);
+
       try {
         const breedsData = await getBreedsBySpecies(petType);
         setRazas(breedsData);
@@ -5978,15 +6310,19 @@ const AddPetScreen = ({ navigation, route }) => {
         setRazasLoading(false);
       }
     };
+
     loadBreeds();
   }, [petType]);
 
+  // 🔥 FUNCIÓN MODIFICADA CON NOTIFICACIÓN
   const handleSavePet = async () => {
     if (!petName.trim() || !breed || !age.trim()) {
       Alert.alert('Campos incompletos', 'Por favor completa todos los campos.');
       return;
     }
+
     setIsLoading(true);
+
     try {
       const petData = {
         nombre: petName,
@@ -5995,67 +6331,157 @@ const AddPetScreen = ({ navigation, route }) => {
         edad: parseInt(age, 10),
         sexo: petSex
       };
+
       await createPet(clienteId, petData);
-      Alert.alert('¡Éxito!', 'Tu mascota ha sido registrada.', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+
+      //  Mostrar notificación de éxito
+      setIsLoading(false);
+      setShowSuccess(true);
+
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrar la mascota.';
+      const errorMessage =
+        error.response?.data?.detail ||
+        'Ocurrió un error al registrar la mascota.';
+
       Alert.alert('Error', errorMessage);
-    } finally {
       setIsLoading(false);
     }
+  };
+
+  //  SE EJECUTA CUANDO LA ANIMACIÓN TERMINA
+  const handleNotificationComplete = () => {
+    console.log('📱 Volviendo a PetProfile...');
+    setShowSuccess(false);
+    navigation.goBack(); //  Vuelve a la pantalla anterior (PetProfile)
   };
 
   const isFormValid = petName.trim() && breed && age.trim() && !razasLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.container}
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
+        </TouchableOpacity>
+
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+
+        <View style={{ width: 30 }} />
+      </View>
+
+      {/* FORMULARIO */}
+      <KeyboardAvoidingView
+        style={styles.formWrapper}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="#875686" />
-          </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.formContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.headerTitle}>Agregar Mascota</Text>
-          <View style={{ width: 28 }} />
-        </View>
 
-        <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
-          <TextInput style={styles.input} placeholder="Nombre de la mascota" value={petName} onChangeText={setPetName} />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Tipo de mascota:</Text>
-            <Picker selectedValue={petType} onValueChange={setPetType} style={styles.picker}>
-              {especies.map(e => <Picker.Item key={e.id} label={e.nombre} value={e.id} />)}
-            </Picker>
+          {/* INFO */}
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <Ionicons name="paw" size={24} color="#875686" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                Completa los datos de tu mascota para personalizar su experiencia
+              </Text>
+            </View>
           </View>
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Raza:</Text>
-            {razasLoading ? (
-              <ActivityIndicator size="small" color="#732C71" style={{ height: 40 }}/>
-            ) : (
-              <Picker selectedValue={breed} onValueChange={setBreed} style={styles.picker} enabled={!razasLoading && razas.length > 0}>
-                {razas.map((r, index) => <Picker.Item key={index} label={r} value={r} />)}
+
+          {/* INPUTS */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre de la mascota</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Max, Luna"
+              value={petName}
+              onChangeText={setPetName}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tipo de mascota</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petType}
+                onValueChange={setPetType}
+                style={styles.picker}
+              >
+                {especies.map(e => (
+                  <Picker.Item key={e.id} label={e.nombre} value={e.id} />
+                ))}
               </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Raza</Text>
+            {razasLoading ? (
+              <View style={[styles.input, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#732C71" />
+              </View>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={breed}
+                  onValueChange={setBreed}
+                  style={styles.picker}
+                  enabled={!razasLoading && razas.length > 0}
+                >
+                  {razas.map((r, index) => (
+                    <Picker.Item key={index} label={r} value={r} />
+                  ))}
+                </Picker>
+              </View>
             )}
           </View>
 
-          <TextInput style={styles.input} placeholder="Edad (años)" value={age} onChangeText={setAge} keyboardType="numeric" />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Sexo:</Text>
-            <Picker selectedValue={petSex} onValueChange={setPetSex} style={styles.picker}>
-              <Picker.Item label="Macho" value="M" />
-              <Picker.Item label="Hembra" value="H" />
-            </Picker>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Edad (años)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 3"
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, (!isFormValid || isLoading) && styles.saveButtonDisabled]}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sexo</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petSex}
+                onValueChange={setPetSex}
+                style={styles.picker}
+              >
+                <Picker.Item label="Macho" value="M" />
+                <Picker.Item label="Hembra" value="H" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* BOTÓN */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (!isFormValid || isLoading) && styles.saveButtonDisabled
+            ]}
             onPress={handleSavePet}
             disabled={!isFormValid || isLoading}
           >
@@ -6070,6 +6496,14 @@ const AddPetScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/*  NOTIFICACIÓN DE ÉXITO */}
+      {showSuccess && (
+        <SuccessNotification
+          message={`¡${petName} ha sido agregado a tu perfil! 🐾`}
+          onComplete={handleNotificationComplete}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -6669,6 +7103,387 @@ const CheckoutScreen = ({ navigation, route }) => {
 export default CheckoutScreen;
 </file>
 
+<file path="frontend/screens/EditPetScreen.js">
+// frontend/screens/EditPetScreen.js
+
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  KeyboardAvoidingView,
+  ImageBackground,
+  Image,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
+import { updatePet, getSpecies, getBreedsBySpecies } from '../services/petService';
+import { styles } from '../styles/addPetScreenStyles'; // Reutilizamos los mismos estilos
+import SuccessNotification from '../components/SuccessNotification';
+
+const EditPetScreen = ({ navigation, route }) => {
+  const { clienteId, petId, existingPet } = route.params || {};
+
+  // Estados del formulario
+  const [petName, setPetName] = useState('');
+  const [petType, setPetType] = useState('');
+  const [breed, setBreed] = useState('');
+  const [age, setAge] = useState('');
+  const [petSex, setPetSex] = useState('M');
+  const [weight, setWeight] = useState('');
+  const [observations, setObservations] = useState('');
+  const [petPhoto, setPetPhoto] = useState(null);
+
+  // Estados de datos
+  const [especies, setEspecies] = useState([]);
+  const [razas, setRazas] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [razasLoading, setRazasLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Cargar datos existentes
+  useEffect(() => {
+    if (existingPet) {
+      setPetName(existingPet.nombre || '');
+      setAge(existingPet.edad?.toString() || '');
+      setPetSex(existingPet.sexo || 'M');
+      setWeight(existingPet.peso?.toString() || '');
+      setObservations(existingPet.observaciones || '');
+      
+      if (existingPet.foto) {
+        setPetPhoto({ uri: existingPet.foto });
+      }
+    }
+  }, [existingPet]);
+
+  // Cargar especies
+  useEffect(() => {
+    const loadSpecies = async () => {
+      try {
+        const speciesData = await getSpecies();
+        setEspecies(speciesData);
+        
+        // Buscar la especie del pet existente
+        if (existingPet?.especie) {
+          const matchingSpecies = speciesData.find(
+            s => s.nombre.toLowerCase() === existingPet.especie.toLowerCase()
+          );
+          if (matchingSpecies) {
+            setPetType(matchingSpecies.id);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error cargando especies:', error);
+      }
+    };
+    loadSpecies();
+  }, [existingPet]);
+
+  // Cargar razas al cambiar especie
+  useEffect(() => {
+    const loadBreeds = async () => {
+      if (!petType) return;
+      setRazasLoading(true);
+      setRazas([]);
+
+      try {
+        const breedsData = await getBreedsBySpecies(petType);
+        setRazas(breedsData);
+        
+        // Establecer la raza actual si existe
+        if (existingPet?.raza && breedsData.includes(existingPet.raza)) {
+          setBreed(existingPet.raza);
+        } else if (breedsData.length > 0) {
+          setBreed(breedsData[0]);
+        }
+      } catch (error) {
+        console.error('❌ Error cargando razas:', error);
+      } finally {
+        setRazasLoading(false);
+      }
+    };
+
+    loadBreeds();
+  }, [petType]);
+
+  // 🔥 SELECCIONAR FOTO
+  const handleSelectPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso requerido',
+          'Necesitamos acceso a tus fotos para cambiar la imagen de tu mascota.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPetPhoto(result.assets[0]);
+        console.log('✅ Foto seleccionada');
+      }
+    } catch (error) {
+      console.error('❌ Error al seleccionar foto:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+    }
+  };
+
+  // 🔥 ACTUALIZAR MASCOTA
+  const handleUpdatePet = async () => {
+    if (!petName.trim() || !breed || !age.trim()) {
+      Alert.alert('Campos incompletos', 'Por favor completa todos los campos obligatorios.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const updateData = {
+        nombre: petName,
+        edad: parseInt(age, 10),
+        raza: breed,
+      };
+
+      if (weight.trim()) {
+        updateData.peso = parseFloat(weight);
+      }
+
+      if (observations.trim()) {
+        updateData.observaciones = observations;
+      }
+
+      // Si hay una foto nueva, agregarla
+      if (petPhoto && !petPhoto.uri.startsWith('http')) {
+        updateData.foto = petPhoto;
+      }
+
+      await updatePet(petId, updateData);
+
+      setIsLoading(false);
+      setShowSuccess(true);
+
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.detail ||
+        'Ocurrió un error al actualizar la mascota.';
+
+      Alert.alert('Error', errorMessage);
+      setIsLoading(false);
+    }
+  };
+
+  const handleNotificationComplete = () => {
+    console.log('📱 Volviendo a PetProfile...');
+    setShowSuccess(false);
+    navigation.goBack();
+  };
+
+  const isFormValid = petName.trim() && breed && age.trim() && !razasLoading;
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
+        </TouchableOpacity>
+
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+
+        <View style={{ width: 30 }} />
+      </View>
+
+      {/* FORMULARIO */}
+      <KeyboardAvoidingView
+        style={styles.formWrapper}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.formContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.headerTitle}>Editar Mascota</Text>
+
+          {/* 🔥 FOTO DE PERFIL */}
+          <View style={styles.photoSection}>
+            <TouchableOpacity 
+              style={styles.photoContainer}
+              onPress={handleSelectPhoto}
+            >
+              {petPhoto ? (
+                <Image source={{ uri: petPhoto.uri }} style={styles.petPhoto} />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="camera" size={40} color="#875686" />
+                </View>
+              )}
+              <View style={styles.photoEditBadge}>
+                <Ionicons name="camera" size={16} color="white" />
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.photoHint}>Toca para cambiar la foto</Text>
+          </View>
+
+          {/* INPUTS */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre de la mascota</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Max, Luna"
+              value={petName}
+              onChangeText={setPetName}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tipo de mascota</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petType}
+                onValueChange={setPetType}
+                style={styles.picker}
+              >
+                {especies.map(e => (
+                  <Picker.Item key={e.id} label={e.nombre} value={e.id} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Raza</Text>
+            {razasLoading ? (
+              <View style={[styles.input, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#732C71" />
+              </View>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={breed}
+                  onValueChange={setBreed}
+                  style={styles.picker}
+                  enabled={!razasLoading && razas.length > 0}
+                >
+                  {razas.map((r, index) => (
+                    <Picker.Item key={index} label={r} value={r} />
+                  ))}
+                </Picker>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Edad (años)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 3"
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Peso (kg) - Opcional</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 15.5"
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sexo</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petSex}
+                onValueChange={setPetSex}
+                style={styles.picker}
+              >
+                <Picker.Item label="Macho" value="M" />
+                <Picker.Item label="Hembra" value="H" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Observaciones - Opcional</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Ej: Es muy activo, le gusta correr..."
+              value={observations}
+              onChangeText={setObservations}
+              multiline
+              numberOfLines={4}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          {/* BOTÓN */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (!isFormValid || isLoading) && styles.saveButtonDisabled
+            ]}
+            onPress={handleUpdatePet}
+            disabled={!isFormValid || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={24} color="white" />
+                <Text style={styles.saveButtonText}>Guardar Cambios</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* 🔥 NOTIFICACIÓN DE ÉXITO */}
+      {showSuccess && (
+        <SuccessNotification
+          message={`¡${petName} ha sido actualizado! 🐾`}
+          onComplete={handleNotificationComplete}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+export default EditPetScreen;
+</file>
+
 <file path="frontend/screens/FavoritesScreen.js">
 // frontend/screens/FavoritesScreen.js
 
@@ -6894,6 +7709,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CartBadge from '../components/CartBadge';
 
 import { getProducts, getCategories } from '../services/productService';
 import ProductCard from '../components/ProductCard';
@@ -6965,22 +7781,27 @@ const HomeScreen = ({ navigation, route }) => {
         resizeMode="cover"
       />
 
-      {/* 🔹 HEADER MORADO */}
+      {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}> {/*aea*/ }
-          <Ionicons name="menu" size={30} color="white" />
+
+        {/* 🔥 Botón menú (tres rayitas) */}
+        <TouchableOpacity onPress={() => console.log("Menú presionado")}>
+          <Ionicons name="menu-outline" size={32} color="white" />
         </TouchableOpacity>
 
+        {/* LOGO */}
         <Image
           source={require('../assets/logo_amarillo.png')}
           style={styles.logo}
         />
 
-        <TouchableOpacity>
-          <Ionicons name="cart-outline" size={30} color="white" />
+        {/* 🔥 Botón Carrito */}
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })} >
+          <CartBadge clienteId={clienteId}>
+            <Ionicons name="cart-outline" size={30} color="white" />
+          </CartBadge>
         </TouchableOpacity>
       </View>
-
       {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>
@@ -7047,7 +7868,7 @@ const HomeScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      {/* ✅ AQUÍ VA TU BOTTOM TAB */}
+      {/* 🔻 Aquí va tu bottom tab (si lo tienes) */}
     </SafeAreaView>
   );
 };
@@ -7419,7 +8240,7 @@ export default PaymentScreen;
 </file>
 
 <file path="frontend/screens/PetProfileScreen.js">
-// frontend/screens/PetProfileScreen.js
+// frontend/screens/PetProfileScreen.js - VERSIÓN MEJORADA
 
 import React, { useState, useCallback } from 'react';
 import {
@@ -7436,17 +8257,26 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getPetsByCliente } from '../services/petService';
-import { styles, MAIN_PURPLE } from '../styles/petProfileScreenStyles';
+import { getPetsByCliente, deletePet } from '../services/petService';
+import { getClienteProfile } from '../services/authService';
+import { styles } from '../styles/userProfileScreenStyles';
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
 
+  const [userProfile, setUserProfile] = useState(null);
   const [pets, setPets] = useState([]);
-  const [selectedPet, setSelectedPet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadPets = async () => {
+  // 🔥 FUNCIÓN PARA OBTENER ÍCONO SEGÚN ESPECIE
+  const getPetIcon = (especie) => {
+    const especieLower = especie?.toLowerCase() || '';
+    if (especieLower.includes('perro')) return 'paw';
+    if (especieLower.includes('gato')) return 'paw';
+    return 'heart';
+  };
+
+  const loadData = async () => {
     if (!clienteId) {
       Alert.alert('Error', 'No se pudo identificar al usuario.');
       setLoading(false);
@@ -7454,23 +8284,18 @@ const PetProfileScreen = ({ navigation, route }) => {
     }
     
     try {
-      console.log(`🐾 Cargando mascotas para el cliente: ${clienteId}`);
-      const response = await getPetsByCliente(clienteId);
+      setLoading(true);
+      const [profileData, petsResponse] = await Promise.all([
+        getClienteProfile(clienteId),
+        getPetsByCliente(clienteId)
+      ]);
       
-      if (response && response.mascotas) {
-        setPets(response.mascotas);
-        if (response.mascotas.length > 0) {
-          setSelectedPet(response.mascotas[0]);
-        } else {
-          setSelectedPet(null);
-        }
-      } else {
-        setPets([]);
-        setSelectedPet(null);
-      }
+      setUserProfile(profileData);
+      setPets(petsResponse.mascotas || []);
+
     } catch (error) {
-      console.error('❌ Error al cargar mascotas:', error);
-      Alert.alert('Error', 'No se pudieron cargar los perfiles de las mascotas.');
+      console.error('❌ Error al cargar datos del perfil:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus datos.');
     } finally {
       setLoading(false);
     }
@@ -7478,132 +8303,244 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadPets();
+      loadData();
     }, [clienteId])
   );
 
-  const renderPetSelector = () => (
-    <View style={styles.petSelectorContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {pets.map(pet => (
-          <TouchableOpacity 
-            key={pet.id} 
-            style={styles.petSelectorItem}
-            onPress={() => setSelectedPet(pet)}
-          >
-            <View style={[
-              styles.petImageWrapper,
-              selectedPet?.id === pet.id && styles.petImageWrapperSelected
-            ]}>
-              <Image 
-                source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')} 
-                style={styles.petImage} 
-              />
-            </View>
-            <Text style={[
-              styles.petSelectorName,
-              selectedPet?.id === pet.id && styles.petSelectorNameSelected
-            ]}>
-              {pet.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.petSelectorItem} onPress={() => navigation.navigate('AddPet', { clienteId })}>
-            <View style={styles.petImageWrapper}>
-                <Ionicons name="add" size={30} color="#CCC" />
-            </View>
-            <Text style={styles.petSelectorName}>Agregar</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
+  // 🔥 FUNCIÓN MEJORADA PARA ELIMINAR MASCOTA
+  const handleDeletePet = (petId, petName) => {
+    Alert.alert(
+      "Eliminar Mascota",
+      `¿Estás seguro de que deseas eliminar a ${petName}?\n\nEsta acción no se puede deshacer.`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log('🗑️ Eliminando mascota:', petId);
+              
+              // Mostrar loading
+              setLoading(true);
+              
+              // Llamar al servicio
+              await deletePet(petId);
+              
+              console.log('✅ Mascota eliminada del backend');
+              
+              // Recargar datos
+              await loadData();
+              
+              Alert.alert(
+                "¡Eliminado!",
+                `${petName} ha sido eliminado de tu perfil.`
+              );
+            } catch (error) {
+              console.error('❌ Error al eliminar mascota:', error);
+              
+              const errorMessage = error.response?.data?.detail 
+                || error.message 
+                || 'No se pudo eliminar la mascota.';
+              
+              Alert.alert('Error', errorMessage);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="paw-outline" size={100} color="#ccc" />
-      <Text style={styles.emptyTitle}>Aún no tienes mascotas</Text>
-      <Text style={styles.emptySubtitle}>
-        Registra a tu primer compañero para ver su perfil aquí.
-      </Text>
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => navigation.navigate('AddPet', { clienteId })}
-      >
-        <Ionicons name="add-circle" size={24} color="white" />
-        <Text style={styles.addButtonText}>Agregar Mascota</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  // 🔥 FUNCIÓN PARA EDITAR MASCOTA
+  const handleEditPet = (pet) => {
+    navigation.navigate('EditPet', { 
+      clienteId, 
+      petId: pet.id,
+      existingPet: pet 
+    });
+  };
 
-  const renderPetDetails = () => (
-    <ScrollView>
-      <View style={styles.detailCard}>
-        <Image 
-          source={selectedPet.foto ? { uri: selectedPet.foto.replace('static/', 'http://localhost:8000/static/') } : require('../assets/placeholder.png')}
-          style={styles.mainPetImage}
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground 
+          source={require('../assets/FONDOA.png')} 
+          style={styles.backgroundImage} 
+          resizeMode="cover" 
         />
-        <Text style={styles.petName}>{selectedPet.nombre}</Text>
-        <View style={styles.detailGrid}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Especie</Text>
-            <Text style={styles.detailValue}>{selectedPet.especie || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Raza</Text>
-            <Text style={styles.detailValue}>{selectedPet.raza || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Edad</Text>
-            <Text style={styles.detailValue}>{selectedPet.edad} años</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Peso</Text>
-            <Text style={styles.detailValue}>{selectedPet.peso ? `${selectedPet.peso} kg` : 'N/A'}</Text>
-          </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFF" />
         </View>
-        <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.editButton}>
-                <Ionicons name="create-outline" size={20} color="white" />
-                <Text style={styles.buttonText}>Editar Perfil</Text>
-            </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
-  );
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ImageBackground
-        source={require('../assets/FONDOA.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
+      <ImageBackground 
+        source={require('../assets/FONDOA.png')} 
+        style={styles.backgroundImage} 
+        resizeMode="cover" 
       />
+
+      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity>
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
-        <Image
-          source={require('../assets/logo_amarillo.png')}
-          style={styles.logo}
+        
+        <Image 
+          source={require('../assets/logo_amarillo.png')} 
+          style={styles.logo} 
         />
+        
         <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
+
+      {/* CONTENEDOR BLANCO */}
       <View style={styles.container}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={MAIN_PURPLE} />
+        <ScrollView 
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          
+          {/* 🔥 PERFIL DEL USUARIO MEJORADO */}
+          {userProfile && (
+            <View style={styles.userInfoSection}>
+              <View style={styles.profileImageContainer}>
+                <Image 
+                  source={
+                    userProfile.foto 
+                      ? { uri: userProfile.foto }
+                      : require('../assets/user.png')
+                  }
+                  style={styles.profileImage}
+                />
+                <TouchableOpacity style={styles.editProfileIconButton}>
+                  <Ionicons name="camera" size={20} color="#732C71" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.userName}>{userProfile.nombre}</Text>
+              <Text style={styles.userInfoText}>
+                <Ionicons name="call" size={14} color="#888" /> {userProfile.telefono || 'Sin teléfono'}
+              </Text>
+              <Text style={styles.userInfoText}>
+                <Ionicons name="mail" size={14} color="#888" /> {userProfile.correo || 'Sin correo'}
+              </Text>
+
+              <TouchableOpacity 
+                style={styles.editProfileButton}
+                onPress={() => navigation.navigate('UserProfile', { clienteId })} // Esto navega a UserProfileScreen
+              >
+                <Text style={styles.editProfileButtonText}>Editar perfil</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 🔥 SECCIÓN DE MASCOTAS MEJORADA */}
+          <View style={styles.petsSection}>
+            <View style={styles.petsSectionHeader}>
+              <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
+              {pets.length > 0 && (
+                <View style={styles.petsCount}>
+                  <Text style={styles.petsCountText}>{pets.length}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.petsList}>
+              {pets.map(pet => (
+                <View key={pet.id} style={styles.petCard}>
+                  <TouchableOpacity 
+                    style={styles.petCardImageContainer}
+                    onPress={() => {
+                      // Aquí podrías navegar a un detalle de mascota
+                      console.log('Ver detalle de:', pet.nombre);
+                    }}
+                  >
+                    <Image
+                      source={
+                        pet.foto 
+                          ? { uri: pet.foto }
+                          : require('../assets/placeholder.png')
+                      }
+                      style={styles.petCardImage}
+                    />
+                    <View style={styles.petCardBadge}>
+                      <Ionicons 
+                        name={getPetIcon(pet.especie)} 
+                        size={16} 
+                        color="#732C71" 
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  <Text style={styles.petCardName}>{pet.nombre}</Text>
+                  <Text style={styles.petCardInfo}>{pet.raza}</Text>
+                  <Text style={styles.petCardInfo}>{pet.edad} años</Text>
+
+                  <View style={styles.petCardDetails}>
+                    {pet.peso && (
+                      <View style={styles.petCardDetailRow}>
+                        <Ionicons name="fitness" size={14} color="#888" />
+                        <Text style={styles.petCardDetailText}>
+                          {pet.peso} Kg
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.petCardDetailRow}>
+                      <Ionicons name="medical" size={14} color="#888" />
+                      <Text style={styles.petCardDetailText}>
+                        Sin alergias
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* 🔥 BOTONES DE ACCIÓN MEJORADOS */}
+                  <View style={styles.petCardActions}>
+                    <TouchableOpacity 
+                      style={styles.editPetButton}
+                      onPress={() => handleEditPet(pet)}
+                    >
+                      <Ionicons name="create-outline" size={18} color="#875686" />
+                      <Text style={styles.editPetText}>Editar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.deletePetButton}
+                      onPress={() => handleDeletePet(pet.id, pet.nombre)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                      <Text style={styles.deletePetText}>Eliminar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              
+              {/* 🔥 BOTÓN AGREGAR MEJORADO */}
+              <TouchableOpacity 
+                style={styles.addPetCard} 
+                onPress={() => navigation.navigate('AddPet', { clienteId })}
+              >
+                <View style={styles.addPetCircle}>
+                  <Ionicons name="add" size={40} color="white" />
+                </View>
+                <Text style={styles.addPetText}>
+                  Agregar nueva{'\n'}mascota
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : pets.length > 0 ? (
-          <View style={styles.profileContainer}>
-            {renderPetSelector()}
-            {selectedPet && renderPetDetails()}
-          </View>
-        ) : (
-          renderEmptyState()
-        )}
+
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -8507,79 +9444,184 @@ export default UploadProofScreen;
 </file>
 
 <file path="frontend/screens/UserProfileScreen.js">
-// frontend/screens/UserProfileScreen.js
+// frontend/screens/UserProfileScreen.js - VERSIÓN CORREGIDA
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
-  Image,
+  TextInput,
+  StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
+  Image,
   Alert,
-  ImageBackground,
+  ActivityIndicator,
+  ScrollView,
+  SafeAreaView,
+  Platform,
+  KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-
-import { getClientProfile } from '../services/authService'; // Necesitaremos esta nueva función
-import { getPetsByCliente } from '../services/petService';
-import { styles } from '../styles/userProfileScreenStyles';
-
-// Imágenes por defecto locales
-const defaultUserImage = require('../assets/user.png');
-const defaultDogImage = require('../assets/perro.png');
-const defaultCatImage = require('../assets/gato.png');
+import * as ImagePicker from 'expo-image-picker';
+import { getClienteProfile, updateClientProfile } from '../services/authService';
 
 const UserProfileScreen = ({ navigation, route }) => {
-  const { clienteId } = route.params;
+  const { clienteId } = route.params || {};
 
-  const [profile, setProfile] = useState(null);
-  const [pets, setPets] = useState([]);
+  // Estados
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    telefono: '',
+    correo: '',
+  });
 
-  const loadData = async () => {
+  // Cargar datos del perfil
+  useEffect(() => {
+    loadProfileData();
+  }, [clienteId]);
+
+  const loadProfileData = async () => {
     if (!clienteId) {
       Alert.alert('Error', 'No se pudo identificar al usuario.');
-      setLoading(false);
+      navigation.goBack();
       return;
     }
+
     try {
-      // Cargar perfil y mascotas en paralelo
-      const [profileData, petsResponse] = await Promise.all([
-        getClientProfile(clienteId),
-        getPetsByCliente(clienteId)
-      ]);
-      setProfile(profileData);
-      setPets(petsResponse.mascotas || []);
+      setLoading(true);
+      console.log('📥 Cargando perfil para cliente:', clienteId);
+      
+      const data = await getClienteProfile(clienteId);
+      console.log('✅ Datos recibidos:', data);
+
+      // Actualizar estado del formulario
+      setFormData({
+        nombre: data.nombre || '',
+        telefono: data.telefono || '',
+        correo: data.correo || '',
+      });
+
+      // Configurar foto de perfil
+      if (data.foto) {
+        setProfilePhoto({ uri: data.foto });
+      }
+
     } catch (error) {
-      console.error('❌ Error al cargar datos del perfil:', error);
+      console.error('❌ Error al cargar perfil:', error);
       Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      loadData();
-    }, [clienteId])
-  );
+  // Seleccionar foto de perfil
+  const handleSelectPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso requerido',
+          'Necesitamos acceso a tus fotos para cambiar tu imagen de perfil.'
+        );
+        return;
+      }
 
-  const getPetDefaultImage = (especie) => {
-    if (especie.toLowerCase().includes('perro')) return defaultDogImage;
-    if (especie.toLowerCase().includes('gato')) return defaultCatImage;
-    return defaultUserImage; // Una imagen genérica si no es perro o gato
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setProfilePhoto(result.assets[0]);
+        console.log('📸 Nueva foto seleccionada');
+      }
+    } catch (error) {
+      console.error('❌ Error al seleccionar foto:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+    }
   };
-  
+
+  // Guardar cambios
+  const handleSaveChanges = async () => {
+    // Validaciones
+    if (!formData.nombre.trim()) {
+      Alert.alert('Campo requerido', 'El nombre no puede estar vacío.');
+      return;
+    }
+
+    if (!formData.telefono.trim()) {
+      Alert.alert('Campo requerido', 'El teléfono no puede estar vacío.');
+      return;
+    }
+
+    // Validar formato de teléfono (básico)
+    if (formData.telefono.length < 9) {
+      Alert.alert('Teléfono inválido', 'Ingresa un número de teléfono válido.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      console.log('💾 Guardando cambios...');
+
+      // Preparar datos para enviar
+      const updateData = {
+        nombre: formData.nombre.trim(),
+        telefono: formData.telefono.trim(),
+      };
+
+      // Agregar foto si se seleccionó una nueva
+      let photoToSend = null;
+      if (profilePhoto && !profilePhoto.uri.startsWith('http')) {
+        photoToSend = profilePhoto;
+      }
+
+      console.log('📤 Enviando actualización:', updateData);
+
+      const response = await updateClientProfile(clienteId, updateData, photoToSend);
+
+      console.log('✅ Perfil actualizado:', response);
+
+      Alert.alert(
+        '¡Éxito!',
+        'Tu perfil ha sido actualizado correctamente.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Recargar datos actualizados
+              loadProfileData();
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('❌ Error al guardar:', error);
+      
+      const errorMessage = error.response?.data?.detail 
+        || error.message 
+        || 'No se pudieron guardar los cambios.';
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Pantalla de carga
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFF" />
+          <ActivityIndicator size="large" color="#875686" />
+          <Text style={styles.loadingText}>Cargando perfil...</Text>
         </View>
       </SafeAreaView>
     );
@@ -8587,80 +9629,285 @@ const UserProfileScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ImageBackground
-        source={require('../assets/FONDOA.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Ionicons name="menu" size={30} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require('../assets/logo_amarillo.png')}
-          style={styles.logo}
-        />
-        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
-          <Ionicons name="cart-outline" size={30} color="white" />
-        </TouchableOpacity>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#875686" />
+          </TouchableOpacity>
 
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollView}>
-          {/* SECCIÓN DEL PERFIL DE USUARIO */}
-          <View style={styles.profileHeader}>
-            <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Tu perfil</Text>
-            </View>
+          <Text style={styles.headerTitle}>Mi Perfil</Text>
 
-            <View style={styles.profileSection}>
-              <Image 
-                source={profile?.foto ? { uri: profile.foto.replace('static/', 'http://localhost:8000/static/') } : defaultUserImage}
-                style={styles.profilePic} 
+          <View style={{ width: 28 }} />
+        </View>
+
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* FOTO DE PERFIL */}
+          <View style={styles.photoSection}>
+            <TouchableOpacity 
+              style={styles.photoContainer}
+              onPress={handleSelectPhoto}
+            >
+              <Image
+                source={
+                  profilePhoto
+                    ? { uri: profilePhoto.uri }
+                    : require('../assets/user.png')
+                }
+                style={styles.profileImage}
               />
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{profile?.nombre || 'Usuario'}</Text>
-                <Text style={styles.profileContact}>{profile?.telefono || 'Sin teléfono'}</Text>
-                <Text style={styles.profileContact}>{profile?.correo || 'Sin correo'}</Text>
-                <TouchableOpacity style={styles.editButton}>
-                  <Text style={styles.editButtonText}>Editar perfil</Text>
-                </TouchableOpacity>
+              <View style={styles.editPhotoButton}>
+                <Ionicons name="camera" size={20} color="white" />
               </View>
-            </View>
+            </TouchableOpacity>
+            <Text style={styles.photoHint}>Toca para cambiar la foto</Text>
           </View>
 
-          {/* SECCIÓN DE MASCOTAS */}
-          <View style={styles.petsSection}>
-            <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
-            <View style={styles.petsList}>
-              {pets.map(pet => (
-                <TouchableOpacity key={pet.id} style={styles.petCard} onPress={() => navigation.navigate('PetProfile', { clienteId })}>
-                  <Image 
-                    source={pet.foto ? { uri: pet.foto.replace('static/', 'http://localhost:8000/static/') } : getPetDefaultImage(pet.especie)}
-                    style={styles.petImage}
-                  />
-                  <Text style={styles.petName}>{pet.nombre}</Text>
-                  <Text style={styles.petInfo}>{pet.raza}</Text>
-                  <Text style={styles.petInfo}>{pet.edad} años</Text>
-                  <Text style={styles.petDetails}>Peso: {pet.peso || 'N/A'} Kg. Alergias: Pollo</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
-                <View style={styles.addPetCircle}>
-                  <Ionicons name="add" size={30} color="white" />
-                </View>
-                <Text style={styles.addPetText}>Agregar nueva mascota</Text>
-              </TouchableOpacity>
+          {/* FORMULARIO */}
+          <View style={styles.formContainer}>
+            {/* Nombre */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Nombre completo <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={formData.nombre}
+                onChangeText={(text) => setFormData({ ...formData, nombre: text })}
+                placeholder="Ej: Juan Pérez"
+                placeholderTextColor="#999"
+              />
             </View>
+
+            {/* Teléfono */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Teléfono <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={formData.telefono}
+                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                placeholder="Ej: 987654321"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                maxLength={15}
+              />
+            </View>
+
+            {/* Correo (no editable) */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Correo electrónico</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                value={formData.correo}
+                editable={false}
+                placeholderTextColor="#999"
+              />
+              <Text style={styles.hint}>
+                El correo no puede ser modificado
+              </Text>
+            </View>
+
+            {/* Botón Guardar */}
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                saving && styles.saveButtonDisabled
+              ]}
+              onPress={handleSaveChanges}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={24} color="white" />
+                  <Text style={styles.saveButtonText}>Guardar Cambios</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9F9F9',
+  },
+
+  container: {
+    flex: 1,
+  },
+
+  // === HEADER ===
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#732C71',
+  },
+
+  // === LOADING ===
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+
+  // === SCROLL CONTENT ===
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  // === FOTO DE PERFIL ===
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: 'white',
+    marginBottom: 2,
+  },
+
+  photoContainer: {
+    position: 'relative',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  editPhotoButton: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#FF8C42',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+  },
+
+  photoHint: {
+    marginTop: 15,
+    fontSize: 14,
+    color: '#888',
+    fontStyle: 'italic',
+  },
+
+  // === FORMULARIO ===
+  formContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+  },
+
+  inputGroup: {
+    marginBottom: 20,
+  },
+
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+
+  required: {
+    color: '#FF6B6B',
+  },
+
+  input: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#333',
+  },
+
+  inputDisabled: {
+    backgroundColor: '#EFEFEF',
+    color: '#999',
+  },
+
+  hint: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+
+  // === BOTÓN GUARDAR ===
+  saveButton: {
+    backgroundColor: '#FF8C42',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 30,
+    marginTop: 30,
+    shadowColor: '#FF8C42',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+});
 
 export default UserProfileScreen;
 </file>
@@ -8868,63 +10115,117 @@ export default apiClient;
 </file>
 
 <file path="frontend/services/authService.js">
-// Archivo: services/authService.js
+// frontend/services/authService.js - VERSIÓN CORREGIDA
 
-import api from './api'; // Importamos nuestra instancia configurada de axios
+import api from './api';
 
 /**
  * Función para iniciar sesión.
- * Llama al endpoint POST /auth/login.
  * @param {string} correo 
  * @param {string} contrasena 
  * @returns {Promise<Object>} 
  */
 export const login = async (correo, contrasena) => {
   try {
-    // El segundo argumento de api.post es el cuerpo (body) de la petición
     const response = await api.post('/auth/login', {
       correo, 
       contrasena, 
     });
-    // Devolvemos los datos de la respuesta para que el componente los maneje
     return response.data; 
   } catch (error) {
-    // Imprimimos un error más detallado en la consola para depuración
-    console.error('Error en el servicio de login:', error.response ? error.response.data : error.message);
-    // Propagamos el error para que el componente pueda mostrar un mensaje al usuario
+    console.error('❌ Error en login:', error.response?.data || error.message);
     throw error;
   }
 };
 
 /**
  * Función para registrar un nuevo usuario.
- * Llama al endpoint POST /auth/register.
- * @param {Object} userData - Objeto con { nombre, correo, contrasena }.
- * @returns {Promise<Object>} La respuesta del servidor.
+ * @param {Object} userData - { nombre, correo, contrasena }
+ * @returns {Promise<Object>}
  */
 export const register = async (userData) => {
   try {
     const response = await api.post('/auth/register', userData);
-    // Devolvemos los datos de la respuesta (ej. un mensaje de éxito)
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio de registro:', error.response ? error.response.data : error.message);
+    console.error('❌ Error en registro:', error.response?.data || error.message);
     throw error;
   }
 };
 
 /**
  * Obtiene el perfil completo de un cliente.
- * Llama al endpoint GET /cliente/id/{cliente_id}.
- * @param {string} clienteId - ID del cliente.
- * @returns {Promise<Object>} El perfil del cliente.
+ * @param {string} clienteId - ID del cliente
+ * @returns {Promise<Object>}
  */
-export const getClientProfile = async (clienteId) => {
+export const getClienteProfile = async (clienteId) => {
   try {
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
+
+    console.log('📥 Obteniendo perfil para cliente:', clienteId);
     const response = await api.get(`/cliente/id/${clienteId}`);
+    
+    console.log('✅ Perfil obtenido:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio getClientProfile:', error.response ? error.response.data : error.message);
+    console.error('❌ Error al obtener perfil:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Actualiza el perfil del cliente (VERSIÓN CORREGIDA).
+ * Endpoint: PUT /cliente/{cliente_id}
+ * Acepta nombre, telefono y un archivo foto (multipart/form-data).
+ *
+ * @param {string} clienteId - ID del cliente
+ * @param {Object} updateData - { nombre, telefono }
+ * @param {Object|null} photo - Objeto con { uri, type, name } o null
+ * @returns {Promise<object>}
+ */
+export const updateClientProfile = async (clienteId, updateData, photo = null) => {
+  try {
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
+
+    console.log('💾 Actualizando perfil:', clienteId);
+    console.log('📝 Datos a actualizar:', updateData);
+
+    // Crear FormData
+    const formData = new FormData();
+    formData.append('nombre', updateData.nombre);
+    formData.append('telefono', updateData.telefono);
+
+    // Agregar foto si existe
+    if (photo && photo.uri && !photo.uri.startsWith('http')) {
+      console.log('📸 Agregando foto al FormData');
+      
+      // Extraer extensión del archivo
+      const uriParts = photo.uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
+      formData.append('foto', {
+        uri: photo.uri,
+        type: `image/${fileType}`,
+        name: `profile_${clienteId}.${fileType}`,
+      });
+    }
+
+    console.log('📤 Enviando actualización...');
+
+    const response = await api.put(`/cliente/${clienteId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('✅ Perfil actualizado exitosamente');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al actualizar perfil:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -9510,6 +10811,17 @@ export const updatePet = async (mascotaId, updateData) => {
     if (updateData.peso) formData.append('peso', updateData.peso.toString());
     if (updateData.raza) formData.append('raza', updateData.raza);
     if (updateData.observaciones) formData.append('observaciones', updateData.observaciones);
+    
+    if (updateData.foto && !updateData.foto.uri.startsWith('http')) {
+      const uriParts = updateData.foto.uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
+      formData.append('foto', {
+        uri: updateData.foto.uri,
+        name: `pet_${mascotaId}.${fileType}`,
+        type: `image/${fileType}`,
+      });
+    }
 
     const response = await api.put(`/cliente/mascotas/${mascotaId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -9888,65 +11200,163 @@ import { StyleSheet, Platform } from 'react-native';
 const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
+const YELLOW = '#FFD100';
+const LIGHT_BACKGROUND = '#F9F9F9';
 const DISABLED_GREY = '#cccccc';
 
 export const styles = StyleSheet.create({
+  // === CONTENEDOR PRINCIPAL ===
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: MAIN_PURPLE, // 🔥 Fondo morado como el perfil
   },
+
+  backgroundImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+
   container: {
     flex: 1,
   },
+
+  // === HEADER MORADO ===
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
+    paddingBottom: 15,
   },
+
+  logo: {
+    width: 160,
+    height: 120,
+    resizeMode: 'contain',
+  },
+
+  // === CONTENEDOR BLANCO REDONDEADO ===
+  formWrapper: {
+    flex: 1,
+    backgroundColor: LIGHT_BACKGROUND,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 30,
+  },
+
+  // === SCROLL CONTENT ===
+  formContainer: {
+    paddingHorizontal: 25,
+    paddingBottom: 150, // Espacio para el tab navigator
+  },
+
+  // === TÍTULO ===
   headerTitle: {
-    fontSize: 20,
+    fontSize: 28,
+    fontWeight: '800',
+    color: SECOND_PURPLE,
+    marginBottom: 25,
+    letterSpacing: 0.3,
+  },
+
+  // === SECCIÓN DE INFORMACIÓN (OPCIONAL) ===
+  infoSection: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+
+  infoTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: SECOND_PURPLE,
-    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  infoIcon: {
+    marginRight: 12,
+  },
+
+  infoText: {
     flex: 1,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
   },
-  formContainer: {
-    padding: 25,
+
+  // === INPUTS ===
+  inputGroup: {
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 25,
+
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#333',
+    marginBottom: 8,
   },
+
   input: {
     width: '100%',
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    marginBottom: 25,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
+    color: '#333',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
+
+  // === PICKERS (SELECTORES) ===
   pickerContainer: {
     width: '100%',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
+
   pickerLabel: {
     color: '#888',
-    fontSize: 16,
-    paddingTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+    marginTop: 4,
   },
+
   picker: {
     width: '100%',
     height: 40,
-    color: '#000',
+    color: '#333',
   },
+
+  // === BOTÓN GUARDAR ===
   saveButton: {
     backgroundColor: ORANGE,
     flexDirection: 'row',
@@ -9954,22 +11364,85 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     borderRadius: 30,
-    marginTop: 20,
+    marginTop: 30,
+    marginBottom: 20,
     shadowColor: ORANGE,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
+
   saveButtonDisabled: {
     backgroundColor: DISABLED_GREY,
+    shadowColor: DISABLED_GREY,
   },
+
   saveButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
   },
+  photoSection: {
+  alignItems: 'center',
+  marginBottom: 25,
+},
+
+photoContainer: {
+  position: 'relative',
+  width: 140,
+  height: 140,
+  borderRadius: 70,
+  overflow: 'hidden',
+  borderWidth: 4,
+  borderColor: 'white',
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 8,
+},
+
+petPhoto: {
+  width: '100%',
+  height: '100%',
+},
+
+photoPlaceholder: {
+  width: '100%',
+  height: '100%',
+  backgroundColor: '#F5F0F5',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+photoEditBadge: {
+  position: 'absolute',
+  bottom: 5,
+  right: 5,
+  backgroundColor: '#FF8C42',
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderWidth: 3,
+  borderColor: 'white',
+},
+
+photoHint: {
+  marginTop: 12,
+  fontSize: 14,
+  color: '#888',
+  fontStyle: 'italic',
+},
+
+textArea: {
+  height: 100,
+  textAlignVertical: 'top',
+  paddingTop: 12,
+},
 });
 </file>
 
@@ -12557,19 +14030,24 @@ import { StyleSheet, Platform } from 'react-native';
 
 const MAIN_PURPLE = '#875686';
 const SECOND_PURPLE = '#732C71';
+const ORANGE = '#FF8C42';
 const YELLOW = '#FFD100';
 const LIGHT_BACKGROUND = '#F9F9F9';
 
 export const styles = StyleSheet.create({
+  // === CONTENEDOR PRINCIPAL ===
   safeArea: {
     flex: 1,
     backgroundColor: MAIN_PURPLE,
   },
+
   backgroundImage: {
     position: 'absolute',
     width: '100%',
     height: '100%',
   },
+
+  // === HEADER ===
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -12578,173 +14056,393 @@ export const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 25 : 10,
     paddingBottom: 15,
   },
+
   logo: {
-    width: 120,
-    height: 60,
+    width: 160,
+    height: 120,
     resizeMode: 'contain',
   },
+
+  // === CONTENEDOR BLANCO ===
   container: {
     flex: 1,
     backgroundColor: LIGHT_BACKGROUND,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    paddingBottom: 40,
+    paddingTop: 30,
   },
 
-  // --- Profile Header ---
-  profileHeader: {
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
+  scrollViewContent: {
+    paddingBottom: 150, // Espacio para el tab navigator
   },
-  headerRow: {
-    flexDirection: 'row',
+
+  // === SECCIÓN DE INFORMACIÓN DEL USUARIO ===
+  userInfoSection: {
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 35,
+  },
+
+  profileImageContainer: {
+    position: 'relative',
     marginBottom: 20,
   },
-  backButton: {
-    backgroundColor: SECOND_PURPLE,
+
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  editProfileIconButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: YELLOW,
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 20,
-  },
-  profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     borderWidth: 3,
     borderColor: 'white',
-    marginBottom: 10,
-  },
-  profileInfo: {
-    marginLeft: 20,
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: SECOND_PURPLE,
-  },
-  profileContact: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  editButton: {
-    backgroundColor: YELLOW,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
-    alignSelf: 'flex-start',
-  },
-  editButtonText: {
-    color: SECOND_PURPLE,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
 
-  // --- Mascotas Section ---
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+    marginBottom: 8,
+  },
+
+  userInfoText: {
+    fontSize: 15,
+    color: '#888',
+    marginTop: 4,
+  },
+
+  editProfileButton: {
+    backgroundColor: YELLOW,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 15,
+    shadowColor: YELLOW,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+
+  editProfileButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: SECOND_PURPLE,
+  },
+
+  // === SECCIÓN DE MASCOTAS ===
   petsSection: {
     backgroundColor: 'white',
     marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 25,
+    padding: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 12,
+    elevation: 8,
   },
+
+  petsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+
   petsSectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
   },
+
+  petsCount: {
+    backgroundColor: MAIN_PURPLE,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  petsCountText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
   petsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
+    justifyContent: 'space-between',
   },
+
+  // === TARJETA DE MASCOTA ===
   petCard: {
+    width: '48%',
     backgroundColor: LIGHT_BACKGROUND,
-    borderRadius: 15,
+    borderRadius: 20,
     padding: 15,
-    width: '48%', // Aprox para 2 por fila
     alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  petImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 10,
+
+  petCardImageContainer: {
+    position: 'relative',
+    marginBottom: 12,
   },
-  petName: {
-    fontSize: 16,
+
+  petCardImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    borderColor: 'white',
+  },
+
+  petCardBadge: {
+    position: 'absolute',
+    bottom: -5,
+    right: -5,
+    backgroundColor: YELLOW,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+
+  petCardName: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
   },
-  petInfo: {
-    fontSize: 13,
-    color: '#777',
+
+  petCardInfo: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 2,
   },
-  petDetails: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+
+  petCardDetails: {
     borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    paddingTop: 8,
-    textAlign: 'center',
+    borderTopColor: '#E0E0E0',
+    marginTop: 12,
+    paddingTop: 12,
+    width: '100%',
+    alignItems: 'center',
   },
+
+  petCardDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+
+  petCardDetailText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 6,
+  },
+
+  // === BOTÓN AGREGAR MASCOTA ===
   addPetCard: {
-    backgroundColor: 'transparent',
-    borderRadius: 15,
     width: '48%',
+    backgroundColor: LIGHT_BACKGROUND,
+    borderRadius: 20,
+    padding: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 15,
+    minHeight: 240,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#DDD',
-    paddingVertical: 30, // Ajusta para que tenga altura similar
+    borderColor: MAIN_PURPLE,
   },
+
   addPetCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: SECOND_PURPLE,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    shadowColor: SECOND_PURPLE,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
+
   addPetText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
     color: SECOND_PURPLE,
-    textAlign: 'center'
+    textAlign: 'center',
+    lineHeight: 20,
   },
+
+  // === LOADING ===
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+    // === BOTÓN ELIMINAR MASCOTA ===
+  deletePetButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 6,
+  paddingHorizontal: 8,
+  borderRadius: 12,
+  marginTop: 10,
+  backgroundColor: 'transparent',
+},
+
+deletePetText: {
+  color: '#B45E6A', // rojo pastel suave
+  fontSize: 13,
+  fontWeight: '600',
+  marginLeft: 4,
+},
+// === ACCIONES DE LA TARJETA ===
+  petCardActions: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+
+  editPetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F5F0F5',
+    flex: 1,
+    marginRight: 6,
+  },
+
+  editPetText: {
+    color: '#875686',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  deletePetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFF0F0',
+    flex: 1,
+    marginLeft: 6,
+  },
+
+  deletePetText: {
+    color: '#FF6B6B',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  
+inputGroup: {
+  width: '100%',
+  marginBottom: 15,
+},
+
+inputLabel: {
+  fontSize: 14,
+  color: SECOND_PURPLE,
+  fontWeight: '600',
+  marginBottom: 5,
+},
+
+input: {
+  height: 50,
+  backgroundColor: LIGHT_BACKGROUND,
+  borderRadius: 12,
+  paddingHorizontal: 15,
+  fontSize: 16,
+  color: '#333',
+  borderWidth: 1,
+  borderColor: '#ddd',
+},
+
+disabledInput: {
+  backgroundColor: '#E5E5E5',
+  color: '#777',
+},
+
+// Botón Guardar Cambios
+saveButton: {
+  backgroundColor: YELLOW,
+  paddingVertical: 15,
+  borderRadius: 30,
+  width: '100%',
+  alignItems: 'center',
+  marginTop: 20,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4.5,
+  elevation: 8,
+},
+
+saveButtonText: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: SECOND_PURPLE,
+},
+
+// Separador
+separator: {
+  height: 1,
+  backgroundColor: '#EAEAEA',
+  marginVertical: 25,
+  width: '100%',
+},
+
 });
 </file>
 

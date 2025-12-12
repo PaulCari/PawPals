@@ -11,6 +11,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CartBadge from '../components/CartBadge';
 
 import { getProducts, getCategories } from '../services/productService';
 import ProductCard from '../components/ProductCard';
@@ -85,11 +86,9 @@ const HomeScreen = ({ navigation, route }) => {
       {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
 
-        {/* 🔥 Nuevo botón que abre el perfil */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('UserProfile', { clienteId })}
-        >
-          <Ionicons name="person-circle-outline" size={32} color="white" />
+        {/* 🔥 Botón menú (tres rayitas) */}
+        <TouchableOpacity onPress={() => console.log("Menú presionado")}>
+          <Ionicons name="menu-outline" size={32} color="white" />
         </TouchableOpacity>
 
         {/* LOGO */}
@@ -98,14 +97,13 @@ const HomeScreen = ({ navigation, route }) => {
           style={styles.logo}
         />
 
-        {/* 🔥 Botón Carrito (igual que antes) */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Cart', { clienteId })}
-        >
-          <Ionicons name="cart-outline" size={30} color="white" />
+        {/* 🔥 Botón Carrito */}
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })} >
+          <CartBadge clienteId={clienteId}>
+            <Ionicons name="cart-outline" size={30} color="white" />
+          </CartBadge>
         </TouchableOpacity>
       </View>
-
       {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>
