@@ -11,6 +11,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CartBadge from '../components/CartBadge';
 
 import { getProducts, getCategories } from '../services/productService';
 import ProductCard from '../components/ProductCard';
@@ -97,10 +98,10 @@ const HomeScreen = ({ navigation, route }) => {
         />
 
         {/* 🔥 Botón Carrito */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Cart', { clienteId })}
-        >
-          <Ionicons name="cart-outline" size={30} color="white" />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })} >
+          <CartBadge clienteId={clienteId}>
+            <Ionicons name="cart-outline" size={30} color="white" />
+          </CartBadge>
         </TouchableOpacity>
       </View>
       {/* 🤍 CONTENEDOR BLANCO */}

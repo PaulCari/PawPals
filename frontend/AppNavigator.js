@@ -25,6 +25,7 @@ import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
 import AddPetScreen from './screens/AddPetScreen';
 import EditPetScreen from './screens/EditPetScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -149,7 +150,8 @@ const AppNavigator = () => {
         <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EditPet" component={EditPetScreen} options={{ presentation: 'modal' }} />
         {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
-        {/*<Stack.Screen name="UserProfile" component={UserProfileScreen} /> */}
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

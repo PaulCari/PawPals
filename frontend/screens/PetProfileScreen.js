@@ -194,7 +194,10 @@ const PetProfileScreen = ({ navigation, route }) => {
                 <Ionicons name="mail" size={14} color="#888" /> {userProfile.correo || 'Sin correo'}
               </Text>
 
-              <TouchableOpacity style={styles.editProfileButton}>
+              <TouchableOpacity 
+                style={styles.editProfileButton}
+                onPress={() => navigation.navigate('UserProfile', { clienteId })} // Esto navega a UserProfileScreen
+              >
                 <Text style={styles.editProfileButtonText}>Editar perfil</Text>
               </TouchableOpacity>
             </View>
