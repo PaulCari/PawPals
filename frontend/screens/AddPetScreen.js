@@ -12,11 +12,16 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  ImageBackground,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { createPet, getSpecies, getBreedsBySpecies } from '../services/petService';
 import { styles } from '../styles/addPetScreenStyles';
+
+//  IMPORTAR NOTIFICACIÓN
+import SuccessNotification from '../components/SuccessNotification';
 
 const AddPetScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
@@ -28,13 +33,16 @@ const AddPetScreen = ({ navigation, route }) => {
   const [age, setAge] = useState('');
   const [petSex, setPetSex] = useState('M');
 
-  // Estados de datos y carga
+  // Estados de datos
   const [especies, setEspecies] = useState([]);
   const [razas, setRazas] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [razasLoading, setRazasLoading] = useState(false);
 
-  // Carga las especies al iniciar
+  //  NUEVO: Estado para mostrar la notificación
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Cargar especies
   useEffect(() => {
     const loadSpecies = async () => {
       try {
@@ -48,12 +56,13 @@ const AddPetScreen = ({ navigation, route }) => {
     loadSpecies();
   }, []);
 
-  // Carga las razas cuando cambia el tipo de mascota
+  // Cargar razas al cambiar especie
   useEffect(() => {
     const loadBreeds = async () => {
       if (!petType) return;
       setRazasLoading(true);
       setRazas([]);
+
       try {
         const breedsData = await getBreedsBySpecies(petType);
         setRazas(breedsData);
@@ -64,15 +73,19 @@ const AddPetScreen = ({ navigation, route }) => {
         setRazasLoading(false);
       }
     };
+
     loadBreeds();
   }, [petType]);
 
+  // 🔥 FUNCIÓN MODIFICADA CON NOTIFICACIÓN
   const handleSavePet = async () => {
     if (!petName.trim() || !breed || !age.trim()) {
       Alert.alert('Campos incompletos', 'Por favor completa todos los campos.');
       return;
     }
+
     setIsLoading(true);
+
     try {
       const petData = {
         nombre: petName,
@@ -81,67 +94,157 @@ const AddPetScreen = ({ navigation, route }) => {
         edad: parseInt(age, 10),
         sexo: petSex
       };
+
       await createPet(clienteId, petData);
-      Alert.alert('¡Éxito!', 'Tu mascota ha sido registrada.', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+
+      //  Mostrar notificación de éxito
+      setIsLoading(false);
+      setShowSuccess(true);
+
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Ocurrió un error al registrar la mascota.';
+      const errorMessage =
+        error.response?.data?.detail ||
+        'Ocurrió un error al registrar la mascota.';
+
       Alert.alert('Error', errorMessage);
-    } finally {
       setIsLoading(false);
     }
+  };
+
+  //  SE EJECUTA CUANDO LA ANIMACIÓN TERMINA
+  const handleNotificationComplete = () => {
+    console.log('📱 Volviendo a PetProfile...');
+    setShowSuccess(false);
+    navigation.goBack(); //  Vuelve a la pantalla anterior (PetProfile)
   };
 
   const isFormValid = petName.trim() && breed && age.trim() && !razasLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.container}
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
+        </TouchableOpacity>
+
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+
+        <View style={{ width: 30 }} />
+      </View>
+
+      {/* FORMULARIO */}
+      <KeyboardAvoidingView
+        style={styles.formWrapper}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="#875686" />
-          </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.formContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.headerTitle}>Agregar Mascota</Text>
-          <View style={{ width: 28 }} />
-        </View>
 
-        <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
-          <TextInput style={styles.input} placeholder="Nombre de la mascota" value={petName} onChangeText={setPetName} />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Tipo de mascota:</Text>
-            <Picker selectedValue={petType} onValueChange={setPetType} style={styles.picker}>
-              {especies.map(e => <Picker.Item key={e.id} label={e.nombre} value={e.id} />)}
-            </Picker>
+          {/* INFO */}
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <Ionicons name="paw" size={24} color="#875686" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                Completa los datos de tu mascota para personalizar su experiencia
+              </Text>
+            </View>
           </View>
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Raza:</Text>
-            {razasLoading ? (
-              <ActivityIndicator size="small" color="#732C71" style={{ height: 40 }}/>
-            ) : (
-              <Picker selectedValue={breed} onValueChange={setBreed} style={styles.picker} enabled={!razasLoading && razas.length > 0}>
-                {razas.map((r, index) => <Picker.Item key={index} label={r} value={r} />)}
+
+          {/* INPUTS */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre de la mascota</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Max, Luna"
+              value={petName}
+              onChangeText={setPetName}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tipo de mascota</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petType}
+                onValueChange={setPetType}
+                style={styles.picker}
+              >
+                {especies.map(e => (
+                  <Picker.Item key={e.id} label={e.nombre} value={e.id} />
+                ))}
               </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Raza</Text>
+            {razasLoading ? (
+              <View style={[styles.input, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#732C71" />
+              </View>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={breed}
+                  onValueChange={setBreed}
+                  style={styles.picker}
+                  enabled={!razasLoading && razas.length > 0}
+                >
+                  {razas.map((r, index) => (
+                    <Picker.Item key={index} label={r} value={r} />
+                  ))}
+                </Picker>
+              </View>
             )}
           </View>
 
-          <TextInput style={styles.input} placeholder="Edad (años)" value={age} onChangeText={setAge} keyboardType="numeric" />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Sexo:</Text>
-            <Picker selectedValue={petSex} onValueChange={setPetSex} style={styles.picker}>
-              <Picker.Item label="Macho" value="M" />
-              <Picker.Item label="Hembra" value="H" />
-            </Picker>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Edad (años)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 3"
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, (!isFormValid || isLoading) && styles.saveButtonDisabled]}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sexo</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={petSex}
+                onValueChange={setPetSex}
+                style={styles.picker}
+              >
+                <Picker.Item label="Macho" value="M" />
+                <Picker.Item label="Hembra" value="H" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* BOTÓN */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (!isFormValid || isLoading) && styles.saveButtonDisabled
+            ]}
             onPress={handleSavePet}
             disabled={!isFormValid || isLoading}
           >
@@ -156,6 +259,14 @@ const AddPetScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/*  NOTIFICACIÓN DE ÉXITO */}
+      {showSuccess && (
+        <SuccessNotification
+          message={`¡${petName} ha sido agregado a tu perfil! 🐾`}
+          onComplete={handleNotificationComplete}
+        />
+      )}
     </SafeAreaView>
   );
 };

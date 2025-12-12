@@ -1,44 +1,37 @@
-// Archivo: services/authService.js
+// frontend/services/authService.js - VERSIÓN CORREGIDA
 
-import api from './api'; // Importamos nuestra instancia configurada de axios
+import api from './api';
 
 /**
  * Función para iniciar sesión.
- * Llama al endpoint POST /auth/login.
  * @param {string} correo 
  * @param {string} contrasena 
  * @returns {Promise<Object>} 
  */
 export const login = async (correo, contrasena) => {
   try {
-    // El segundo argumento de api.post es el cuerpo (body) de la petición
     const response = await api.post('/auth/login', {
       correo, 
       contrasena, 
     });
-    // Devolvemos los datos de la respuesta para que el componente los maneje
     return response.data; 
   } catch (error) {
-    // Imprimimos un error más detallado en la consola para depuración
-    console.error('Error en el servicio de login:', error.response ? error.response.data : error.message);
-    // Propagamos el error para que el componente pueda mostrar un mensaje al usuario
+    console.error('❌ Error en login:', error.response?.data || error.message);
     throw error;
   }
 };
 
 /**
  * Función para registrar un nuevo usuario.
- * Llama al endpoint POST /auth/register.
- * @param {Object} userData - Objeto con { nombre, correo, contrasena }.
- * @returns {Promise<Object>} La respuesta del servidor.
+ * @param {Object} userData - { nombre, correo, contrasena }
+ * @returns {Promise<Object>}
  */
 export const register = async (userData) => {
   try {
     const response = await api.post('/auth/register', userData);
-    // Devolvemos los datos de la respuesta (ej. un mensaje de éxito)
     return response.data;
   } catch (error) {
-    console.error('Error en el servicio de registro:', error.response ? error.response.data : error.message);
+    console.error('❌ Error en registro:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -50,11 +43,72 @@ export const register = async (userData) => {
  */
 export const getClienteProfile = async (clienteId) => {
   try {
-    if (!clienteId) throw new Error("ID de cliente es requerido");
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
+
+    console.log('📥 Obteniendo perfil para cliente:', clienteId);
     const response = await api.get(`/cliente/id/${clienteId}`);
+    
+    console.log('✅ Perfil obtenido:', response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Error al obtener perfil del cliente:', error.response?.data || error.message);
+    console.error('❌ Error al obtener perfil:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Actualiza el perfil del cliente (VERSIÓN CORREGIDA).
+ * Endpoint: PUT /cliente/{cliente_id}
+ * Acepta nombre, telefono y un archivo foto (multipart/form-data).
+ *
+ * @param {string} clienteId - ID del cliente
+ * @param {Object} updateData - { nombre, telefono }
+ * @param {Object|null} photo - Objeto con { uri, type, name } o null
+ * @returns {Promise<object>}
+ */
+export const updateClientProfile = async (clienteId, updateData, photo = null) => {
+  try {
+    if (!clienteId) {
+      throw new Error("ID de cliente es requerido");
+    }
+
+    console.log('💾 Actualizando perfil:', clienteId);
+    console.log('📝 Datos a actualizar:', updateData);
+
+    // Crear FormData
+    const formData = new FormData();
+    formData.append('nombre', updateData.nombre);
+    formData.append('telefono', updateData.telefono);
+
+    // Agregar foto si existe
+    if (photo && photo.uri && !photo.uri.startsWith('http')) {
+      console.log('📸 Agregando foto al FormData');
+      
+      // Extraer extensión del archivo
+      const uriParts = photo.uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
+      formData.append('foto', {
+        uri: photo.uri,
+        type: `image/${fileType}`,
+        name: `profile_${clienteId}.${fileType}`,
+      });
+    }
+
+    console.log('📤 Enviando actualización...');
+
+    const response = await api.put(`/cliente/${clienteId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('✅ Perfil actualizado exitosamente');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al actualizar perfil:', error.response?.data || error.message);
     throw error;
   }
 };
