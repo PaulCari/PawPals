@@ -12,6 +12,8 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  ImageBackground,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -97,51 +99,135 @@ const AddPetScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* 🔥 FONDO CON IMAGEN (igual que el perfil) */}
+      <ImageBackground
+        source={require('../assets/FONDOA.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+
+      {/* 🔥 HEADER MORADO con logo */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
+        </TouchableOpacity>
+
+        <Image
+          source={require('../assets/logo_amarillo.png')}
+          style={styles.logo}
+        />
+
+        <View style={{ width: 30 }} />
+      </View>
+
+      {/* 🔥 CONTENEDOR BLANCO REDONDEADO */}
       <KeyboardAvoidingView 
-        style={styles.container}
+        style={styles.formWrapper}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="#875686" />
-          </TouchableOpacity>
+        <ScrollView 
+          contentContainerStyle={styles.formContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* TÍTULO */}
           <Text style={styles.headerTitle}>Agregar Mascota</Text>
-          <View style={{ width: 28 }} />
-        </View>
 
-        <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
-          <TextInput style={styles.input} placeholder="Nombre de la mascota" value={petName} onChangeText={setPetName} />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Tipo de mascota:</Text>
-            <Picker selectedValue={petType} onValueChange={setPetType} style={styles.picker}>
-              {especies.map(e => <Picker.Item key={e.id} label={e.nombre} value={e.id} />)}
-            </Picker>
+          {/* SECCIÓN INFO (OPCIONAL) */}
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <Ionicons name="paw" size={24} color="#875686" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                Completa los datos de tu mascota para personalizar su experiencia
+              </Text>
+            </View>
+          </View>
+
+          {/* NOMBRE */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre de la mascota</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Max, Luna" 
+              value={petName} 
+              onChangeText={setPetName}
+              placeholderTextColor="#999"
+            />
           </View>
           
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Raza:</Text>
-            {razasLoading ? (
-              <ActivityIndicator size="small" color="#732C71" style={{ height: 40 }}/>
-            ) : (
-              <Picker selectedValue={breed} onValueChange={setBreed} style={styles.picker} enabled={!razasLoading && razas.length > 0}>
-                {razas.map((r, index) => <Picker.Item key={index} label={r} value={r} />)}
+          {/* TIPO DE MASCOTA */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tipo de mascota</Text>
+            <View style={styles.pickerContainer}>
+              <Picker 
+                selectedValue={petType} 
+                onValueChange={setPetType} 
+                style={styles.picker}
+              >
+                {especies.map(e => (
+                  <Picker.Item key={e.id} label={e.nombre} value={e.id} />
+                ))}
               </Picker>
+            </View>
+          </View>
+          
+          {/* RAZA */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Raza</Text>
+            {razasLoading ? (
+              <View style={[styles.input, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#732C71" />
+              </View>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker 
+                  selectedValue={breed} 
+                  onValueChange={setBreed} 
+                  style={styles.picker} 
+                  enabled={!razasLoading && razas.length > 0}
+                >
+                  {razas.map((r, index) => (
+                    <Picker.Item key={index} label={r} value={r} />
+                  ))}
+                </Picker>
+              </View>
             )}
           </View>
 
-          <TextInput style={styles.input} placeholder="Edad (años)" value={age} onChangeText={setAge} keyboardType="numeric" />
+          {/* EDAD */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Edad (años)</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 3" 
+              value={age} 
+              onChangeText={setAge} 
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+          </View>
           
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Sexo:</Text>
-            <Picker selectedValue={petSex} onValueChange={setPetSex} style={styles.picker}>
-              <Picker.Item label="Macho" value="M" />
-              <Picker.Item label="Hembra" value="H" />
-            </Picker>
+          {/* SEXO */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sexo</Text>
+            <View style={styles.pickerContainer}>
+              <Picker 
+                selectedValue={petSex} 
+                onValueChange={setPetSex} 
+                style={styles.picker}
+              >
+                <Picker.Item label="Macho" value="M" />
+                <Picker.Item label="Hembra" value="H" />
+              </Picker>
+            </View>
           </View>
 
+          {/* BOTÓN GUARDAR */}
           <TouchableOpacity 
-            style={[styles.saveButton, (!isFormValid || isLoading) && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton, 
+              (!isFormValid || isLoading) && styles.saveButtonDisabled
+            ]}
             onPress={handleSavePet}
             disabled={!isFormValid || isLoading}
           >
