@@ -15,10 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getPetsByCliente } from '../services/petService';
+import { getPetsByCliente, deletePet } from '../services/petService';
 import { getClienteProfile } from '../services/authService';
 import { styles } from '../styles/userProfileScreenStyles';
-import api from '../services/api';
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
@@ -26,25 +25,6 @@ const PetProfileScreen = ({ navigation, route }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // 🔥 FUNCIÓN PARA CONSTRUIR URL DE IMÁGENES
-  const getImageUrl = (path) => {
-    if (!path) return null;
-    const cleanPath = path.startsWith('static/') ? path.substring(7) : path;
-    return `${api.defaults.baseURL}/static/${cleanPath}`;
-  };
-  
-  // 🔥 FUNCIÓN PARA IMAGEN POR DEFECTO SEGÚN ESPECIE
-  const getPetDefaultImage = (especie) => {
-    const especieLower = especie?.toLowerCase() || '';
-    if (especieLower.includes('perro')) {
-      return require('../assets/perro.png');
-    }
-    if (especieLower.includes('gato')) {
-      return require('../assets/gato.png');
-    }
-    return require('../assets/placeholder.png');
-  };
 
   // 🔥 FUNCIÓN PARA OBTENER ÍCONO SEGÚN ESPECIE
   const getPetIcon = (especie) => {
@@ -84,6 +64,41 @@ const PetProfileScreen = ({ navigation, route }) => {
       loadData();
     }, [clienteId])
   );
+
+  // 🔥 FUNCIÓN PARA ELIMINAR MASCOTA
+  const handleDeletePet = (petId, petName) => {
+    Alert.alert(
+      "Eliminar Mascota",
+      `¿Estás seguro de que deseas eliminar a ${petName}? Esta acción no se puede deshacer.`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log('🗑️ Eliminando mascota:', petId);
+              await deletePet(petId);
+              
+              // Recargar datos
+              await loadData();
+              
+              Alert.alert(
+                "¡Eliminado!",
+                `${petName} ha sido eliminado de tu perfil.`
+              );
+            } catch (error) {
+              console.error('❌ Error al eliminar mascota:', error);
+              Alert.alert('Error', 'No se pudo eliminar la mascota.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -138,7 +153,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                 <Image 
                   source={
                     userProfile.foto 
-                      ? { uri: getImageUrl(userProfile.foto) } 
+                      ? { uri: userProfile.foto }
                       : require('../assets/user.png')
                   }
                   style={styles.profileImage}
@@ -175,13 +190,16 @@ const PetProfileScreen = ({ navigation, route }) => {
 
             <View style={styles.petsList}>
               {pets.map(pet => (
-                <TouchableOpacity key={pet.id} style={styles.petCard}>
-                  <View style={styles.petCardImageContainer}>
+                <View key={pet.id} style={styles.petCard}>
+                  <TouchableOpacity 
+                    style={styles.petCardImageContainer}
+                    onLongPress={() => handleDeletePet(pet.id, pet.nombre)}
+                  >
                     <Image
                       source={
                         pet.foto 
-                          ? { uri: getImageUrl(pet.foto) } 
-                          : getPetDefaultImage(pet.especie)
+                          ? { uri: pet.foto }
+                          : require('../assets/placeholder.png')
                       }
                       style={styles.petCardImage}
                     />
@@ -192,7 +210,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                         color="#732C71" 
                       />
                     </View>
-                  </View>
+                  </TouchableOpacity>
 
                   <Text style={styles.petCardName}>{pet.nombre}</Text>
                   <Text style={styles.petCardInfo}>{pet.raza}</Text>
@@ -214,7 +232,16 @@ const PetProfileScreen = ({ navigation, route }) => {
                       </Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+
+                  {/* 🔥 BOTÓN ELIMINAR */}
+                  <TouchableOpacity 
+                    style={styles.deletePetButton}
+                    onPress={() => handleDeletePet(pet.id, pet.nombre)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                    <Text style={styles.deletePetText}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
               ))}
               
               {/* 🔥 BOTÓN AGREGAR MEJORADO */}

@@ -290,4 +290,24 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+    // === BOTÓN ELIMINAR MASCOTA ===
+  deletePetButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 6,
+  paddingHorizontal: 8,
+  borderRadius: 12,
+  marginTop: 10,
+  backgroundColor: 'transparent',
+},
+
+deletePetText: {
+  color: '#B45E6A', // rojo pastel suave
+  fontSize: 13,
+  fontWeight: '600',
+  marginLeft: 4,
+}
+
 });
