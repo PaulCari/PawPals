@@ -8,6 +8,8 @@ vinculados: especie, alergias, condiciones de salud, recetas médicas, etc.
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form, Request
 from utils import globals, keygen
 from utils.db import get_db
+from fastapi import File, UploadFile, Form 
+import shutil
 from sqlalchemy.orm import Session, joinedload
 from models import (
     Cliente,
@@ -43,7 +45,83 @@ def construir_url_imagen(request: Request, ruta_local: str | None):
 
     return f"{base_url}/static/{ruta_limpia}"
 
+# ---------------------------------------------------------------------------
+# PUT /cliente/mascotas/{mascota_id}  <-- AGREGA ESTO AL FINAL DEL ARCHIVO
+# ---------------------------------------------------------------------------
+@router.put("/{mascota_id}")
+def actualizar_mascota(
+    mascota_id: str,
+    request: Request,
+    nombre: str = Form(None),
+    raza: str = Form(None),
+    edad: int = Form(None),
+    peso: float = Form(None),
+    observaciones: str = Form(None),
+    foto: UploadFile = File(None),  # La foto es opcional
+    db: Session = Depends(get_db),
+):
+    # 1. Buscar la mascota
+    mascota = db.query(RegistroMascota).filter(
+        RegistroMascota.id == mascota_id, 
+        RegistroMascota.estado_registro == "A"
+    ).first()
 
+    if not mascota:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada.")
+
+    # 2. Actualizar campos de texto si vienen en la petición
+    if nombre:
+        mascota.nombre = nombre
+    if raza:
+        mascota.raza = raza
+    if edad is not None:
+        mascota.edad = edad
+    if peso is not None:
+        mascota.peso = peso
+    if observaciones:
+        mascota.observaciones = observaciones
+
+    # 3. Manejar la foto si se envió una nueva
+    if foto:
+        try:
+            # Crear directorio si no existe
+            upload_folder = "static/imagenes/mascota"
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            # Generar nombre de archivo único o usar el ID
+            filename = f"mascota_{mascota_id}_{foto.filename}"
+            file_path = os.path.join(upload_folder, filename)
+            
+            # Guardar el archivo
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(foto.file, buffer)
+            
+            # Actualizar la ruta en la base de datos (ruta relativa para static)
+            mascota.foto = file_path.replace("\\", "/") # Normalizar slashes para Windows
+            
+        except Exception as e:
+            print(f"❌ Error al guardar imagen: {e}")
+            # No detenemos el proceso, pero logueamos el error
+
+    # 4. Guardar cambios en BD
+    db.commit()
+    db.refresh(mascota)
+
+    # 5. Construir URL para la respuesta
+    foto_url = construir_url_imagen(request, mascota.foto)
+
+    return {
+        "mensaje": "Mascota actualizada correctamente.",
+        "mascota": {
+            "id": str(mascota.id),
+            "nombre": mascota.nombre,
+            "raza": mascota.raza,
+            "edad": mascota.edad,
+            "peso": float(mascota.peso) if mascota.peso else None,
+            "foto": foto_url,
+            "observaciones": mascota.observaciones
+        }
+    }
 # ---------------------------------------------------------------------------
 # GET /cliente/mascotas/{cliente_id}
 # ---------------------------------------------------------------------------

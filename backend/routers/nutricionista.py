@@ -6,6 +6,8 @@ Implementación completa de la lógica de negocio para nutricionistas.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body, Query
 from sqlalchemy.orm import Session, joinedload
+from models import Notificacion, RegistroMascota
+from datetime import datetime
 from utils import keygen, globals
 from utils.db import get_db
 from models import (
@@ -72,11 +74,11 @@ def buscar_items_para_dieta(q: str = Query(..., min_length=2), db: Session = Dep
 @router.post("/platos/mix")
 def crear_plato_mix(data: CrearMixSchema, db: Session = Depends(get_db)):
     """
-    Crea un plato personalizado compuesto por varios items seleccionados.
+    Crea un plato personalizado compuesto por varios items seleccionados
+    y notifica al cliente.
     """
     # 1. Crear el nuevo Plato Combinado (El Mix)
     mix_id = keygen.generate_uint64_key()
-    
     
     nuevo_plato = PlatoCombinado(
         id=mix_id,
@@ -100,9 +102,27 @@ def crear_plato_mix(data: CrearMixSchema, db: Session = Depends(get_db)):
     )
     db.add(link)
 
+    # 3. ✅ CREAR NOTIFICACIÓN AUTOMÁTICA
+    # Primero buscamos la mascota para obtener el ID del dueño (cliente_id)
+    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == data.registro_mascota_id).first()
+    
+    if mascota:
+        nueva_notificacion = Notificacion(
+            id=keygen.generate_uint64_key(),
+            cliente_id=mascota.cliente_id,
+            titulo="¡Dieta Lista! 🥗",
+            mensaje=f"El menú personalizado para {mascota.nombre} está listo. Toca aquí para ver y comprar.",
+            fecha=datetime.now(),
+            leido=0, # 0 = No leído
+            tipo="DIETA_LISTA", # Tipo de acción para la App
+            referencia_id=str(mascota.id) # Guardamos el ID de la mascota para redirigir al perfil
+        )
+        db.add(nueva_notificacion)
+
+    # Guardar todo (Plato, Link y Notificación)
     db.commit()
 
-    return {"mensaje": "Mix personalizado creado y asignado.", "plato_id": str(mix_id)}
+    return {"mensaje": "Mix personalizado creado y notificación enviada.", "plato_id": str(mix_id)}
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes

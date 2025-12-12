@@ -1,10 +1,10 @@
-This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
 
 <file_summary>
 This section contains a summary of this file.
 
 <purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+This file contains a packed representation of the entire repository's contents.
 It is designed to be easily consumable by AI systems for analysis, code review,
 or other automated processes.
 </purpose>
@@ -32,7 +32,6 @@ The content is organized as follows:
 <notes>
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: **/.git/**, **/node_modules/**, **/__pycache__/**, **/dist/**, **/build/**, **/*.lock, **/*.png, **/*.jpg, **/*.jpeg, **/*.svg, **/*.ico, **/*.mp4
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -65,6 +64,51 @@ backend/routers/cliente/subscripciones.py
 backend/routers/nutricionista.py
 backend/routers/repartidor.py
 backend/seed_data.py
+backend/static/imagenes/bebidas/Bebida1.png
+backend/static/imagenes/bebidas/Bebida2.png
+backend/static/imagenes/bebidas/Bebida3.png
+backend/static/imagenes/cliente/gato.png
+backend/static/imagenes/cliente/perro.png
+backend/static/imagenes/cliente/user.png
+backend/static/imagenes/cliente/user2.png
+backend/static/imagenes/mascota/default.png
+backend/static/imagenes/mascota/gato.png
+backend/static/imagenes/mascota/perro.png
+backend/static/imagenes/plato/barf_pato_gato.png
+backend/static/imagenes/plato/barf_pollo.png
+backend/static/imagenes/plato/barf_ternera.png
+backend/static/imagenes/plato/imagen1.png
+backend/static/imagenes/plato/imagen10.png
+backend/static/imagenes/plato/imagen11.png
+backend/static/imagenes/plato/imagen12.png
+backend/static/imagenes/plato/imagen13.png
+backend/static/imagenes/plato/imagen14.png
+backend/static/imagenes/plato/imagen15.png
+backend/static/imagenes/plato/imagen16.png
+backend/static/imagenes/plato/imagen17.png
+backend/static/imagenes/plato/imagen18.png
+backend/static/imagenes/plato/imagen19.png
+backend/static/imagenes/plato/imagen2.png
+backend/static/imagenes/plato/imagen3.png
+backend/static/imagenes/plato/imagen4.png
+backend/static/imagenes/plato/imagen5.png
+backend/static/imagenes/plato/imagen6.png
+backend/static/imagenes/plato/imagen7.png
+backend/static/imagenes/plato/imagen8.png
+backend/static/imagenes/plato/imagen9.png
+backend/static/imagenes/qr/imagen1.png
+backend/static/imagenes/qr/imagen2.png
+backend/static/uploads/pedido_especializado/extra_11190868844969162825_examen_7132538110760439208.jpg
+backend/static/uploads/pedido_especializado/extra_123642442968264686_perro.png
+backend/static/uploads/pedido_especializado/extra_1575042133050443561_perro.png
+backend/static/uploads/pedido_especializado/extra_16650275304995128366_examen_7132538110760439208.jpg
+backend/static/uploads/pedido_especializado/extra_16941456664472743499_perro.png
+backend/static/uploads/pedido_especializado/extra_4912099656299371742_examen_7132538110760439208.jpg
+backend/static/uploads/pedido_especializado/extra_5909835030759986472_perro.png
+backend/static/uploads/pedido_especializado/receta_123642442968264686_gato.png
+backend/static/uploads/pedido_especializado/receta_1575042133050443561_gato.png
+backend/static/uploads/pedido_especializado/receta_16941456664472743499_gato.png
+backend/static/uploads/pedido_especializado/receta_5909835030759986472_gato.png
 backend/utils/__init__.py
 backend/utils/db.py
 backend/utils/globals.py
@@ -76,9 +120,11 @@ frontend-web/eslint.config.js
 frontend-web/index.html
 frontend-web/package.json
 frontend-web/postcss.config.js
+frontend-web/public/vite.svg
 frontend-web/README.md
 frontend-web/src/App.css
 frontend-web/src/App.jsx
+frontend-web/src/assets/react.svg
 frontend-web/src/components/CalculadoraKcal.jsx
 frontend-web/src/components/Layout.jsx
 frontend-web/src/components/ReportePDF.jsx
@@ -98,6 +144,26 @@ frontend-web/vite.config.js
 frontend/App.js
 frontend/app.json
 frontend/AppNavigator.js
+frontend/assets/adaptive-icon.png
+frontend/assets/background.jpg
+frontend/assets/bone.png
+frontend/assets/elipse-oscuro.png
+frontend/assets/ellipse.png
+frontend/assets/favicon.png
+frontend/assets/fondo.jpg
+frontend/assets/FONDOA.png
+frontend/assets/gato.png
+frontend/assets/icon.png
+frontend/assets/logo_amarillo.png
+frontend/assets/logo.png
+frontend/assets/mixto1.png
+frontend/assets/mixto2.png
+frontend/assets/paw.png
+frontend/assets/perro.png
+frontend/assets/placeholder.png
+frontend/assets/qr/imagen1.png
+frontend/assets/qr/imagen2.png
+frontend/assets/user.png
 frontend/components/AuthContainer.js
 frontend/components/CartBadge.js
 frontend/components/ProductCard.js
@@ -113,12 +179,16 @@ frontend/screens/EditPetScreen.js
 frontend/screens/FavoritesScreen.js
 frontend/screens/HomeScreen.js
 frontend/screens/LoginScreen.js
+frontend/screens/NotificationScreen.js
+frontend/screens/NutritionistScreen.js
 frontend/screens/OrderSuccessScreen.js
 frontend/screens/PaymentScreen.js
 frontend/screens/PetProfileScreen.js
 frontend/screens/ProductDetailScreen.js
 frontend/screens/RegisterScreen.js
+frontend/screens/RequestDietScreen.js
 frontend/screens/SplashScreen.js
+frontend/screens/SubscriptionScreen.js
 frontend/screens/SuccessScreen.js
 frontend/screens/UploadProofScreen.js
 frontend/screens/UserProfileScreen.js
@@ -373,6 +443,24 @@ class MembresiaSubscripcion(Base):
 
     cliente: Mapped[list['Cliente']] = relationship('Cliente', back_populates='membresia_subscripcion')
 
+class Notificacion(Base):
+    __tablename__ = 'notificacion'
+    __table_args__ = (
+        ForeignKeyConstraint(['cliente_id'], ['cliente.id'], ondelete='CASCADE'),
+        Index('cliente_id', 'cliente_id')
+    )
+
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    titulo: Mapped[str] = mapped_column(String(100), nullable=False)
+    mensaje: Mapped[str] = mapped_column(Text, nullable=False)
+    fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    leido: Mapped[int] = mapped_column(TINYINT(1), default=0)
+    tipo: Mapped[str] = mapped_column(String(50)) # Ej: 'DIETA_LISTA'
+    referencia_id: Mapped[str] = mapped_column(String(50)) # ID de la mascota o pedido
+
+    cliente: Mapped['Cliente'] = relationship('Cliente', back_populates='notificacion')
+
 
 class PasarelaPago(Base):
     __tablename__ = 'pasarela_pago'
@@ -437,6 +525,7 @@ class Cliente(Base):
     registro_mascota: Mapped[list['RegistroMascota']] = relationship('RegistroMascota', back_populates='cliente')
     pedido: Mapped[list['Pedido']] = relationship('Pedido', back_populates='cliente')
     plato_favorito: Mapped[list['PlatoFavorito']] = relationship('PlatoFavorito', back_populates='cliente')
+    notificacion: Mapped[list['Notificacion']] = relationship('Notificacion', back_populates='cliente')
 
 
 class Nutricionista(Base):
@@ -2256,9 +2345,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente, Direccion
-import os
-
+from models import Cliente, Direccion, Notificacionimport
 router = APIRouter(prefix="/cliente", tags=["Cliente"])
 
 # ---------------------------------------------------------------------------
@@ -2821,6 +2908,30 @@ def eliminar_direccion(
             }
     
     return {"mensaje": "Dirección eliminada correctamente."}
+@router.get("/{cliente_id}/notificaciones")
+def listar_notificaciones(cliente_id: str, db: Session = Depends(get_db)):
+    """
+    Lista las notificaciones del cliente ordenadas por fecha.
+    """
+    notificaciones = (
+        db.query(Notificacion)
+        .filter(Notificacion.cliente_id == cliente_id)
+        .order_by(Notificacion.fecha.desc())
+        .all()
+    )
+    
+    return [
+        {
+            "id": str(n.id),
+            "titulo": n.titulo,
+            "mensaje": n.mensaje,
+            "fecha": n.fecha.isoformat(),
+            "leido": bool(n.leido),
+            "tipo": n.tipo,
+            "referencia_id": n.referencia_id
+        }
+        for n in notificaciones
+    ]
 </file>
 
 <file path="backend/routers/cliente/favoritos.py">
@@ -4388,23 +4499,12 @@ RUTAS DEL CLIENTE – SUBSCRIPCIONES Y MEMBRESÍAS
 ------------------------------------------------
 Permite al cliente consultar los planes disponibles, suscribirse a uno,
 ver su suscripción activa y cancelar su membresía si lo desea.
-
-Incluye:
-- Listado de planes activos
-- Detalle de un plan
-- Suscripción a un plan
-- Consulta de la membresía actual del cliente
-- Cancelación o cambio de suscripción
-
-Notas:
-- IDs en formato `str` (por BIGINT).
-- Los planes se gestionan en la tabla `membresia_subscripcion`.
-- La relación cliente–plan está en `cliente.membresia_subscripcion_id`.
-- Campo `estado_registro`: "A" (activo), "I" (inactivo).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from utils import keygen
+from fastapi import APIRouter, Depends, HTTPException, status, Form # <--- IMPORTANTE: Se agregó Form
+from sqlalchemy.orm import Session, joinedload
+from utils.db import get_db
+from models import MembresiaSubscripcion, Cliente
 
 router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del Cliente"])
 
@@ -4413,50 +4513,147 @@ router = APIRouter(prefix="/cliente/subscripciones", tags=["Subscripciones del C
 # GET /cliente/subscripciones
 # ---------------------------------------------------------------------------
 # Lista todos los planes de membresía activos disponibles.
-# Incluye nombre, duración, precio y beneficios.
 @router.get("/")
-def listar_planes_activos():
-    pass
+def listar_planes_activos(db: Session = Depends(get_db)):
+    planes = db.query(MembresiaSubscripcion).filter(
+        MembresiaSubscripcion.estado_registro == "A"
+    ).all()
+    
+    resultado = []
+    for p in planes:
+        # Convertimos la cadena de beneficios en una lista si existe
+        lista_beneficios = p.beneficios.split(',') if p.beneficios else []
+        
+        resultado.append({
+            "id": str(p.id),
+            "nombre": p.nombre,
+            "duracion": p.duracion,
+            "precio": float(p.precio),
+            "descripcion": p.descripcion,
+            "beneficios": lista_beneficios
+        })
+    
+    return resultado
 
 
 # ---------------------------------------------------------------------------
 # GET /cliente/subscripciones/{subscripcion_id}
 # ---------------------------------------------------------------------------
 # Obtiene los detalles de un plan específico.
-# Retorna precio, descripción y beneficios.
 @router.get("/{subscripcion_id}")
-def obtener_detalle_plan(subscripcion_id: str):
-    pass
+def obtener_detalle_plan(subscripcion_id: str, db: Session = Depends(get_db)):
+    plan = db.query(MembresiaSubscripcion).filter(
+        MembresiaSubscripcion.id == subscripcion_id,
+        MembresiaSubscripcion.estado_registro == "A"
+    ).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan de suscripción no encontrado.")
+    
+    return {
+        "id": str(plan.id),
+        "nombre": plan.nombre,
+        "precio": float(plan.precio),
+        "duracion_dias": plan.duracion,
+        "descripcion": plan.descripcion,
+        "beneficios": plan.beneficios.split(',') if plan.beneficios else []
+    }
 
 
 # ---------------------------------------------------------------------------
 # GET /cliente/subscripciones/{cliente_id}/actual
 # ---------------------------------------------------------------------------
-# Devuelve la membresía actual del cliente (si tiene una activa).
-# Incluye nombre del plan, fecha de inicio y duración restante.
+# Devuelve la membresía actual del cliente.
 @router.get("/{cliente_id}/actual")
-def obtener_subscripcion_actual(cliente_id: str):
-    pass
+def obtener_subscripcion_actual(cliente_id: str, db: Session = Depends(get_db)):
+    cliente = db.query(Cliente).options(joinedload(Cliente.membresia_subscripcion)).filter(
+        Cliente.id == cliente_id
+    ).first()
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
+    membresia = cliente.membresia_subscripcion
+    
+    if not membresia:
+        return {"mensaje": "El cliente no tiene una suscripción activa.", "activa": False}
+        
+    return {
+        "activa": True,
+        "plan": {
+            "id": str(membresia.id),
+            "nombre": membresia.nombre,
+            "precio": float(membresia.precio),
+            "duracion_dias": membresia.duracion,
+            "descripcion": membresia.descripcion
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
-# POST /cliente/subscripciones/{cliente_id}/suscribirse/{subscripcion_id}
+# POST /cliente/subscripciones/{cliente_id}/suscribirse
 # ---------------------------------------------------------------------------
 # Permite al cliente suscribirse a un plan.
-# Si ya tiene una membresía activa, puede actualizarla o reemplazarla.
-@router.post("/{cliente_id}/suscribirse/{subscripcion_id}")
-def suscribirse_plan(cliente_id: str, subscripcion_id: str):
-    pass
+# CORREGIDO: Se eliminó {subscripcion_id} de la ruta y se usa Form para recibir el ID.
+@router.post("/{cliente_id}/suscribirse")
+def suscribirse_plan(
+    cliente_id: str, 
+    plan_id: str = Form(...), # <--- Recibe el ID del plan desde el cuerpo (FormData)
+    db: Session = Depends(get_db)
+):
+    # 1. Verificar Cliente
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
+    # 2. Verificar Plan
+    plan = db.query(MembresiaSubscripcion).filter(
+        MembresiaSubscripcion.id == plan_id,
+        MembresiaSubscripcion.estado_registro == "A"
+    ).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="El plan seleccionado no existe o no está activo.")
+    
+    # 3. Actualizar suscripción
+    # Nota: Aquí normalmente iría la lógica de pasarela de pago antes de asignar
+    cliente.membresia_subscripcion_id = plan.id
+    db.commit()
+    
+    return {
+        "mensaje": f"Suscripción actualizada exitosamente al plan {plan.nombre}.",
+        "plan_id": str(plan.id),
+        "nombre_plan": plan.nombre
+    }
 
 
 # ---------------------------------------------------------------------------
 # DELETE /cliente/subscripciones/{cliente_id}/cancelar
 # ---------------------------------------------------------------------------
-# Cancela la suscripción actual del cliente.
-# Actualiza `cliente.membresia_subscripcion_id` a NULL.
+# Cancela la suscripción actual del cliente (o lo regresa al plan básico/gratuito).
 @router.delete("/{cliente_id}/cancelar")
-def cancelar_subscripcion(cliente_id: str):
-    pass
+def cancelar_subscripcion(cliente_id: str, db: Session = Depends(get_db)):
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    
+    if not cliente.membresia_subscripcion_id:
+        raise HTTPException(status_code=400, detail="El cliente no tiene ninguna suscripción activa para cancelar.")
+
+    # Opción B (Recomendada si usas Freemium): Setear al Plan Básico (ID 1)
+    plan_basico = db.query(MembresiaSubscripcion).filter(MembresiaSubscripcion.id == 1).first()
+    
+    if plan_basico:
+        cliente.membresia_subscripcion_id = 1
+        mensaje = "Suscripción cancelada. Has regresado al plan Básico."
+    else:
+        cliente.membresia_subscripcion_id = None
+        mensaje = "Suscripción cancelada. No tienes ningún plan activo."
+
+    db.commit()
+    
+    return {"mensaje": mensaje}
 </file>
 
 <file path="backend/routers/nutricionista.py">
@@ -4468,6 +4665,8 @@ Implementación completa de la lógica de negocio para nutricionistas.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body, Query
 from sqlalchemy.orm import Session, joinedload
+from models import Notificacion, RegistroMascota
+from datetime import datetime
 from utils import keygen, globals
 from utils.db import get_db
 from models import (
@@ -4534,11 +4733,11 @@ def buscar_items_para_dieta(q: str = Query(..., min_length=2), db: Session = Dep
 @router.post("/platos/mix")
 def crear_plato_mix(data: CrearMixSchema, db: Session = Depends(get_db)):
     """
-    Crea un plato personalizado compuesto por varios items seleccionados.
+    Crea un plato personalizado compuesto por varios items seleccionados
+    y notifica al cliente.
     """
     # 1. Crear el nuevo Plato Combinado (El Mix)
     mix_id = keygen.generate_uint64_key()
-    
     
     nuevo_plato = PlatoCombinado(
         id=mix_id,
@@ -4562,9 +4761,27 @@ def crear_plato_mix(data: CrearMixSchema, db: Session = Depends(get_db)):
     )
     db.add(link)
 
+    # 3. ✅ CREAR NOTIFICACIÓN AUTOMÁTICA
+    # Primero buscamos la mascota para obtener el ID del dueño (cliente_id)
+    mascota = db.query(RegistroMascota).filter(RegistroMascota.id == data.registro_mascota_id).first()
+    
+    if mascota:
+        nueva_notificacion = Notificacion(
+            id=keygen.generate_uint64_key(),
+            cliente_id=mascota.cliente_id,
+            titulo="¡Dieta Lista! 🥗",
+            mensaje=f"El menú personalizado para {mascota.nombre} está listo. Toca aquí para ver y comprar.",
+            fecha=datetime.now(),
+            leido=0, # 0 = No leído
+            tipo="DIETA_LISTA", # Tipo de acción para la App
+            referencia_id=str(mascota.id) # Guardamos el ID de la mascota para redirigir al perfil
+        )
+        db.add(nueva_notificacion)
+
+    # Guardar todo (Plato, Link y Notificación)
     db.commit()
 
-    return {"mensaje": "Mix personalizado creado y asignado.", "plato_id": str(mix_id)}
+    return {"mensaje": "Mix personalizado creado y notificación enviada.", "plato_id": str(mix_id)}
 
 # ---------------------------------------------------------------------------
 # GET /nutricionista/pedidos/pendientes
@@ -5552,6 +5769,10 @@ export default {
 }
 </file>
 
+<file path="frontend-web/public/vite.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+</file>
+
 <file path="frontend-web/README.md">
 # React + Vite
 
@@ -5670,6 +5891,10 @@ function App() {
 }
 
 export default App;
+</file>
+
+<file path="frontend-web/src/assets/react.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
 </file>
 
 <file path="frontend-web/src/components/CalculadoraKcal.jsx">
@@ -6988,16 +7213,18 @@ import Layout from '../components/Layout';
 import api from '../services/api';
 import { 
   ArrowLeft, Save, AlertTriangle, FileText, 
-  Dog, CheckCircle, XCircle 
+  Dog, CheckCircle, Paperclip, Eye 
 } from 'lucide-react';
 
+// URL Base del Backend para cargar imágenes estáticas
+const BASE_URL = 'http://localhost:8000';
+
 const SolicitudDetalle = () => {
-  const { id } = useParams(); // El ID de la solicitud
+  const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Estado del formulario de respuesta
   const [form, setForm] = useState({
     observaciones: '',
     recomendaciones: '',
@@ -7007,7 +7234,6 @@ const SolicitudDetalle = () => {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        // Llamamos al endpoint que acabas de arreglar en el backend
         const response = await api.get(`/nutricionista/pedidos/${id}`);
         setData(response.data);
       } catch (error) {
@@ -7029,20 +7255,29 @@ const SolicitudDetalle = () => {
     try {
       await api.post(`/nutricionista/pedidos/${id}/revisar`, form);
       alert("✅ ¡Revisión guardada y enviada al cliente!");
-      navigate('/'); // Volver al dashboard
+      navigate('/');
     } catch (error) {
       console.error(error);
       alert("Hubo un error al guardar la revisión.");
     }
   };
 
+  // Función para construir la URL de la imagen
+  const getFileUrl = (path) => {
+    if (!path) return null;
+    // Normalizar slashes para Windows/Linux
+    const cleanPath = path.replace(/\\/g, '/');
+    return `${BASE_URL}/${cleanPath}`;
+  };
+
   if (loading) return <div className="p-10 text-center">Cargando expediente...</div>;
   if (!data) return <div className="p-10 text-center">Solicitud no encontrada.</div>;
+
+  const archivoAdjuntoUrl = getFileUrl(data.pedido_especializado.archivo_adicional);
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
-        {/* Header con botón volver */}
         <button 
           onClick={() => navigate(-1)} 
           className="flex items-center text-gray-500 hover:text-paw-purple mb-6 transition"
@@ -7054,8 +7289,6 @@ const SolicitudDetalle = () => {
           
           {/* === COLUMNA IZQUIERDA: EXPEDIENTE === */}
           <div className="space-y-6">
-            
-            {/* Tarjeta Mascota */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
               <div className="relative inline-block">
                 <img 
@@ -7083,7 +7316,6 @@ const SolicitudDetalle = () => {
               </div>
             </div>
 
-            {/* Tarjeta Alertas Médicas */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-red-400">
               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <AlertTriangle size={20} className="text-red-500" /> Historial Clínico
@@ -7102,22 +7334,11 @@ const SolicitudDetalle = () => {
                     ) : <span className="text-gray-500 text-sm">Ninguna registrada</span>}
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Condiciones de Salud</p>
-                  {data.detalles_nutricionales.condiciones_salud.length > 0 ? (
-                    <ul className="list-disc list-inside text-sm text-gray-700">
-                      {data.detalles_nutricionales.condiciones_salud.map((c, i) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  ) : <span className="text-gray-500 text-sm">Sin condiciones previas</span>}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* === COLUMNA DERECHA: TRABAJO DEL NUTRICIONISTA === */}
+          {/* === COLUMNA DERECHA === */}
           <div className="lg:col-span-2 space-y-6">
             
             {/* Detalles de la Solicitud */}
@@ -7150,6 +7371,42 @@ const SolicitudDetalle = () => {
               </div>
             </div>
 
+            {/* ✅ NUEVA SECCIÓN: VISOR DE ARCHIVOS ADJUNTOS */}
+            {archivoAdjuntoUrl && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+                <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                  <Paperclip size={20} /> Archivos Adjuntos del Cliente
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-500">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-700">Examen / Receta Adjunta</p>
+                      <p className="text-xs text-gray-500">Click para visualizar</p>
+                    </div>
+                  </div>
+                  <a 
+                    href={archivoAdjuntoUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <Eye size={16} /> Ver Archivo
+                  </a>
+                </div>
+                
+                {/* Previsualización si es imagen */}
+                {(archivoAdjuntoUrl.endsWith('.jpg') || archivoAdjuntoUrl.endsWith('.png') || archivoAdjuntoUrl.endsWith('.jpeg')) && (
+                  <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
+                    <img src={archivoAdjuntoUrl} alt="Adjunto" className="w-full h-auto max-h-96 object-contain bg-gray-900" />
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ------------------------------------------------ */}
+
             {/* FORMULARIO DE RESPUESTA */}
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-purple-100">
               <h3 className="text-lg font-bold text-paw-purple mb-6 flex items-center gap-2">
@@ -7173,13 +7430,12 @@ const SolicitudDetalle = () => {
                   <textarea 
                     rows="5"
                     className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-paw-purple/50 bg-gray-50 transition"
-                    placeholder="Detalla la dieta BARF recomendada, porciones y suplementos..."
+                    placeholder="Detalla la dieta BARF recomendada..."
                     value={form.recomendaciones}
                     onChange={e => setForm({...form, recomendaciones: e.target.value})}
                   />
                 </div>
 
-                {/* Botones de Acción */}
                 <div className="pt-4 flex items-center gap-4 border-t border-gray-100 mt-4">
                   <div className="flex-1">
                     <label className="flex items-center gap-3 cursor-pointer group">
@@ -7321,7 +7577,7 @@ export default function App() {
 // frontend/AppNavigator.js
 
 import React from 'react';
-import { View } from 'react-native'; // <--- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA!
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -7340,18 +7596,22 @@ import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen';
+import NotificationScreen from './screens/NotificationScreen';
 import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
 import AddPetScreen from './screens/AddPetScreen';
 import EditPetScreen from './screens/EditPetScreen';
 import UserProfileScreen from './screens/UserProfileScreen';
+import SubscriptionScreen from './screens/SubscriptionScreen';
+import NutritionistScreen from './screens/NutritionistScreen';
+import RequestDietScreen from './screens/RequestDietScreen'; // ✅ NUEVO IMPORT
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 /* ======================================================
-   Stack para Home → Detalle de Producto (SIN CAMBIOS)
+   Stack para Home → Detalle de Producto
 ====================================================== */
 function HomeStack({ route }) {
   const { clienteId } = route.params || {};
@@ -7364,7 +7624,7 @@ function HomeStack({ route }) {
 }
 
 /* ======================================================
-   Navegador de Tabs Principal (CORREGIDO CON EL IMPORT)
+   Navegador de Tabs Principal
 ====================================================== */
 function MainTabs({ route }) {
   const { clienteId } = route.params || {};
@@ -7388,7 +7648,7 @@ function MainTabs({ route }) {
         },
         tabBarLabelStyle: {
           color: 'white',
-          fontSize: 12,
+          fontSize: 10,
           marginBottom: 20,
         },
         tabBarActiveTintColor: '#FF8C42',
@@ -7399,14 +7659,17 @@ function MainTabs({ route }) {
         },
         tabBarIcon: ({ focused }) => {
           let iconName;
+          
+          // ✅ Lógica de iconos actualizada
           if (route.name === 'HomeStack') iconName = 'home';
+          else if (route.name === 'Nutritionist') iconName = 'nutrition'; // Nuevo icono
           else if (route.name === 'PetProfile') iconName = 'paw';
           else if (route.name === 'Cart') iconName = 'cart';
           else if (route.name === 'Favorites') iconName = 'heart';
 
           if (focused) {
             return (
-              <View // <--- ESTO AHORA FUNCIONARÁ
+              <View
                 style={{
                   backgroundColor: '#FF8C42',
                   width: 60,
@@ -7434,16 +7697,46 @@ function MainTabs({ route }) {
         },
       })}
     >
-      <Tab.Screen name="HomeStack" component={HomeStack} initialParams={{ clienteId }} options={{ tabBarLabel: 'Inicio' }} />
-      <Tab.Screen name="PetProfile" component={PetProfileScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Perfil Mascota' }} />
-      <Tab.Screen name="Cart" component={CartScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Carrito' }} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} initialParams={{ clienteId }} options={{ tabBarLabel: 'Favoritos' }} />
+      <Tab.Screen 
+        name="HomeStack" 
+        component={HomeStack} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Inicio' }} 
+      />
+      
+      <Tab.Screen 
+        name="Nutritionist" 
+        component={NutritionistScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Nutri' }} 
+      />
+
+      <Tab.Screen 
+        name="PetProfile" 
+        component={PetProfileScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Mascotas' }} 
+      />
+      
+      <Tab.Screen 
+        name="Cart" 
+        component={CartScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Carrito' }} 
+      />
+      
+      <Tab.Screen 
+        name="Favorites" 
+        component={FavoritesScreen} 
+        initialParams={{ clienteId }} 
+        options={{ tabBarLabel: 'Favoritos' }} 
+      />
     </Tab.Navigator>
   );
 }
 
 /* ======================================================
-   Navegador Global (SIMPLIFICADO)
+   Navegador Global
 ====================================================== */
 const AppNavigator = () => {
   return (
@@ -7457,6 +7750,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
+        <Stack.Screen name="Notifications" component={NotificationScreen} />
 
         {/* App principal con Tabs */}
         <Stack.Screen name="Main" component={MainTabs} />
@@ -7466,11 +7760,22 @@ const AppNavigator = () => {
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="UploadProof" component={UploadProofScreen} />
         <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
+        
+        {/* Modales */}
         <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="EditPet" component={EditPetScreen} options={{ presentation: 'modal' }} />
-        {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        
+        {/* Suscripciones */}
+        <Stack.Screen 
+          name="Subscription" 
+          component={SubscriptionScreen} 
+          options={{ presentation: 'modal' }} 
+        />
+
+        {/* ✅ Formulario de Solicitud de Dieta */}
+        <Stack.Screen name="RequestDiet" component={RequestDietScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>
@@ -9783,24 +10088,35 @@ const HomeScreen = ({ navigation, route }) => {
       {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
 
-        {/* 🔥 Botón menú (tres rayitas) */}
-        <TouchableOpacity onPress={() => console.log("Menú presionado")}>
-          <Ionicons name="menu-outline" size={32} color="white" />
+        {/* 1. Botón Perfil (Izquierda) */}
+        <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { clienteId })}>
+          <Ionicons name="person-circle-outline" size={34} color="white" />
         </TouchableOpacity>
 
-        {/* LOGO */}
+        {/* 2. LOGO (Centro) */}
         <Image
           source={require('../assets/logo_amarillo.png')}
           style={styles.logo}
         />
 
-        {/* 🔥 Botón Carrito */}
-        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })} >
-          <CartBadge clienteId={clienteId}>
-            <Ionicons name="cart-outline" size={30} color="white" />
-          </CartBadge>
-        </TouchableOpacity>
+        {/* 3. Grupo Derecha: Notificaciones + Carrito */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+          
+          {/* ✅ Botón Notificaciones */}
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications', { clienteId })}>
+            <Ionicons name="notifications-outline" size={28} color="white" />
+          </TouchableOpacity>
+
+          {/* ✅ Botón Carrito */}
+          <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
+            <CartBadge clienteId={clienteId}>
+              <Ionicons name="cart-outline" size={30} color="white" />
+            </CartBadge>
+          </TouchableOpacity>
+        </View>
+
       </View>
+
       {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>
@@ -9969,6 +10285,406 @@ const LoginScreen = ({ navigation }) => {
 };
 
 export default LoginScreen;
+</file>
+
+<file path="frontend/screens/NotificationScreen.js">
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../services/api';
+
+const NotificationScreen = ({ navigation, route }) => {
+  // 1. Evitar crash si route.params es undefined
+  const { clienteId } = route.params || {}; 
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    console.log("🔔 Pantalla Notificaciones cargada. Cliente ID:", clienteId);
+    
+    if (clienteId) {
+      fetchNotifications();
+    } else {
+      console.error("❌ Error: No se recibió clienteId en los parámetros de navegación.");
+      Alert.alert("Error", "No se pudo identificar al usuario.");
+    }
+  }, [clienteId]);
+
+  const fetchNotifications = async () => {
+    try {
+      console.log(`🔄 Solicitando notificaciones al backend...`);
+      const res = await api.get(`/cliente/${clienteId}/notificaciones`);
+      
+      console.log(`✅ ${res.data.length} notificaciones recibidas:`, res.data);
+      setNotifications(res.data);
+    } catch (error) {
+      console.error("❌ Error cargando notificaciones:", error);
+      if (error.response) {
+        console.error("   Detalle servidor:", error.response.status, error.response.data);
+      }
+    }
+  };
+
+  const handlePress = (item) => {
+    if (item.tipo === 'DIETA_LISTA') {
+      console.log("🚀 Navegando a detalle de mascota:", item.referencia_id);
+      navigation.navigate('PetDetail', { 
+        clienteId, 
+        petId: item.referencia_id 
+      });
+    }
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
+      <View style={[styles.iconBox, item.tipo === 'DIETA_LISTA' ? {backgroundColor: '#FF8C42'} : {backgroundColor: '#875686'}]}>
+        <Ionicons name={item.tipo === 'DIETA_LISTA' ? "restaurant" : "notifications"} size={24} color="white" />
+      </View>
+      <View style={styles.content}>
+        <Text style={styles.title}>{item.titulo}</Text>
+        <Text style={styles.message}>{item.mensaje}</Text>
+        <Text style={styles.date}>{new Date(item.fecha).toLocaleDateString()} {new Date(item.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.bg} resizeMode="cover" />
+      
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Notificaciones</Text>
+        <View style={{width: 28}} />
+      </View>
+
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+            <View style={{alignItems: 'center', marginTop: 50}}>
+                <Ionicons name="notifications-off-outline" size={50} color="#ccc" />
+                <Text style={styles.empty}>No tienes notificaciones nuevas.</Text>
+            </View>
+        }
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#875686' },
+  bg: { ...StyleSheet.absoluteFillObject },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  list: { padding: 20, backgroundColor: '#F9F9F9', borderTopLeftRadius: 30, borderTopRightRadius: 30, minHeight: '100%' },
+  
+  card: { flexDirection: 'row', backgroundColor: 'white', padding: 15, borderRadius: 15, marginBottom: 15, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  iconBox: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  content: { flex: 1 },
+  title: { fontWeight: 'bold', fontSize: 16, color: '#333' },
+  message: { color: '#666', fontSize: 13, marginTop: 2 },
+  date: { color: '#999', fontSize: 10, marginTop: 5 },
+  empty: { textAlign: 'center', color: '#888', marginTop: 10 }
+});
+
+export default NotificationScreen;
+</file>
+
+<file path="frontend/screens/NutritionistScreen.js">
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+  ImageBackground
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { getClienteProfile } from '../services/authService';
+import { getPetsByCliente } from '../services/petService';
+
+// Ajusta tu URL base si es necesario
+const API_URL = 'http://localhost:8000';
+
+const NutritionistScreen = ({ navigation, route }) => {
+  const { clienteId } = route.params || {};
+  
+  const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [pets, setPets] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [clienteId])
+  );
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      // 1. Obtener perfil para verificar Premium
+      const profile = await getClienteProfile(clienteId);
+      const hasPremium = profile.membresia_activa && parseFloat(profile.membresia_activa.precio) > 0;
+      setIsPremium(hasPremium);
+
+      // 2. Si es premium, cargamos las mascotas
+      if (hasPremium) {
+        const petsData = await getPetsByCliente(clienteId);
+        const mascotas = petsData.mascotas || [];
+        setPets(mascotas);
+        
+        // Seleccionar la primera por defecto
+        if (mascotas.length > 0) {
+          setSelectedPet(mascotas[0]);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo cargar la información.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartConsultation = () => {
+    if (!selectedPet) {
+      Alert.alert("Atención", "Por favor selecciona una mascota para la consulta.");
+      return;
+    }
+    // Navegar al formulario de solicitud que creamos antes
+    navigation.navigate('RequestDiet', { 
+      clienteId, 
+      petId: selectedPet.id, 
+      petName: selectedPet.nombre 
+    });
+  };
+
+  // ✅ FUNCIÓN CORREGIDA PARA IMÁGENES
+  const getPetImageSource = (foto) => {
+    if (!foto) return require('../assets/placeholder.png');
+    // Si ya tiene http, úsala tal cual. Si no, agrégale la API_URL
+    const uri = foto.startsWith('http') ? foto : `${API_URL}/${foto}`;
+    return { uri };
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#875686" />
+      </View>
+    );
+  }
+
+  // === VISTA PARA USUARIOS GRATUITOS (BLOQUEADO) ===
+  if (!isPremium) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground source={require('../assets/FONDOA.png')} style={styles.bg} resizeMode="cover">
+          <View style={styles.container}>
+            <View style={styles.lockContent}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="lock-closed" size={60} color="#FF8C42" />
+              </View>
+              
+              <Text style={styles.lockTitle}>Acceso Nutricionista</Text>
+              <Text style={styles.lockSub}>
+                Esta función es exclusiva para miembros Premium.
+                Obtén dietas personalizadas y seguimiento profesional para tu mascota.
+              </Text>
+
+              <TouchableOpacity 
+                style={styles.premiumBtn}
+                onPress={() => navigation.navigate('Subscription', { clienteId })}
+              >
+                <Text style={styles.premiumBtnText}>HAZTE PREMIUM</Text>
+                <Ionicons name="diamond" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ImageBackground>
+      </SafeAreaView>
+    );
+  }
+
+  // === VISTA PARA USUARIOS PREMIUM (DESBLOQUEADO) ===
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.bg} resizeMode="cover" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Consulta Nutricional</Text>
+        <View style={styles.premiumBadge}>
+          <Ionicons name="star" size={12} color="white" />
+          <Text style={styles.premiumText}>PREMIUM</Text>
+        </View>
+      </View>
+
+      <View style={styles.mainContainer}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          
+          <Text style={styles.welcomeText}>
+            Hola! Nuestros especialistas están listos para ayudar a tu mejor amigo.
+          </Text>
+
+          {/* SELECTOR DE MASCOTAS */}
+          <Text style={styles.sectionLabel}>Selecciona tu mascota:</Text>
+          
+          {pets.length === 0 ? (
+            <TouchableOpacity 
+              style={styles.noPetsBox}
+              onPress={() => navigation.navigate('AddPet', { clienteId })}
+            >
+              <Text style={styles.noPetsText}>No tienes mascotas registradas.{"\n"}Toca aquí para agregar una.</Text>
+            </TouchableOpacity>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.petsScroll}>
+              {pets.map((pet) => (
+                <TouchableOpacity 
+                  key={pet.id} 
+                  style={[styles.petOption, selectedPet?.id === pet.id && styles.petOptionSelected]}
+                  onPress={() => setSelectedPet(pet)}
+                >
+                  <Image 
+                    source={getPetImageSource(pet.foto)} 
+                    style={[styles.petAvatar, selectedPet?.id === pet.id && styles.petAvatarSelected]} 
+                  />
+                  <Text style={[styles.petName, selectedPet?.id === pet.id && styles.petNameSelected]}>
+                    {pet.nombre}
+                  </Text>
+                  {selectedPet?.id === pet.id && (
+                    <View style={styles.checkBadge}>
+                      <Ionicons name="checkmark" size={12} color="white" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* RESUMEN DE LA MASCOTA SELECCIONADA */}
+          {selectedPet && (
+            <View style={styles.petSummary}>
+              <Text style={styles.summaryTitle}>Resumen de {selectedPet.nombre}</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Raza</Text>
+                  <Text style={styles.summaryValue}>{selectedPet.raza}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Edad</Text>
+                  <Text style={styles.summaryValue}>{selectedPet.edad} años</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Peso</Text>
+                  <Text style={styles.summaryValue}>{selectedPet.peso || '-'} kg</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* BOTÓN DE ACCIÓN */}
+          <TouchableOpacity 
+            style={[styles.actionBtn, (!selectedPet) && styles.actionBtnDisabled]}
+            onPress={handleStartConsultation}
+            disabled={!selectedPet}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons name="nutrition" size={24} color="#875686" />
+            </View>
+            <View>
+              <Text style={styles.actionTitle}>Solicitar Nueva Dieta</Text>
+              <Text style={styles.actionSub}>Cuéntanos qué necesita {selectedPet?.nombre || 'tu mascota'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="white" />
+          </TouchableOpacity>
+
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle" size={20} color="#666" />
+            <Text style={styles.infoText}>
+              La respuesta del nutricionista aparecerá en el historial clínico de la mascota en 24-48 hrs.
+            </Text>
+          </View>
+
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#875686' },
+  bg: { flex: 1, width: '100%', height: '100%' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
+  
+  // Header
+  header: { padding: 20, paddingTop: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' },
+  premiumBadge: { flexDirection: 'row', backgroundColor: '#FFD100', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, alignItems: 'center', gap: 4 },
+  premiumText: { fontSize: 10, fontWeight: 'bold', color: '#875686' },
+
+  // Container
+  mainContainer: { flex: 1, backgroundColor: '#F9F9F9', borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
+  scrollContent: { padding: 25 },
+
+  // Welcome
+  welcomeText: { fontSize: 16, color: '#666', marginBottom: 25, lineHeight: 22 },
+  sectionLabel: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+
+  // Pets Scroll
+  petsScroll: { marginBottom: 25, maxHeight: 110 },
+  petOption: { alignItems: 'center', marginRight: 20, position: 'relative' },
+  petAvatar: { width: 70, height: 70, borderRadius: 35, borderWidth: 3, borderColor: '#ddd' },
+  petAvatarSelected: { borderColor: '#875686', borderWidth: 3 },
+  petName: { marginTop: 8, fontSize: 12, color: '#666', fontWeight: '600' },
+  petNameSelected: { color: '#875686', fontWeight: 'bold' },
+  checkBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#875686', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'white' },
+
+  noPetsBox: { padding: 20, backgroundColor: '#eee', borderRadius: 15, alignItems: 'center', marginBottom: 20 },
+  noPetsText: { textAlign: 'center', color: '#666' },
+
+  // Summary
+  petSummary: { backgroundColor: 'white', borderRadius: 15, padding: 20, marginBottom: 25, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  summaryTitle: { fontSize: 14, fontWeight: 'bold', color: '#875686', marginBottom: 10, textTransform: 'uppercase' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  summaryItem: { alignItems: 'center' },
+  summaryLabel: { fontSize: 12, color: '#999' },
+  summaryValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+
+  // Action Button
+  actionBtn: { backgroundColor: '#875686', borderRadius: 20, padding: 15, flexDirection: 'row', alignItems: 'center', shadowColor: '#875686', shadowOpacity: 0.3, shadowRadius: 8, elevation: 5, marginBottom: 20 },
+  actionBtnDisabled: { backgroundColor: '#ccc', shadowOpacity: 0 },
+  iconBox: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  actionTitle: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  actionSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, width: 180 },
+
+  // Info
+  infoBox: { flexDirection: 'row', gap: 10, backgroundColor: '#e3f2fd', padding: 15, borderRadius: 15, alignItems: 'flex-start' },
+  infoText: { flex: 1, fontSize: 12, color: '#444', lineHeight: 18 },
+
+  // Locked State
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  lockContent: { backgroundColor: 'white', padding: 30, borderRadius: 30, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
+  iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  lockTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  lockSub: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 25, lineHeight: 20 },
+  premiumBtn: { backgroundColor: '#875686', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 25, gap: 10 },
+  premiumBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+});
+
+export default NutritionistScreen;
 </file>
 
 <file path="frontend/screens/OrderSuccessScreen.js">
@@ -11070,6 +11786,193 @@ const RegisterScreen = ({ navigation }) => {
 export default RegisterScreen;
 </file>
 
+<file path="frontend/screens/RequestDietScreen.js">
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { createSpecializedRequest } from '../services/petService';
+
+const RequestDietScreen = ({ navigation, route }) => {
+  const { clienteId, petId, petName } = route.params || {};
+
+  const [objetivo, setObjetivo] = useState('');
+  const [frecuencia, setFrecuencia] = useState('');
+  const [observaciones, setObservaciones] = useState('');
+  const [archivo, setArchivo] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSelectFile = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permiso requerido", "Necesitamos acceso a la galería.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'Images', // ✅ CORREGIDO: Usar string para evitar warning
+      quality: 0.8,
+      allowsEditing: false, // Recomendado para evitar problemas de conversión
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedAsset = result.assets[0];
+      console.log("📸 Imagen seleccionada:", selectedAsset.uri);
+      setArchivo(selectedAsset);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!objetivo.trim() || !frecuencia.trim()) {
+      Alert.alert("Campos requeridos", "Por favor completa el objetivo y la alimentación actual.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = {
+        mascotaId: petId,
+        objetivo,
+        frecuencia,
+        observaciones
+      };
+
+      console.log("🚀 Enviando solicitud para:", petName);
+
+      await createSpecializedRequest(clienteId, data, archivo);
+
+      Alert.alert(
+        "¡Solicitud Enviada!",
+        "Tu nutricionista revisará el caso y te enviará un plan personalizado pronto.",
+        [{ text: "Entendido", onPress: () => navigation.popToTop() }] 
+      );
+    } catch (error) {
+      console.error("Error en pantalla:", error);
+      Alert.alert("Error", "No se pudo enviar la solicitud. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{flex:1}}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Nueva Solicitud</Text>
+          <View style={{width: 28}} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.petBadge}>
+            <Ionicons name="paw" size={20} color="white" />
+            <Text style={styles.petBadgeText}>Para: {petName || 'Tu Mascota'}</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>1. Objetivo Nutricional</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Bajar de peso, mejorar pelaje, ganar masa..."
+            value={objetivo}
+            onChangeText={setObjetivo}
+          />
+
+          <Text style={styles.sectionTitle}>2. Alimentación Actual</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Ej: Come croquetas marca X, 2 veces al día..."
+            value={frecuencia}
+            onChangeText={setFrecuencia}
+            multiline
+            numberOfLines={4}
+          />
+
+          <Text style={styles.sectionTitle}>3. Observaciones Adicionales</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Ej: Tiene alergia al pollo, sufre de gastritis..."
+            value={observaciones}
+            onChangeText={setObservaciones}
+            multiline
+            numberOfLines={3}
+          />
+
+          <Text style={styles.sectionTitle}>4. Exámenes o Recetas (Opcional)</Text>
+          <TouchableOpacity style={styles.uploadBtn} onPress={handleSelectFile}>
+            {archivo ? (
+              <View style={styles.fileSelected}>
+                <Ionicons name="image" size={24} color="#4CAF50" />
+                <Text style={styles.fileName} numberOfLines={1}>Imagen seleccionada</Text>
+                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              </View>
+            ) : (
+              <View style={styles.filePlaceholder}>
+                <Ionicons name="cloud-upload-outline" size={30} color="#875686" />
+                <Text style={styles.uploadText}>Subir foto o documento</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.submitBtn, loading && styles.disabledBtn]} 
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.submitText}>ENVIAR SOLICITUD</Text>
+            )}
+          </TouchableOpacity>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#F9F9F9' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  content: { padding: 25 },
+  
+  petBadge: { backgroundColor: '#875686', alignSelf: 'flex-start', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 25 },
+  petBadgeText: { color: 'white', fontWeight: 'bold' },
+
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10 },
+  input: { backgroundColor: 'white', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#eee', fontSize: 16, color: '#333' },
+  textArea: { height: 100, textAlignVertical: 'top' },
+
+  uploadBtn: { marginTop: 5, marginBottom: 30 },
+  filePlaceholder: { backgroundColor: 'white', borderStyle: 'dashed', borderWidth: 2, borderColor: '#d1d1d1', borderRadius: 15, height: 80, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 10 },
+  uploadText: { color: '#875686', fontWeight: '600' },
+  fileSelected: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', padding: 15, borderRadius: 12, gap: 10, borderWidth: 1, borderColor: '#4CAF50' },
+  fileName: { flex: 1, color: '#2e7d32', fontWeight: 'bold' },
+
+  submitBtn: { backgroundColor: '#FF8C42', padding: 18, borderRadius: 15, alignItems: 'center', shadowColor: '#FF8C42', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
+  disabledBtn: { backgroundColor: '#ccc' },
+  submitText: { color: 'white', fontWeight: 'bold', fontSize: 18 }
+});
+
+export default RequestDietScreen;
+</file>
+
 <file path="frontend/screens/SplashScreen.js">
 // frontend/screens/SplashScreen.js (CON IMÁGENES)
 import React, { useEffect, useRef } from 'react';
@@ -11148,6 +12051,164 @@ const SplashScreen = ({ navigation }) => {
 };
 
 export default SplashScreen;
+</file>
+
+<file path="frontend/screens/SubscriptionScreen.js">
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../services/api'; // Asegúrate que apunte a tu backend
+
+const SubscriptionScreen = ({ navigation, route }) => {
+  const { clienteId } = route.params;
+  const [planes, setPlanes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    cargarPlanes();
+  }, []);
+
+  const cargarPlanes = async () => {
+    try {
+      const res = await api.get('/cliente/subscripciones/');
+      setPlanes(res.data);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudieron cargar los planes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubscribe = async (plan) => {
+    try {
+      // Usamos FormData porque el backend espera Form(...)
+      const formData = new FormData();
+      formData.append('plan_id', plan.id);
+
+      await api.post(`/cliente/subscripciones/${clienteId}/suscribirse`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      Alert.alert(
+        "¡Bienvenido a Premium! 🌟",
+        "Ahora tienes acceso ilimitado a nuestros nutricionistas.",
+        [{ text: "Entendido", onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      Alert.alert("Error", "No se pudo procesar la suscripción.");
+    }
+  };
+
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#875686"/></View>;
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="close" size={30} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Elige tu Plan</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.hero}>
+          <Ionicons name="diamond" size={60} color="#FFD100" />
+          <Text style={styles.heroTitle}>Mejora la salud de tu mascota</Text>
+          <Text style={styles.heroSub}>Accede a dietas personalizadas por expertos.</Text>
+        </View>
+
+        {planes.map((plan) => (
+          <View key={plan.id} style={[styles.card, plan.precio > 0 ? styles.premiumCard : styles.basicCard]}>
+            {plan.precio > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>RECOMENDADO</Text>
+              </View>
+            )}
+            
+            <Text style={[styles.planName, plan.precio > 0 ? {color:'white'} : {color:'#333'}]}>
+              {plan.nombre}
+            </Text>
+            
+            <Text style={[styles.price, plan.precio > 0 ? {color:'white'} : {color:'#875686'}]}>
+              {plan.precio === 0 ? 'GRATIS' : `S/ ${plan.precio.toFixed(2)}`}
+              <Text style={{fontSize: 14, fontWeight:'normal'}}>/mes</Text>
+            </Text>
+
+            <View style={styles.features}>
+              {plan.beneficios.map((ben, index) => (
+                <View key={index} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={plan.precio > 0 ? "#FFD100" : "green"} />
+                  <Text style={[styles.featureText, plan.precio > 0 && {color:'white'}]}>{ben}</Text>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.button, plan.precio > 0 ? {backgroundColor: 'white'} : {backgroundColor: '#875686'}]}
+              onPress={() => handleSubscribe(plan)}
+            >
+              <Text style={[styles.buttonText, plan.precio > 0 ? {color: '#875686'} : {color: 'white'}]}>
+                {plan.precio > 0 ? 'OBTENER PREMIUM' : 'PLAN ACTUAL'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9F9F9' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { padding: 20, flexDirection: 'row', alignItems: 'center' },
+  title: { fontSize: 22, fontWeight: 'bold', marginLeft: 20, color: '#333' },
+  scroll: { padding: 20, paddingBottom: 50 },
+  hero: { alignItems: 'center', marginBottom: 30 },
+  heroTitle: { fontSize: 20, fontWeight: 'bold', marginTop: 10, color: '#333' },
+  heroSub: { fontSize: 14, color: '#666', marginTop: 5 },
+  
+  card: {
+    borderRadius: 20,
+    padding: 25,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    position: 'relative',
+  },
+  basicCard: { backgroundColor: 'white' },
+  premiumCard: { backgroundColor: '#875686' }, // Paw Purple
+  
+  badge: {
+    position: 'absolute',
+    top: -12,
+    right: 20,
+    backgroundColor: '#FFD100',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  badgeText: { fontSize: 10, fontWeight: 'bold', color: '#333' },
+  
+  planName: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
+  price: { fontSize: 32, fontWeight: 'bold', marginBottom: 20 },
+  
+  features: { marginBottom: 25 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  featureText: { marginLeft: 10, fontSize: 14, color: '#555' },
+  
+  button: {
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  buttonText: { fontWeight: 'bold', fontSize: 16 }
+});
+
+export default SubscriptionScreen;
 </file>
 
 <file path="frontend/screens/SuccessScreen.js">
@@ -11443,9 +12504,9 @@ export default UploadProofScreen;
 </file>
 
 <file path="frontend/screens/UserProfileScreen.js">
-// frontend/screens/UserProfileScreen.js - VERSIÓN FINAL CORREGIDA (2)
+// frontend/screens/UserProfileScreen.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11463,7 +12524,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native'; // Importante para recargar al volver
 import { getClienteProfile, updateClientProfile } from '../services/authService';
+import { getPetsByCliente } from '../services/petService';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 const UserProfileScreen = ({ navigation, route }) => {
@@ -11472,6 +12535,11 @@ const UserProfileScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  
+  // Estado para la membresía
+  const [membresia, setMembresia] = useState(null);
+  
+  const [pets, setPets] = useState([]);
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -11479,9 +12547,11 @@ const UserProfileScreen = ({ navigation, route }) => {
   });
 
   // ========================== CARGAR PERFIL ==========================
-  useEffect(() => {
-    loadProfileData();
-  }, [clienteId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+    }, [clienteId])
+  );
 
   const loadProfileData = async () => {
     if (!clienteId) {
@@ -11491,20 +12561,30 @@ const UserProfileScreen = ({ navigation, route }) => {
     }
 
     try {
-      setLoading(true);
-      const data = await getClienteProfile(clienteId);
+      // Cargamos perfil y mascotas en paralelo
+      const [profileData, petsResponse] = await Promise.all([
+        getClienteProfile(clienteId),
+        getPetsByCliente(clienteId)
+      ]);
 
       setFormData({
-        nombre: data.nombre || '',
-        telefono: data.telefono || '',
-        correo: data.correo || '',
+        nombre: profileData.nombre || '',
+        telefono: profileData.telefono || '',
+        correo: profileData.correo || '',
       });
 
-      if (data.foto) {
-        setProfilePhoto({ uri: data.foto });
+      if (profileData.foto) {
+        setProfilePhoto({ uri: profileData.foto });
       }
+
+      // Guardamos info de la membresía
+      setMembresia(profileData.membresia_activa);
+      
+      // Guardamos mascotas
+      setPets(petsResponse.mascotas || []);
+
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los datos del perfil.');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -11515,10 +12595,7 @@ const UserProfileScreen = ({ navigation, route }) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permiso requerido',
-          'Necesitamos acceso a tus fotos para cambiar tu imagen de perfil.'
-        );
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a tus fotos.');
         return;
       }
 
@@ -11532,8 +12609,6 @@ const UserProfileScreen = ({ navigation, route }) => {
       if (result.canceled) return;
 
       const original = result.assets[0].uri;
-
-      // Comprimir
       const manipulated = await manipulateAsync(
         original,
         [{ resize: { width: 800 } }],
@@ -11554,11 +12629,7 @@ const UserProfileScreen = ({ navigation, route }) => {
   // ========================== GUARDAR ==========================
   const handleSaveChanges = async () => {
     if (!formData.nombre.trim() || !formData.telefono.trim()) {
-      Alert.alert('Campos requeridos', 'El nombre y el teléfono no pueden estar vacíos.');
-      return;
-    }
-    if (formData.telefono.length < 9) {
-      Alert.alert('Teléfono inválido', 'Ingresa un número de teléfono válido.');
+      Alert.alert('Campos requeridos', 'Nombre y teléfono son obligatorios.');
       return;
     }
 
@@ -11573,47 +12644,42 @@ const UserProfileScreen = ({ navigation, route }) => {
         photoToSend = profilePhoto;
       }
       await updateClientProfile(clienteId, updateData, photoToSend);
-      Alert.alert('¡Éxito!', 'Tu perfil ha sido actualizado correctamente.', [
-        { text: 'OK', onPress: () => loadProfileData() }
-      ]);
+      Alert.alert('¡Éxito!', 'Perfil actualizado correctamente.');
+      loadProfileData(); // Recargar para asegurar consistencia
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'No se pudieron guardar los cambios.';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', 'No se pudieron guardar los cambios.');
     } finally {
       setSaving(false);
     }
   };
 
-  // ========================== LOADING ==========================
+  // ========================== RENDER ==========================
   if (loading) {
     return (
-      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.root} resizeMode="cover">
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text style={styles.loadingText}>Cargando perfil...</Text>
-          </View>
-        </SafeAreaView>
-      </ImageBackground>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#875686" />
+      </View>
     );
   }
 
-  // ========================== UI ==========================
+  // URL API para imágenes (ajusta si es necesario)
+  const API_URL = 'http://localhost:8000';
+
   return (
     <ImageBackground source={require('../assets/FONDOA.png')} style={styles.root} resizeMode="cover">
       <SafeAreaView style={styles.safeArea}>
         
-        {/* === HEADER AL ESTILO HOME === */}
+        {/* HEADER */}
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back-outline" size={32} color="white" />
+            <Ionicons name="arrow-back-outline" size={30} color="white" />
           </TouchableOpacity>
           <Image 
-            source={require('../assets/logo_amarillo.png')} // <-- CAMBIA ESTO POR EL NOMBRE DE TU LOGO
+            source={require('../assets/logo_amarillo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
             <Ionicons name="cart-outline" size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -11622,66 +12688,80 @@ const UserProfileScreen = ({ navigation, route }) => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {/* === CONTENEDOR PRINCIPAL BLANCO === */}
           <View style={styles.mainContainer}>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* TÍTULO DENTRO DEL CONTENEDOR */}
               <Text style={styles.screenTitle}>Mi Perfil</Text>
 
               {/* FOTO */}
               <View style={styles.photoSection}>
                 <TouchableOpacity style={styles.photoContainer} onPress={handleSelectPhoto}>
                   <Image
-                    source={profilePhoto ? { uri: profilePhoto.uri } : require('../assets/user.png')}
+                    source={profilePhoto ? { uri: profilePhoto.uri.startsWith('http') ? profilePhoto.uri : profilePhoto.uri } : require('../assets/user.png')}
                     style={styles.profileImage}
                   />
                   <View style={styles.editPhotoButton}>
                     <Ionicons name="camera" size={20} color="white" />
                   </View>
                 </TouchableOpacity>
-                <Text style={styles.photoHint}>Toca para cambiar la foto</Text>
               </View>
+
+              {/* === 💎 SECCIÓN MEMBRESÍA (NUEVO) === */}
+              <TouchableOpacity 
+                style={[
+                  styles.membershipCard, 
+                  membresia?.precio > 0 ? styles.premiumBg : styles.basicBg
+                ]}
+                onPress={() => navigation.navigate('Subscription', { clienteId })}
+              >
+                <View style={styles.membershipContent}>
+                  <View>
+                    <Text style={styles.membershipLabel}>PLAN ACTUAL</Text>
+                    <Text style={styles.membershipTitle}>
+                      {membresia?.nombre || 'Básico (Gratis)'}
+                    </Text>
+                  </View>
+                  <View style={styles.upgradeBtn}>
+                    <Text style={styles.upgradeText}>
+                      {membresia?.precio > 0 ? 'GESTIONAR' : 'MEJORAR'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={MAIN_PURPLE} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+              {/* ========================================= */}
 
               {/* FORMULARIO */}
               <View style={styles.formContainer}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nombre completo <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>Nombre completo</Text>
                   <TextInput
                     style={styles.input}
                     value={formData.nombre}
                     onChangeText={(text) => setFormData({ ...formData, nombre: text })}
-                    placeholder="Ej: Juan Pérez"
-                    placeholderTextColor="#999"
                   />
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>Teléfono</Text>
                   <TextInput
                     style={styles.input}
                     value={formData.telefono}
                     onChangeText={(text) => setFormData({ ...formData, telefono: text })}
-                    placeholder="Ej: 987654321"
-                    placeholderTextColor="#999"
                     keyboardType="phone-pad"
-                    maxLength={15}
                   />
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Correo electrónico</Text>
+                  <Text style={styles.label}>Correo (No editable)</Text>
                   <TextInput
                     style={[styles.input, styles.inputDisabled]}
                     value={formData.correo}
                     editable={false}
-                    placeholderTextColor="#999"
                   />
-                  <Text style={styles.hint}>El correo no puede ser modificado</Text>
                 </View>
                 
-                {/* BOTÓN GUARDAR */}
                 <TouchableOpacity
                   style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                   onPress={handleSaveChanges}
@@ -11690,13 +12770,23 @@ const UserProfileScreen = ({ navigation, route }) => {
                   {saving ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={24} color="white" />
-                      <Text style={styles.saveButtonText}>Guardar Cambios</Text>
-                    </>
+                    <Text style={styles.saveButtonText}>Guardar Cambios</Text>
                   )}
                 </TouchableOpacity>
               </View>
+
+              {/* LISTA RAPIDA DE MASCOTAS */}
+              <View style={styles.petsPreview}>
+                <Text style={styles.sectionTitle}>Mis Mascotas ({pets.length})</Text>
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('PetProfile', { clienteId })}
+                  style={styles.managePetsBtn}
+                >
+                  <Text style={styles.managePetsText}>Gestionar Mascotas</Text>
+                  <Ionicons name="paw" size={16} color="white" />
+                </TouchableOpacity>
+              </View>
+
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -11705,156 +12795,142 @@ const UserProfileScreen = ({ navigation, route }) => {
   );
 };
 
-// ========================== ESTILOS ==========================
-const MAIN_PURPLE = '#732C71'; // Un morado más oscuro para el texto del título
-const LIGHT_BACKGROUND = '#FFFFFF';
+const MAIN_PURPLE = '#732C71';
 const ORANGE = '#FF8C42';
+const YELLOW = '#FFD100';
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: 'transparent' },
-
+  safeArea: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
-    height: 140, // Altura del área morada superior
+    height: 100,
+    marginTop: 20,
   },
-  logo: {
-    width: 160,
-    height: 120,
-  },
+  logo: { width: 140, height: 80 },
 
   mainContainer: {
     flex: 1,
-    backgroundColor: LIGHT_BACKGROUND,
+    backgroundColor: '#fff',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    overflow: 'hidden',
     paddingTop: 30,
   },
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: 50 },
 
   screenTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: MAIN_PURPLE,
     paddingHorizontal: 30,
-    paddingTop: 10,
-    marginBottom: 5,
-  },
-
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-  },
-
-  photoSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  photoContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 4,
-    borderColor: '#fff',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    backgroundColor: '#E0E0E0',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 70,
-  },
-  editPhotoButton: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: ORANGE,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  photoHint: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-
-  formContainer: {
-    paddingHorizontal: 30,
-  },
-  inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+
+  photoSection: { alignItems: 'center', marginBottom: 20 },
+  photoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#eee',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  required: { color: '#FF5A5A' },
-  input: {
-    backgroundColor: '#F7F7F7',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#333',
-  },
-  inputDisabled: {
-    backgroundColor: '#E9E9E9',
-    color: '#888',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 5,
-    fontStyle: 'italic',
+  profileImage: { width: '100%', height: '100%', borderRadius: 60 },
+  editPhotoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: ORANGE,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
   },
 
-  saveButton: {
-    backgroundColor: ORANGE,
+  // ESTILOS MEMBRESIA
+  membershipCard: {
+    marginHorizontal: 30,
+    marginBottom: 25,
+    borderRadius: 15,
+    padding: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  basicBg: { backgroundColor: '#F0F0F0', borderLeftWidth: 5, borderLeftColor: '#999' },
+  premiumBg: { backgroundColor: '#FFF9C4', borderLeftWidth: 5, borderLeftColor: YELLOW }, // Fondo amarillito
+  
+  membershipContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  membershipLabel: { fontSize: 10, fontWeight: 'bold', color: '#666', marginBottom: 2 },
+  membershipTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  
+  upgradeBtn: { 
+    backgroundColor: 'rgba(255,255,255,0.8)', 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginTop: 15,
-    elevation: 4,
-    shadowColor: ORANGE,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    gap: 4
   },
-  saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+  upgradeText: { fontSize: 12, fontWeight: 'bold', color: MAIN_PURPLE },
+
+  // FORMULARIO
+  formContainer: { paddingHorizontal: 30 },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 5 },
+  input: {
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    color: '#333',
   },
+  inputDisabled: { backgroundColor: '#eee', color: '#888' },
+
+  saveButton: {
+    backgroundColor: MAIN_PURPLE,
+    padding: 15,
+    borderRadius: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+
+  // PETS PREVIEW
+  petsPreview: {
+    marginTop: 30,
+    paddingHorizontal: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  managePetsBtn: {
+    backgroundColor: ORANGE,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  managePetsText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
 });
 
 export default UserProfileScreen;
@@ -12659,23 +13735,15 @@ export const checkPaymentStatus = async (pagoId) => {
 
 <file path="frontend/services/petService.js">
 // frontend/services/petService.js
+
 import api from './api';
+import { Platform } from 'react-native';
 
 /**
  * Registra una nueva mascota para un cliente específico.
- * 
- * @param {string} clienteId - ID del cliente propietario
- * @param {Object} petData - Datos de la mascota
- * @param {string} petData.nombre - Nombre de la mascota
- * @param {string} petData.especie_id - ID de la especie (1 = perro, 2 = gato, etc.)
- * @param {string} petData.raza - Raza de la mascota
- * @param {number} petData.edad - Edad de la mascota en años
- * @param {string} petData.sexo - Sexo: 'M' (macho) o 'H' (hembra)
- * @returns {Promise<Object>} Respuesta del servidor con los datos de la mascota creada
  */
 export const createPet = async (clienteId, petData) => {
   try {
-    // Crear el FormData para enviar los datos
     const formData = new FormData();
     formData.append('nombre', petData.nombre);
     formData.append('especie_id', petData.especie_id);
@@ -12683,15 +13751,10 @@ export const createPet = async (clienteId, petData) => {
     formData.append('edad', petData.edad.toString());
     formData.append('sexo', petData.sexo);
 
-    // Hacer la petición POST al backend
     const response = await api.post(
       `/cliente/mascotas/${clienteId}`,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
 
     return response.data;
@@ -12703,7 +13766,6 @@ export const createPet = async (clienteId, petData) => {
 
 /**
  * Obtiene la lista de especies disponibles.
- * @returns {Promise<Array>} Lista de especies (perro, gato, etc.)
  */
 export const getSpecies = async () => {
   try {
@@ -12717,8 +13779,6 @@ export const getSpecies = async () => {
 
 /**
  * Obtiene todas las mascotas de un cliente.
- * @param {string} clienteId - ID del cliente
- * @returns {Promise<Array>} Lista de mascotas del cliente
  */
 export const getPetsByCliente = async (clienteId) => {
   try {
@@ -12732,8 +13792,6 @@ export const getPetsByCliente = async (clienteId) => {
 
 /**
  * Obtiene el detalle completo de una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @returns {Promise<Object>} Detalle de la mascota
  */
 export const getPetDetail = async (mascotaId) => {
   try {
@@ -12747,9 +13805,6 @@ export const getPetDetail = async (mascotaId) => {
 
 /**
  * Actualiza los datos de una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @param {Object} updateData - Datos a actualizar
- * @returns {Promise<Object>} Respuesta del servidor
  */
 export const updatePet = async (mascotaId, updateData) => {
   try {
@@ -12764,15 +13819,29 @@ export const updatePet = async (mascotaId, updateData) => {
       const uriParts = updateData.foto.uri.split('.');
       const fileType = uriParts[uriParts.length - 1];
       
-      formData.append('foto', {
-        uri: updateData.foto.uri,
+      const fileToSend = {
+        uri: Platform.OS === 'ios' ? updateData.foto.uri.replace('file://', '') : updateData.foto.uri,
         name: `pet_${mascotaId}.${fileType}`,
         type: `image/${fileType}`,
-      });
+      };
+
+      if (Platform.OS === 'web') {
+        // En web, convertir a Blob
+        const response = await fetch(updateData.foto.uri);
+        const blob = await response.blob();
+        formData.append('foto', blob, fileToSend.name);
+      } else {
+        formData.append('foto', fileToSend);
+      }
     }
 
+    // Configuración headers dinámica para web/mobile
+    const headers = { 'Accept': 'application/json' };
+    if (Platform.OS !== 'web') headers['Content-Type'] = 'multipart/form-data';
+
     const response = await api.put(`/cliente/mascotas/${mascotaId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers,
+      transformRequest: Platform.OS === 'web' ? null : (data) => data,
     });
     return response.data;
   } catch (error) {
@@ -12783,8 +13852,6 @@ export const updatePet = async (mascotaId, updateData) => {
 
 /**
  * Elimina una mascota.
- * @param {string} mascotaId - ID de la mascota
- * @returns {Promise<Object>} Respuesta del servidor
  */
 export const deletePet = async (mascotaId) => {
   try {
@@ -12797,18 +13864,106 @@ export const deletePet = async (mascotaId) => {
 };
 
 /**
- * Obtiene una lista de razas para una especie específica.
- * @param {string} especieId - El ID de la especie (e.g., '1' para Perro).
- * @returns {Promise<Array<string>>} Una lista de nombres de razas.
+ * Crea un pedido especializado (Solicitud de dieta).
+ * Maneja lógica híbrida para Web y Móvil.
+ */
+export const createSpecializedRequest = async (clienteId, requestData, file = null) => {
+  try {
+    const formData = new FormData();
+    
+    // 1. Datos de texto
+    formData.append('registro_mascota_id', String(requestData.mascotaId));
+    formData.append('objetivo_dieta', requestData.objetivo);
+    formData.append('frecuencia_cantidad', requestData.frecuencia);
+    formData.append('consulta_nutricionista', 'true'); 
+    
+    if (requestData.observaciones) {
+      formData.append('indicaciones_adicionales', requestData.observaciones);
+    }
+
+    // 2. Manejo del Archivo (LÓGICA HÍBRIDA)
+    if (file && file.uri) {
+      const uriParts = file.uri.split('.');
+      let fileType = uriParts[uriParts.length - 1];
+      
+      // Limpieza de extensión para Web (a veces viene con query params o blob:)
+      if (fileType.length > 5 || fileType.includes('/') || fileType.includes(':')) {
+        fileType = "jpg";
+      }
+
+      const filename = `examen_${requestData.mascotaId}.${fileType}`;
+
+      if (Platform.OS === 'web') {
+        // 🌐 WEB: Convertir URI a Blob real
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        
+        // En web, se pasa (Blob, nombre_archivo)
+        formData.append('archivo_adicional', blob, filename);
+      } else {
+        // 📱 MÓVIL: Objeto estándar de React Native
+        let mimeType = 'image/jpeg';
+        if (fileType.toLowerCase() === 'png') mimeType = 'image/png';
+        
+        const uri = Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri;
+
+        formData.append('archivo_adicional', {
+          uri: uri,
+          name: filename,
+          type: mimeType, 
+        });
+      }
+    }
+
+    // 3. Listas vacías
+    formData.append('alergias_ids', '[]');
+    formData.append('condiciones_salud', '[]');
+    formData.append('preferencias_alimentarias', '[]');
+
+    console.log(`📤 Enviando solicitud (Modo: ${Platform.OS})...`);
+
+    // 4. Configuración de Headers (CRUCIAL PARA WEB)
+    const headers = { 'Accept': 'application/json' };
+    
+    // En Web NO poner 'Content-Type': 'multipart/form-data' manual, el navegador lo pone con el boundary.
+    // En Móvil SÍ es necesario a veces para que Axios no se confunda.
+    if (Platform.OS !== 'web') {
+        headers['Content-Type'] = 'multipart/form-data';
+    }
+
+    const response = await api.post(
+      `/cliente/pedido/especializado/${clienteId}`,
+      formData,
+      { 
+        headers: headers,
+        // En Web, transformRequest en null permite que el navegador maneje el FormData nativo.
+        // En Móvil, retornamos data para evitar stringify.
+        transformRequest: Platform.OS === 'web' ? null : (data) => data
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('❌ Error Backend:', JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error('❌ Error código:', error.message);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Obtiene razas.
  */
 export const getBreedsBySpecies = async (especieId) => {
-  if (!especieId) return []; // No hacer la llamada si no hay especie seleccionada
+  if (!especieId) return [];
   try {
     const response = await api.get(`/cliente/platos-mascotas/especies/${especieId}/razas`);
     return response.data;
   } catch (error) {
     console.error('❌ Error al obtener razas:', error.response?.data || error.message);
-    return ["Mestizo"]; // Devolver un valor por defecto en caso de error
+    return ["Mestizo"];
   }
 };
 </file>

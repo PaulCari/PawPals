@@ -20,6 +20,7 @@ import PetProfileScreen from './screens/PetProfileScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
 import PaymentScreen from './screens/PaymentScreen';
+import NotificationScreen from './screens/NotificationScreen';
 import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
@@ -127,7 +128,6 @@ function MainTabs({ route }) {
         options={{ tabBarLabel: 'Inicio' }} 
       />
       
-      {/* ✅ NUEVA PESTAÑA NUTRICIONISTA */}
       <Tab.Screen 
         name="Nutritionist" 
         component={NutritionistScreen} 
@@ -174,6 +174,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Success" component={SuccessScreen} />
+        <Stack.Screen name="Notifications" component={NotificationScreen} />
 
         {/* App principal con Tabs */}
         <Stack.Screen name="Main" component={MainTabs} />

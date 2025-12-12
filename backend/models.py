@@ -71,6 +71,24 @@ class MembresiaSubscripcion(Base):
 
     cliente: Mapped[list['Cliente']] = relationship('Cliente', back_populates='membresia_subscripcion')
 
+class Notificacion(Base):
+    __tablename__ = 'notificacion'
+    __table_args__ = (
+        ForeignKeyConstraint(['cliente_id'], ['cliente.id'], ondelete='CASCADE'),
+        Index('cliente_id', 'cliente_id')
+    )
+
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(BIGINT(unsigned=True), nullable=False)
+    titulo: Mapped[str] = mapped_column(String(100), nullable=False)
+    mensaje: Mapped[str] = mapped_column(Text, nullable=False)
+    fecha: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    leido: Mapped[int] = mapped_column(TINYINT(1), default=0)
+    tipo: Mapped[str] = mapped_column(String(50)) # Ej: 'DIETA_LISTA'
+    referencia_id: Mapped[str] = mapped_column(String(50)) # ID de la mascota o pedido
+
+    cliente: Mapped['Cliente'] = relationship('Cliente', back_populates='notificacion')
+
 
 class PasarelaPago(Base):
     __tablename__ = 'pasarela_pago'
@@ -135,6 +153,7 @@ class Cliente(Base):
     registro_mascota: Mapped[list['RegistroMascota']] = relationship('RegistroMascota', back_populates='cliente')
     pedido: Mapped[list['Pedido']] = relationship('Pedido', back_populates='cliente')
     plato_favorito: Mapped[list['PlatoFavorito']] = relationship('PlatoFavorito', back_populates='cliente')
+    notificacion: Mapped[list['Notificacion']] = relationship('Notificacion', back_populates='cliente')
 
 
 class Nutricionista(Base):

@@ -71,6 +71,39 @@ export const getPetDetail = async (mascotaId) => {
  * Actualiza los datos de una mascota.
  */
 export const updatePet = async (mascotaId, updateData) => {
+  if (updateData.foto && !updateData.foto.uri.startsWith('http')) {
+      
+      // 1. Determinar el tipo de archivo de forma segura
+      let fileType = 'jpg'; // Por defecto
+      const uri = updateData.foto.uri;
+
+      if (uri.includes('png')) {
+        fileType = 'png';
+      } else if (uri.includes('jpeg') || uri.includes('jpg')) {
+        fileType = 'jpg';
+      }
+
+      // 2. Crear un nombre de archivo LIMPIO (sin dos puntos ni slashes)
+      const cleanFileName = `mascota_${mascotaId}_${Date.now()}.${fileType}`;
+
+      if (Platform.OS === 'web') {
+        // --- WEB ---
+        // Convertir la URI blob a un objeto Blob real
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        
+        // Enviar el Blob con el nombre limpio
+        formData.append('foto', blob, cleanFileName);
+      } else {
+        // --- MÓVIL (Android/iOS) ---
+        const fileToSend = {
+          uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+          name: cleanFileName,
+          type: `image/${fileType === 'jpg' ? 'jpeg' : 'png'}`,
+        };
+        formData.append('foto', fileToSend);
+      }
+    }
   try {
     const formData = new FormData();
     if (updateData.nombre) formData.append('nombre', updateData.nombre);

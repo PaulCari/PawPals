@@ -86,24 +86,35 @@ const HomeScreen = ({ navigation, route }) => {
       {/* 🔹 HEADER MODIFICADO */}
       <View style={styles.header}>
 
-        {/* 🔥 Botón menú (tres rayitas) */}
-        <TouchableOpacity onPress={() => console.log("Menú presionado")}>
-          <Ionicons name="menu-outline" size={32} color="white" />
+        {/* 1. Botón Perfil (Izquierda) */}
+        <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { clienteId })}>
+          <Ionicons name="person-circle-outline" size={34} color="white" />
         </TouchableOpacity>
 
-        {/* LOGO */}
+        {/* 2. LOGO (Centro) */}
         <Image
           source={require('../assets/logo_amarillo.png')}
           style={styles.logo}
         />
 
-        {/* 🔥 Botón Carrito */}
-        <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })} >
-          <CartBadge clienteId={clienteId}>
-            <Ionicons name="cart-outline" size={30} color="white" />
-          </CartBadge>
-        </TouchableOpacity>
+        {/* 3. Grupo Derecha: Notificaciones + Carrito */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+          
+          {/* ✅ Botón Notificaciones */}
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications', { clienteId })}>
+            <Ionicons name="notifications-outline" size={28} color="white" />
+          </TouchableOpacity>
+
+          {/* ✅ Botón Carrito */}
+          <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
+            <CartBadge clienteId={clienteId}>
+              <Ionicons name="cart-outline" size={30} color="white" />
+            </CartBadge>
+          </TouchableOpacity>
+        </View>
+
       </View>
+
       {/* 🤍 CONTENEDOR BLANCO */}
       <View style={styles.container}>
         <Text style={styles.welcomeTitle}>

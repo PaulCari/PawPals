@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from utils import keygen, globals
 from sqlalchemy.orm import joinedload, Session
 from utils.db import get_db
-from models import Cliente, Direccion
-import os
-
+import os  
+from models import Cliente, Direccion, Notificacion
 router = APIRouter(prefix="/cliente", tags=["Cliente"])
 
 # ---------------------------------------------------------------------------
@@ -569,3 +568,27 @@ def eliminar_direccion(
             }
     
     return {"mensaje": "Dirección eliminada correctamente."}
+@router.get("/{cliente_id}/notificaciones")
+def listar_notificaciones(cliente_id: str, db: Session = Depends(get_db)):
+    """
+    Lista las notificaciones del cliente ordenadas por fecha.
+    """
+    notificaciones = (
+        db.query(Notificacion)
+        .filter(Notificacion.cliente_id == cliente_id)
+        .order_by(Notificacion.fecha.desc())
+        .all()
+    )
+    
+    return [
+        {
+            "id": str(n.id),
+            "titulo": n.titulo,
+            "mensaje": n.mensaje,
+            "fecha": n.fecha.isoformat(),
+            "leido": bool(n.leido),
+            "tipo": n.tipo,
+            "referencia_id": n.referencia_id
+        }
+        for n in notificaciones
+    ]

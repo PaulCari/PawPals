@@ -1,4 +1,4 @@
-// frontend/screens/PetProfileScreen.js - VERSIÓN MEJORADA
+// frontend/screens/PetProfileScreen.js
 
 import React, { useState, useCallback } from 'react';
 import {
@@ -10,14 +10,88 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  ImageBackground
+  ImageBackground,
+  StyleSheet 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getPetsByCliente, deletePet } from '../services/petService';
+import { getPetsByCliente, deletePet, getPetDetail } from '../services/petService';
 import { getClienteProfile } from '../services/authService';
+import { addToCart } from '../services/cartService';
 import { styles } from '../styles/userProfileScreenStyles';
+
+// Estilos extra para la tarjeta de dieta
+const extraStyles = StyleSheet.create({
+  dietCard: {
+    backgroundColor: '#FFF9C4',
+    borderRadius: 15,
+    padding: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#FFD100',
+    width: '100%',
+  },
+  dietHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dietTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#875686',
+    marginLeft: 8,
+    flex: 1,
+  },
+  dietName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  dietDesc: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  dietFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  dietPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#732C71',
+  },
+  buyButton: {
+    backgroundColor: '#FF8C42',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  buyButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  // 🔥 NUEVO ESTILO PARA EL BOTÓN DE EDITAR PERFIL
+  editProfileBtn: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(135, 86, 134, 0.1)', // Un morado muy suave
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+  }
+});
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { clienteId } = route.params || {};
@@ -25,8 +99,9 @@ const PetProfileScreen = ({ navigation, route }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const [petMenus, setPetMenus] = useState({}); 
 
-  // 🔥 FUNCIÓN PARA OBTENER ÍCONO SEGÚN ESPECIE
   const getPetIcon = (especie) => {
     const especieLower = especie?.toLowerCase() || '';
     if (especieLower.includes('perro')) return 'paw';
@@ -35,25 +110,37 @@ const PetProfileScreen = ({ navigation, route }) => {
   };
 
   const loadData = async () => {
-    if (!clienteId) {
-      Alert.alert('Error', 'No se pudo identificar al usuario.');
-      setLoading(false);
-      return;
-    }
+    if (!clienteId) return;
     
     try {
       setLoading(true);
+      // 1. Cargar Perfil y Mascotas
       const [profileData, petsResponse] = await Promise.all([
         getClienteProfile(clienteId),
         getPetsByCliente(clienteId)
       ]);
       
       setUserProfile(profileData);
-      setPets(petsResponse.mascotas || []);
+      const mascotas = petsResponse.mascotas || [];
+      setPets(mascotas);
+
+      // 2. Cargar Menús Personalizados
+      const menusMap = {};
+      for (const pet of mascotas) {
+        try {
+          const detail = await getPetDetail(pet.id);
+          if (detail.menus_personalizados && detail.menus_personalizados.length > 0) {
+            menusMap[pet.id] = detail.menus_personalizados;
+          }
+        } catch (err) {
+          console.log(`No se pudo cargar detalle para ${pet.nombre}`);
+        }
+      }
+      setPetMenus(menusMap);
 
     } catch (error) {
-      console.error('❌ Error al cargar datos del perfil:', error);
-      Alert.alert('Error', 'No se pudieron cargar tus datos.');
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
     }
@@ -65,46 +152,39 @@ const PetProfileScreen = ({ navigation, route }) => {
     }, [clienteId])
   );
 
-  // 🔥 FUNCIÓN MEJORADA PARA ELIMINAR MASCOTA
+  const handleBuyDiet = async (menu) => {
+    try {
+      await addToCart(clienteId, menu, 1);
+      Alert.alert(
+        "¡Agregado!",
+        `El menú "${menu.nombre}" está en tu carrito.`,
+        [
+          { text: "Seguir viendo", style: "cancel" },
+          { text: "Ir al Carrito", onPress: () => navigation.navigate('Cart', { clienteId }) }
+        ]
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo agregar al carrito.");
+    }
+  };
+
   const handleDeletePet = (petId, petName) => {
     Alert.alert(
       "Eliminar Mascota",
-      `¿Estás seguro de que deseas eliminar a ${petName}?\n\nEsta acción no se puede deshacer.`,
+      `¿Eliminar a ${petName}?`,
       [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        {
-          text: "Eliminar",
-          style: "destructive",
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          style: "destructive", 
           onPress: async () => {
             try {
-              console.log('🗑️ Eliminando mascota:', petId);
-              
-              // Mostrar loading
               setLoading(true);
-              
-              // Llamar al servicio
               await deletePet(petId);
-              
-              console.log('✅ Mascota eliminada del backend');
-              
-              // Recargar datos
-              await loadData();
-              
-              Alert.alert(
-                "¡Eliminado!",
-                `${petName} ha sido eliminado de tu perfil.`
-              );
+              loadData(); 
             } catch (error) {
-              console.error('❌ Error al eliminar mascota:', error);
-              
-              const errorMessage = error.response?.data?.detail 
-                || error.message 
-                || 'No se pudo eliminar la mascota.';
-              
-              Alert.alert('Error', errorMessage);
+              Alert.alert('Error', 'No se pudo eliminar.');
             } finally {
               setLoading(false);
             }
@@ -114,23 +194,10 @@ const PetProfileScreen = ({ navigation, route }) => {
     );
   };
 
-  // 🔥 FUNCIÓN PARA EDITAR MASCOTA
-  const handleEditPet = (pet) => {
-    navigation.navigate('EditPet', { 
-      clienteId, 
-      petId: pet.id,
-      existingPet: pet 
-    });
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ImageBackground 
-          source={require('../assets/FONDOA.png')} 
-          style={styles.backgroundImage} 
-          resizeMode="cover" 
-        />
+        <ImageBackground source={require('../assets/FONDOA.png')} style={styles.backgroundImage} resizeMode="cover" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFF" />
         </View>
@@ -140,160 +207,100 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ImageBackground 
-        source={require('../assets/FONDOA.png')} 
-        style={styles.backgroundImage} 
-        resizeMode="cover" 
-      />
+      <ImageBackground source={require('../assets/FONDOA.png')} style={styles.backgroundImage} resizeMode="cover" />
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity>
-          <Ionicons name="menu" size={30} color="white" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={30} color="white" />
         </TouchableOpacity>
-        
-        <Image 
-          source={require('../assets/logo_amarillo.png')} 
-          style={styles.logo} 
-        />
-        
+        <Image source={require('../assets/logo_amarillo.png')} style={styles.logo} />
         <TouchableOpacity onPress={() => navigation.navigate('Cart', { clienteId })}>
           <Ionicons name="cart-outline" size={30} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* CONTENEDOR BLANCO */}
       <View style={styles.container}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false}>
           
-          {/* 🔥 PERFIL DEL USUARIO MEJORADO */}
+          {/* USER INFO CON BOTÓN DE EDITAR */}
           {userProfile && (
             <View style={styles.userInfoSection}>
               <View style={styles.profileImageContainer}>
                 <Image 
-                  source={
-                    userProfile.foto 
-                      ? { uri: userProfile.foto }
-                      : require('../assets/user.png')
-                  }
+                  source={userProfile.foto ? { uri: userProfile.foto } : require('../assets/user.png')}
                   style={styles.profileImage}
                 />
-                <TouchableOpacity style={styles.editProfileIconButton}>
-                  <Ionicons name="camera" size={20} color="#732C71" />
-                </TouchableOpacity>
               </View>
-
               <Text style={styles.userName}>{userProfile.nombre}</Text>
-              <Text style={styles.userInfoText}>
-                <Ionicons name="call" size={14} color="#888" /> {userProfile.telefono || 'Sin teléfono'}
-              </Text>
-              <Text style={styles.userInfoText}>
-                <Ionicons name="mail" size={14} color="#888" /> {userProfile.correo || 'Sin correo'}
-              </Text>
-
+              
+              {/* 🔥 BOTÓN PARA EDITAR PERFIL AGREGADO AQUÍ */}
               <TouchableOpacity 
-                style={styles.editProfileButton}
-                onPress={() => navigation.navigate('UserProfile', { clienteId })} // Esto navega a UserProfileScreen
+                style={extraStyles.editProfileBtn}
+                onPress={() => navigation.navigate('UserProfile', { clienteId })}
               >
-                <Text style={styles.editProfileButtonText}>Editar perfil</Text>
+                <Ionicons name="create-outline" size={18} color="#875686" />
+                <Text style={{ marginLeft: 5, color: '#875686', fontWeight: 'bold' }}>
+                  Editar Perfil
+                </Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* 🔥 SECCIÓN DE MASCOTAS MEJORADA */}
+          {/* LISTA DE MASCOTAS */}
           <View style={styles.petsSection}>
-            <View style={styles.petsSectionHeader}>
-              <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
-              {pets.length > 0 && (
-                <View style={styles.petsCount}>
-                  <Text style={styles.petsCountText}>{pets.length}</Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.petsSectionTitle}>Mis Mascotas</Text>
 
             <View style={styles.petsList}>
               {pets.map(pet => (
-                <View key={pet.id} style={styles.petCard}>
-                  <TouchableOpacity 
-                    style={styles.petCardImageContainer}
-                    onPress={() => {
-                      // Aquí podrías navegar a un detalle de mascota
-                      console.log('Ver detalle de:', pet.nombre);
-                    }}
-                  >
+                <View key={pet.id} style={[styles.petCard, { width: '100%', marginBottom: 20 }]}> 
+                  
+                  <View style={{flexDirection: 'row', alignItems: 'center', width: '100%'}}>
                     <Image
-                      source={
-                        pet.foto 
-                          ? { uri: pet.foto }
-                          : require('../assets/placeholder.png')
-                      }
-                      style={styles.petCardImage}
+                        source={pet.foto ? { uri: pet.foto } : require('../assets/placeholder.png')}
+                        style={styles.petCardImage}
                     />
-                    <View style={styles.petCardBadge}>
-                      <Ionicons 
-                        name={getPetIcon(pet.especie)} 
-                        size={16} 
-                        color="#732C71" 
-                      />
+                    <View style={{marginLeft: 15, flex: 1}}>
+                        <Text style={styles.petCardName}>{pet.nombre}</Text>
+                        <Text style={styles.petCardInfo}>{pet.raza} • {pet.edad} años</Text>
                     </View>
-                  </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('EditPet', { clienteId, petId: pet.id, existingPet: pet })}>
+                        <Ionicons name="create-outline" size={24} color="#875686" />
+                    </TouchableOpacity>
+                  </View>
 
-                  <Text style={styles.petCardName}>{pet.nombre}</Text>
-                  <Text style={styles.petCardInfo}>{pet.raza}</Text>
-                  <Text style={styles.petCardInfo}>{pet.edad} años</Text>
-
-                  <View style={styles.petCardDetails}>
-                    {pet.peso && (
-                      <View style={styles.petCardDetailRow}>
-                        <Ionicons name="fitness" size={14} color="#888" />
-                        <Text style={styles.petCardDetailText}>
-                          {pet.peso} Kg
-                        </Text>
+                  {/* SECCIÓN DIETA PERSONALIZADA */}
+                  {petMenus[pet.id] && petMenus[pet.id].length > 0 && (
+                    <View style={extraStyles.dietCard}>
+                      <View style={extraStyles.dietHeader}>
+                        <Ionicons name="restaurant" size={16} color="#FF8C42" />
+                        <Text style={extraStyles.dietTitle}>DIETA PERSONALIZADA DISPONIBLE</Text>
                       </View>
-                    )}
-                    <View style={styles.petCardDetailRow}>
-                      <Ionicons name="medical" size={14} color="#888" />
-                      <Text style={styles.petCardDetailText}>
-                        Sin alergias
+                      
+                      <Text style={extraStyles.dietName}>{petMenus[pet.id][0].nombre}</Text>
+                      <Text style={extraStyles.dietDesc} numberOfLines={2}>
+                        {petMenus[pet.id][0].descripcion}
                       </Text>
+                      
+                      <View style={extraStyles.dietFooter}>
+                        <Text style={extraStyles.dietPrice}>S/ {petMenus[pet.id][0].precio.toFixed(2)}</Text>
+                        <TouchableOpacity 
+                          style={extraStyles.buyButton}
+                          onPress={() => handleBuyDiet(petMenus[pet.id][0])}
+                        >
+                          <Ionicons name="cart" size={16} color="white" />
+                          <Text style={extraStyles.buyButtonText}>COMPRAR</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
+                  )}
 
-                  {/* 🔥 BOTONES DE ACCIÓN MEJORADOS */}
-                  <View style={styles.petCardActions}>
-                    <TouchableOpacity 
-                      style={styles.editPetButton}
-                      onPress={() => handleEditPet(pet)}
-                    >
-                      <Ionicons name="create-outline" size={18} color="#875686" />
-                      <Text style={styles.editPetText}>Editar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                      style={styles.deletePetButton}
-                      onPress={() => handleDeletePet(pet.id, pet.nombre)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
-                      <Text style={styles.deletePetText}>Eliminar</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
               ))}
-              
-              {/* 🔥 BOTÓN AGREGAR MEJORADO */}
-              <TouchableOpacity 
-                style={styles.addPetCard} 
-                onPress={() => navigation.navigate('AddPet', { clienteId })}
-              >
-                <View style={styles.addPetCircle}>
-                  <Ionicons name="add" size={40} color="white" />
-                </View>
-                <Text style={styles.addPetText}>
-                  Agregar nueva{'\n'}mascota
-                </Text>
+
+              <TouchableOpacity style={styles.addPetCard} onPress={() => navigation.navigate('AddPet', { clienteId })}>
+                <Ionicons name="add-circle" size={40} color="#732C71" />
+                <Text style={styles.addPetText}>Agregar mascota</Text>
               </TouchableOpacity>
             </View>
           </View>
