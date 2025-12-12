@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: MAIN_PURPLE,
     paddingHorizontal: 30,
-    paddingTop: 30,
+    paddingTop: 10,
     marginBottom: 5,
   },
 
