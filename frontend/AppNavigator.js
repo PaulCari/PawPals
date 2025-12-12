@@ -24,6 +24,7 @@ import UploadProofScreen from './screens/UploadProofScreen';
 import OrderSuccessScreen from './screens/OrderSuccessScreen';
 import AddAddressScreen from './screens/AddAddressScreen';
 import AddPetScreen from './screens/AddPetScreen';
+import EditPetScreen from './screens/EditPetScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -146,7 +147,7 @@ const AppNavigator = () => {
         <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
         <Stack.Screen name="AddAddress" component={AddAddressScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="AddPet" component={AddPetScreen} options={{ presentation: 'modal' }} />
-        
+        <Stack.Screen name="EditPet" component={EditPetScreen} options={{ presentation: 'modal' }} />
         {/* Aquí está tu pantalla de perfil, lista para ser llamada */}
         {/*<Stack.Screen name="UserProfile" component={UserProfileScreen} /> */}
       </Stack.Navigator>

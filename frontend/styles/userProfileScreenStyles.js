@@ -308,6 +308,54 @@ deletePetText: {
   fontSize: 13,
   fontWeight: '600',
   marginLeft: 4,
-}
+},
+// === ACCIONES DE LA TARJETA ===
+  petCardActions: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+
+  editPetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F5F0F5',
+    flex: 1,
+    marginRight: 6,
+  },
+
+  editPetText: {
+    color: '#875686',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  deletePetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFF0F0',
+    flex: 1,
+    marginLeft: 6,
+  },
+
+  deletePetText: {
+    color: '#FF6B6B',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
 
 });

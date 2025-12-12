@@ -189,4 +189,63 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 10,
   },
+  photoSection: {
+  alignItems: 'center',
+  marginBottom: 25,
+},
+
+photoContainer: {
+  position: 'relative',
+  width: 140,
+  height: 140,
+  borderRadius: 70,
+  overflow: 'hidden',
+  borderWidth: 4,
+  borderColor: 'white',
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 8,
+},
+
+petPhoto: {
+  width: '100%',
+  height: '100%',
+},
+
+photoPlaceholder: {
+  width: '100%',
+  height: '100%',
+  backgroundColor: '#F5F0F5',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+photoEditBadge: {
+  position: 'absolute',
+  bottom: 5,
+  right: 5,
+  backgroundColor: '#FF8C42',
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderWidth: 3,
+  borderColor: 'white',
+},
+
+photoHint: {
+  marginTop: 12,
+  fontSize: 14,
+  color: '#888',
+  fontStyle: 'italic',
+},
+
+textArea: {
+  height: 100,
+  textAlignVertical: 'top',
+  paddingTop: 12,
+},
 });

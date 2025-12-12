@@ -1,4 +1,4 @@
-// frontend/screens/PetProfileScreen.js
+// frontend/screens/PetProfileScreen.js - VERSIÓN MEJORADA
 
 import React, { useState, useCallback } from 'react';
 import {
@@ -65,11 +65,11 @@ const PetProfileScreen = ({ navigation, route }) => {
     }, [clienteId])
   );
 
-  // 🔥 FUNCIÓN PARA ELIMINAR MASCOTA
+  // 🔥 FUNCIÓN MEJORADA PARA ELIMINAR MASCOTA
   const handleDeletePet = (petId, petName) => {
     Alert.alert(
       "Eliminar Mascota",
-      `¿Estás seguro de que deseas eliminar a ${petName}? Esta acción no se puede deshacer.`,
+      `¿Estás seguro de que deseas eliminar a ${petName}?\n\nEsta acción no se puede deshacer.`,
       [
         {
           text: "Cancelar",
@@ -81,7 +81,14 @@ const PetProfileScreen = ({ navigation, route }) => {
           onPress: async () => {
             try {
               console.log('🗑️ Eliminando mascota:', petId);
+              
+              // Mostrar loading
+              setLoading(true);
+              
+              // Llamar al servicio
               await deletePet(petId);
+              
+              console.log('✅ Mascota eliminada del backend');
               
               // Recargar datos
               await loadData();
@@ -92,12 +99,28 @@ const PetProfileScreen = ({ navigation, route }) => {
               );
             } catch (error) {
               console.error('❌ Error al eliminar mascota:', error);
-              Alert.alert('Error', 'No se pudo eliminar la mascota.');
+              
+              const errorMessage = error.response?.data?.detail 
+                || error.message 
+                || 'No se pudo eliminar la mascota.';
+              
+              Alert.alert('Error', errorMessage);
+            } finally {
+              setLoading(false);
             }
           }
         }
       ]
     );
+  };
+
+  // 🔥 FUNCIÓN PARA EDITAR MASCOTA
+  const handleEditPet = (pet) => {
+    navigation.navigate('EditPet', { 
+      clienteId, 
+      petId: pet.id,
+      existingPet: pet 
+    });
   };
 
   if (loading) {
@@ -193,7 +216,10 @@ const PetProfileScreen = ({ navigation, route }) => {
                 <View key={pet.id} style={styles.petCard}>
                   <TouchableOpacity 
                     style={styles.petCardImageContainer}
-                    onLongPress={() => handleDeletePet(pet.id, pet.nombre)}
+                    onPress={() => {
+                      // Aquí podrías navegar a un detalle de mascota
+                      console.log('Ver detalle de:', pet.nombre);
+                    }}
                   >
                     <Image
                       source={
@@ -228,19 +254,29 @@ const PetProfileScreen = ({ navigation, route }) => {
                     <View style={styles.petCardDetailRow}>
                       <Ionicons name="medical" size={14} color="#888" />
                       <Text style={styles.petCardDetailText}>
-                        Alergias: Pollo
+                        Sin alergias
                       </Text>
                     </View>
                   </View>
 
-                  {/* 🔥 BOTÓN ELIMINAR */}
-                  <TouchableOpacity 
-                    style={styles.deletePetButton}
-                    onPress={() => handleDeletePet(pet.id, pet.nombre)}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
-                    <Text style={styles.deletePetText}>Eliminar</Text>
-                  </TouchableOpacity>
+                  {/* 🔥 BOTONES DE ACCIÓN MEJORADOS */}
+                  <View style={styles.petCardActions}>
+                    <TouchableOpacity 
+                      style={styles.editPetButton}
+                      onPress={() => handleEditPet(pet)}
+                    >
+                      <Ionicons name="create-outline" size={18} color="#875686" />
+                      <Text style={styles.editPetText}>Editar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.deletePetButton}
+                      onPress={() => handleDeletePet(pet.id, pet.nombre)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                      <Text style={styles.deletePetText}>Eliminar</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
               
