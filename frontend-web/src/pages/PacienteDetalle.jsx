@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
-import { ArrowLeft, Activity, FileText, Calendar, User } from 'lucide-react';
+// ✅ CORRECCIÓN 1: Agregamos 'Download' a los iconos
+import { ArrowLeft, Activity, FileText, Calendar, User, Download } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import ReportePDF from '../components/ReportePDF';
 
 const PacienteDetalle = () => {
   const { id } = useParams();
@@ -13,7 +16,6 @@ const PacienteDetalle = () => {
   useEffect(() => {
     const fetchDetalle = async () => {
       try {
-        // Llamamos al endpoint que corregiste previamente
         const res = await api.get(`/cliente/mascotas/detalle/${id}`);
         setData(res.data);
       } catch (error) {
@@ -87,14 +89,38 @@ const PacienteDetalle = () => {
                   
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
-                      <div className="flex items-center gap-2 text-paw-dark-light">
-                        <Calendar size={18} />
-                        <span className="font-bold">{new Date(consulta.fecha).toLocaleDateString()}</span>
-                        <span className="text-gray-400 text-sm">{new Date(consulta.fecha).toLocaleTimeString()}</span>
+                      
+                      {/* Fecha y Hora */}
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 text-paw-dark-light">
+                          <Calendar size={18} />
+                          <span className="font-bold">{new Date(consulta.fecha).toLocaleDateString()}</span>
+                        </div>
+                        <span className="text-gray-400 text-xs ml-6">{new Date(consulta.fecha).toLocaleTimeString()}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm bg-purple-50 text-purple-700 px-3 py-1 rounded-full">
-                        <User size={14} /> {consulta.nutricionista}
+
+                      {/* Grupo derecha: Nutricionista + Botón PDF */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 text-sm bg-purple-50 text-purple-700 px-3 py-1 rounded-full border border-purple-100">
+                          <User size={14} /> {consulta.nutricionista}
+                        </div>
+
+                        {/* ✅ CORRECCIÓN 2: Aquí insertamos el componente de descarga */}
+                        <PDFDownloadLink
+                          document={<ReportePDF data={data} consulta={consulta} />}
+                          fileName={`Receta_${data.nombre}_${new Date(consulta.fecha).toISOString().split('T')[0]}.pdf`}
+                          className="flex items-center gap-2 text-sm bg-paw-yellow text-paw-dark px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition shadow-sm font-medium"
+                        >
+                          {({ loading }) =>
+                            loading ? '...' : (
+                              <>
+                                <Download size={16} /> PDF
+                              </>
+                            )
+                          }
+                        </PDFDownloadLink>
                       </div>
+
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
